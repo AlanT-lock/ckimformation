@@ -12,6 +12,7 @@ import { formation as foIncendie } from './formateur-incendie-gestes-postures';
 import { formation as foInde } from './formateur-independant-interne';
 import { formation as pnl } from './pnl-controle-qualiopi';
 import { formation as qualiopi } from './preparer-controle-qualiopi';
+import { formation as fpa } from './formateur-professionnel-adultes-fpa';
 
 export const formations: Formation[] = [
   incendie,
@@ -26,6 +27,7 @@ export const formations: Formation[] = [
   foInde,
   pnl,
   qualiopi,
+  fpa,
 ];
 
 export function getFormationBySlug(slug: string): Formation | undefined {
