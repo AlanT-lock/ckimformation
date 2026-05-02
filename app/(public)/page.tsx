@@ -7,6 +7,7 @@ import { FadeUp } from '@/components/motion/FadeUp';
 import { StatCounter } from '@/components/motion/StatCounter';
 import { Marquee } from '@/components/motion/Marquee';
 import { PARCOURS_META } from '@/lib/parcours';
+import { JsonLd } from '@/components/seo/JsonLd';
 
 export default function Home() {
   return (
@@ -130,6 +131,25 @@ export default function Home() {
           </FadeUp>
         </Container>
       </section>
+
+      <JsonLd
+        data={{
+          '@context': 'https://schema.org',
+          '@type': 'LocalBusiness',
+          name: 'C-KIM Formation',
+          description: 'Centre de formation certifié Qualiopi spécialisé en sécurité au travail, prévention et développement humain.',
+          address: {
+            '@type': 'PostalAddress',
+            addressLocality: 'Draguignan',
+            postalCode: '83300',
+            addressRegion: 'Provence-Alpes-Côte d\'Azur',
+            addressCountry: 'FR',
+          },
+          email: 'ckimsecuriteformation@gmail.com',
+          telephone: '+33-6-62-51-56-59',
+          areaServed: 'Provence-Alpes-Côte d\'Azur',
+        }}
+      />
     </>
   );
 }

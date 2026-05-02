@@ -11,6 +11,7 @@ import { MethodeCkim } from '@/components/sections/MethodeCkim';
 import { CtaFinal } from '@/components/sections/CtaFinal';
 import { formations, getFormationBySlug } from '@/lib/formations';
 import { getParcoursMeta } from '@/lib/parcours';
+import { JsonLd } from '@/components/seo/JsonLd';
 
 interface PageProps { params: Promise<{ slug: string }> }
 
@@ -147,6 +148,16 @@ export default async function FormationPage({ params }: PageProps) {
           </Container>
         </section>
       )}
+
+      <JsonLd
+        data={{
+          '@context': 'https://schema.org',
+          '@type': 'Course',
+          name: `${formation.titre}${formation.sousTitre ? ' — ' + formation.sousTitre : ''}`,
+          description: formation.objectifs,
+          provider: { '@type': 'Organization', name: 'C-KIM Formation', sameAs: 'https://ckim-formation.fr' },
+        }}
+      />
     </>
   );
 }
