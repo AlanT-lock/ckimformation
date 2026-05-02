@@ -1,14 +1,23 @@
+import { Button } from '@/components/ui/Button';
+import { Tag } from '@/components/ui/Tag';
+import { Container } from '@/components/ui/Container';
+
 export default function Home() {
   return (
-    <main className="min-h-screen bg-white p-8">
-      <h1 className="font-display text-6xl tracking-wide text-dark">FORMER <em className="not-italic text-teal">POUR</em> AGIR</h1>
-      <p className="font-sans text-muted mt-4">Test design tokens</p>
-      <div className="mt-4 flex gap-2">
-        <span className="bg-teal text-white px-3 py-1">teal</span>
-        <span className="bg-orange text-white px-3 py-1">orange</span>
-        <span className="bg-light text-dark px-3 py-1">light</span>
-        <span className="bg-dark text-white px-3 py-1">dark</span>
-      </div>
+    <main className="min-h-screen bg-white py-12">
+      <Container>
+        <div className="flex flex-wrap gap-3 mb-6">
+          <Tag>Qualiopi</Tag>
+          <Tag color="#E8692A" variant="solid">Sécurité</Tag>
+          <Tag color="#2E9E6A">Alimentaire</Tag>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <Button variant="primary">Demander un devis</Button>
+          <Button variant="secondary">Voir les formations</Button>
+          <Button variant="ghost">En savoir plus</Button>
+          <Button variant="dark">Contact</Button>
+        </div>
+      </Container>
     </main>
   );
 }
