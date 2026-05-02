@@ -11,6 +11,7 @@ import { formation as macFoSst } from './mac-formateur-sst';
 import { formation as foIncendie } from './formateur-incendie-gestes-postures';
 import { formation as foInde } from './formateur-independant-interne';
 import { formation as pnl } from './pnl-controle-qualiopi';
+import { formation as qualiopi } from './preparer-controle-qualiopi';
 
 export const formations: Formation[] = [
   incendie,
@@ -24,6 +25,7 @@ export const formations: Formation[] = [
   foIncendie,
   foInde,
   pnl,
+  qualiopi,
 ];
 
 export function getFormationBySlug(slug: string): Formation | undefined {
