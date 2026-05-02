@@ -1,13 +1,11 @@
 'use client';
 import { Container } from '@/components/ui/Container';
 import { Button } from '@/components/ui/Button';
+import { useDevisModal } from '@/components/forms/DevisModal';
 import type { Formation } from '@/lib/types/formation';
 
 export function CtaFinal({ formation }: { formation: Formation }) {
-  // Temporary stub — Task 18 will replace with useDevisModal hook
-  const open = (titre: string) => {
-    if (typeof window !== 'undefined') alert(`Devis pour : ${titre}`);
-  };
+  const { open } = useDevisModal();
   return (
     <section className="bg-light py-24">
       <Container>
