@@ -31,17 +31,20 @@ export default function Home() {
       {/* Stats - light */}
       <section className="bg-light py-24">
         <Container>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 text-center sm:text-left">
             {[
-              { n: 15, s: '', label: 'Formations' },
-              { n: 8, s: '', label: 'Parcours' },
-              { n: 100, s: '%', label: 'Qualiopi' },
-              { n: 80, s: '%', label: 'Pratique' },
+              { n: 150, s: '', label: 'Sessions de formation organisées', animate: true },
+              { n: 2025, s: '', label: "Création de l'organisme", animate: false },
+              { n: 80, s: '%', label: 'Pratique', animate: true },
             ].map((stat, i) => (
               <FadeUp key={stat.label} delay={i * 0.08}>
                 <div>
                   <p className="font-display text-6xl md:text-7xl text-teal leading-none">
-                    <StatCounter to={stat.n} suffix={stat.s} />
+                    {stat.animate ? (
+                      <StatCounter to={stat.n} suffix={stat.s} />
+                    ) : (
+                      <span>{stat.n}{stat.s}</span>
+                    )}
                   </p>
                   <p className="mt-2 text-xs uppercase tracking-[0.2em] text-dark/60">{stat.label}</p>
                 </div>

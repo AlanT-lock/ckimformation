@@ -8,7 +8,7 @@ export const formation: Formation = {
   ref: 'SECU-01',
   hero: {
     image: '/images/formations/incendie.jpg',
-    alt: "Manipulation d'un extincteur lors d'un exercice incendie",
+    alt: "Extincteur à eau pulvérisée — équipement de lutte contre l'incendie",
   },
   infosPratiques: {
     duree: '2 heures ou 5 heures',

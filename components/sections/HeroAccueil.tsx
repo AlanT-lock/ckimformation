@@ -26,15 +26,16 @@ export function HeroAccueil() {
         transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
       />
       <div className="absolute top-0 inset-x-0 h-[3px] bg-gradient-to-r from-teal via-teal-l to-orange" />
-      <Container className="relative z-10 flex flex-col justify-center min-h-[92vh] py-24">
+      <Container className="relative z-10 flex flex-col items-center justify-center text-center min-h-[92vh] py-24">
         <motion.p
-          className="text-xs uppercase tracking-[0.4em] text-teal-l mb-6 flex items-center gap-3"
+          className="text-xs uppercase tracking-[0.4em] text-teal-l mb-6 flex items-center justify-center gap-3"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.2 }}
         >
           <span className="inline-block w-8 h-[2px] bg-teal-l" />
           Centre de formation certifié Qualiopi — Draguignan (83)
+          <span className="inline-block w-8 h-[2px] bg-teal-l" />
         </motion.p>
         <h1 className="font-display text-6xl md:text-8xl lg:text-[120px] leading-[0.88] tracking-wide mb-8">
           <LetterReveal text="FORMER" delay={0.1} /><br />
@@ -42,7 +43,7 @@ export function HeroAccueil() {
           <LetterReveal text="AGIR" delay={0.6} />
         </h1>
         <motion.p
-          className="text-base md:text-lg text-muted max-w-xl leading-relaxed mb-10"
+          className="text-base md:text-lg text-muted max-w-2xl leading-relaxed mb-10 mx-auto"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 1.0 }}
@@ -50,7 +51,7 @@ export function HeroAccueil() {
           Sécurité au travail · Prévention des risques · Développement humain. 60 à 80 % de pratique, formateurs certifiés INRS, AFNOR et FPA, intervention sur site partout en région PACA.
         </motion.p>
         <motion.div
-          className="flex flex-wrap gap-4"
+          className="flex flex-wrap gap-4 justify-center"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 1.2 }}
