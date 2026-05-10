@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/relance-recyclage",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/relance-bimestrielle",
+      "schedule": "0 9 1 1,3,5,7,9,11 *"
+    },
+    {
+      "path": "/api/cron/relance-annuelle",
+      "schedule": "0 9 5 1 *"
+    }
+  ]
+}

@@ -16,7 +16,7 @@ export const formation: Formation = {
       "Dirigeants et responsables qualité d'organismes de formation — 1 à 5 personnes",
     prerequis:
       "Lire, écrire, compter — connaissances du fonctionnement d'un organisme de formation",
-    prixIndicatif: 'Nous consulter',
+    prixIndicatif: 'Sur devis',
     modalite: 'Présentiel — 60 % de pratique — animée par un auditeur AFNOR',
     inscription: '15 jours avant la session',
     recyclage: 'Avant chaque audit de surveillance ou de renouvellement',

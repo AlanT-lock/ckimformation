@@ -1,22 +1,17 @@
 'use client';
 import { useEffect } from 'react';
-import Lenis from 'lenis';
+import { usePathname } from 'next/navigation';
 
+/**
+ * Petit provider qui force le scroll au top à chaque changement de route.
+ * (Lenis a été retiré : sa sensation de retenue dégradait l'UX. Scroll natif partout.)
+ */
 export function LenisProvider({ children }: { children: React.ReactNode }) {
-  useEffect(() => {
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce) return;
+  const pathname = usePathname();
 
-    const lenis = new Lenis({ duration: 1.1, smoothWheel: true });
-    function raf(time: number) {
-      lenis.raf(time);
-      requestAnimationFrame(raf);
-    }
-    const id = requestAnimationFrame(raf);
-    return () => {
-      cancelAnimationFrame(id);
-      lenis.destroy();
-    };
-  }, []);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
   return <>{children}</>;
 }

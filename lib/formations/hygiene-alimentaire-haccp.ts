@@ -15,7 +15,7 @@ export const formation: Formation = {
     public:
       'Tout professionnel manipulant des denrées alimentaires (cuisine, restauration, bar, réception) — 4 à 10 personnes',
     prerequis: 'Aucun',
-    prixIndicatif: '350 € HT / personne — prise en charge OPCO EP possible',
+    prixIndicatif: '350 € HT (indiv.) · 1 500 € HT (4-6 pers.) · 2 200 € HT (7-10 pers.)',
     modalite: 'Présentiel — sur site client',
     inscription: '7 jours avant la session',
     recyclage: 'Tous les 3 ans',

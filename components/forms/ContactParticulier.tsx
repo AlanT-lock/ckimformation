@@ -1,8 +1,9 @@
 'use client';
 import { useState } from 'react';
 import { submitContactParticulier } from '@/app/actions/contact';
+import { FormationSelect, type FormationOption } from './FormationSelect';
 
-export function ContactParticulier() {
+export function ContactParticulier({ formations }: { formations: FormationOption[] }) {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; message?: string; errors?: Record<string, string> } | null>(null);
 
@@ -33,6 +34,7 @@ export function ContactParticulier() {
         <Field name="email" label="Email *" type="email" error={result?.errors?.email} />
         <Field name="telephone" label="Téléphone *" error={result?.errors?.telephone} />
       </div>
+      <FormationSelect formations={formations} />
       <label className="block">
         <span className="text-xs uppercase tracking-[0.15em] text-dark/60">Message *</span>
         <textarea name="message" rows={5} className="mt-1 w-full border border-light rounded-md px-3 py-2 text-sm focus:outline-none focus:border-teal" />

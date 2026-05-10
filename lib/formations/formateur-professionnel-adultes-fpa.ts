@@ -16,7 +16,7 @@ export const formation: Formation = {
       'Toute personne souhaitant exercer le métier de formateur professionnel — 8 à 12 personnes maximum',
     prerequis:
       "Niveau Bac minimum ou 3 ans d'expérience professionnelle + entretien de positionnement obligatoire",
-    prixIndicatif: '6 000 € HT — financement CPF, OPCO, France Travail, Région Sud',
+    prixIndicatif: '6 000 € HT (parcours 29 semaines) — financement CPF, OPCO, France Travail, Région Sud',
     modalite: 'Présentiel / Distanciel / Mixte',
     inscription: '15 jours avant + entretien de positionnement',
     recyclage: 'Titre professionnel valable à vie — veille pédagogique conseillée',

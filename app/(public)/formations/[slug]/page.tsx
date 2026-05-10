@@ -9,36 +9,42 @@ import { HeroFormation } from '@/components/sections/HeroFormation';
 import { MetaBlock } from '@/components/sections/MetaBlock';
 import { MethodeCkim } from '@/components/sections/MethodeCkim';
 import { CtaFinal } from '@/components/sections/CtaFinal';
-import { formations, getFormationBySlug } from '@/lib/formations';
+import { UpcomingSessions } from '@/components/sections/UpcomingSessions';
+import { TarifsSection } from '@/components/sections/TarifsSection';
+import { getAllFormations, getFormationBySlug } from '@/lib/db/formations';
 import { getParcoursMeta } from '@/lib/parcours';
 import { JsonLd } from '@/components/seo/JsonLd';
 
 interface PageProps { params: Promise<{ slug: string }> }
 
+export const revalidate = 300; // ISR : données rafraîchies toutes les 5 min
+
 export async function generateStaticParams() {
+  const formations = await getAllFormations();
   return formations.map((f) => ({ slug: f.slug }));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const f = getFormationBySlug(slug);
+  const f = await getFormationBySlug(slug);
   if (!f) return {};
   return { title: f.seo.title, description: f.seo.description };
 }
 
 export default async function FormationPage({ params }: PageProps) {
   const { slug } = await params;
-  const formation = getFormationBySlug(slug);
+  const formation = await getFormationBySlug(slug);
   if (!formation) notFound();
   const meta = getParcoursMeta(formation.parcours);
-  const liees = formation.formationsLiees
-    .map((s) => getFormationBySlug(s))
-    .filter((f): f is NonNullable<typeof f> => Boolean(f));
+  const liees = (await Promise.all(
+    formation.formationsLiees.map((s) => getFormationBySlug(s))
+  )).filter((f): f is NonNullable<typeof f> => Boolean(f));
 
   return (
     <>
       <HeroFormation formation={formation} meta={meta} />
       <MetaBlock formation={formation} color={meta.couleur} />
+      <TarifsSection tarifs={formation.tarifs ?? []} color={meta.couleur} />
 
       {/* 3. Objectifs - white */}
       <section className="bg-white py-20">
@@ -121,6 +127,9 @@ export default async function FormationPage({ params }: PageProps) {
       {/* 8. Méthode C-KIM (transverse) - dark */}
       <MethodeCkim />
 
+      {/* 8b. Prochaines sessions (Supabase) */}
+      <UpcomingSessions formationSlug={formation.slug} color={meta.couleur} />
+
       {/* 9. CTA final - light */}
       <CtaFinal formation={formation} />
 
@@ -155,7 +164,7 @@ export default async function FormationPage({ params }: PageProps) {
           '@type': 'Course',
           name: `${formation.titre}${formation.sousTitre ? ' — ' + formation.sousTitre : ''}`,
           description: formation.objectifs,
-          provider: { '@type': 'Organization', name: 'C-KIM Formation', sameAs: 'https://ckim-formation.fr' },
+          provider: { '@type': 'Organization', name: 'C-KIM Formation', sameAs: 'https://ckimformation.fr' },
         }}
       />
     </>

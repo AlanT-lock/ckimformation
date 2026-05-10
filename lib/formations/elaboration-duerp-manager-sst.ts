@@ -16,7 +16,7 @@ export const formation: Formation = {
       'Managers de proximité, encadrants, référents prévention — 4 à 10 personnes',
     prerequis:
       "Compétences de base en prévention INRS (eformation-inrs.fr) — être manager ou en cours de le devenir",
-    prixIndicatif: 'Sur devis — nous consulter',
+    prixIndicatif: '1 100 € HT (4-6 pers.) · 1 600 € HT (7-10 pers.)',
     modalite: 'Présentiel — sur site client',
     inscription: '15 jours avant la session',
     recyclage: 'Mise à jour conseillée tous les 24 mois',

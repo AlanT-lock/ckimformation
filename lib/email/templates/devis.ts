@@ -26,7 +26,7 @@ export function devisEmailHtml(data: DevisInput): string {
       <table style="width:100%;border-collapse:collapse;background:#EEF5F7;border-radius:8px;overflow:hidden;margin-top:16px;">
         ${body}
       </table>
-      <p style="margin-top:16px;color:#7AACB2;font-size:12px;">Envoyé depuis ckim-formation.fr</p>
+      <p style="margin-top:16px;color:#7AACB2;font-size:12px;">Envoyé depuis ckimformation.fr</p>
     </div>
   `;
 }

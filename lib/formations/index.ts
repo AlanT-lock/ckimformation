@@ -13,11 +13,19 @@ import { formation as foInde } from './formateur-independant-interne';
 import { formation as pnl } from './pnl-controle-qualiopi';
 import { formation as qualiopi } from './preparer-controle-qualiopi';
 import { formation as fpa } from './formateur-professionnel-adultes-fpa';
+import { formation as bsBe } from './habilitation-electrique-bs-be-manoeuvre';
+import { formation as sstInitiale } from './sst-initiale';
+import { formation as macSst } from './mac-sst';
+import { formation as gestesPostures } from './gestes-et-postures';
 
 export const formations: Formation[] = [
   incendie,
+  gestesPostures,
+  sstInitiale,
+  macSst,
   h0b0,
   b1vb2v,
+  bsBe,
   haccp,
   duerpForm,
   duerpManager,

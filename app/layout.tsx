@@ -6,7 +6,7 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'C-KIM Formation — Sécurité au travail & développement humain',
   description: 'Centre de formation certifié Qualiopi à Draguignan (PACA). Sécurité, prévention, formateurs, développement humain.',
-  metadataBase: new URL('https://ckim-formation.fr'),
+  metadataBase: new URL('https://ckimformation.fr'),
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

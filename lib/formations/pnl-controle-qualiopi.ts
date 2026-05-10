@@ -15,7 +15,7 @@ export const formation: Formation = {
     public:
       'Toute personne souhaitant améliorer sa communication et son développement personnel — 4 à 10 personnes',
     prerequis: 'Aucun',
-    prixIndicatif: '350 € HT',
+    prixIndicatif: '320 € HT (indiv.) · Groupe : sur devis',
     modalite: 'Présentiel — 80 % de pratique',
     inscription: '7 jours avant la session',
     recyclage: 'Conseillé tous les 2 ans',

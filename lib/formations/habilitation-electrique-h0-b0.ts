@@ -14,7 +14,7 @@ export const formation: Formation = {
     duree: '7 heures (1 jour)',
     public: 'Tout public — exécutants de travaux non électriques',
     prerequis: 'Aucun',
-    prixIndicatif: '250 € TTC',
+    prixIndicatif: '200 € HT (indiv.) · 850 € HT (4-6 pers.) · 1 300 € HT (7-10 pers.)',
     modalite: 'Présentiel',
     inscription: '7 jours avant',
     recyclage: 'Tous les 3 ans (préconisation NF C18-510)',

@@ -16,7 +16,7 @@ export const formation: Formation = {
       'Formateurs SST certifiés souhaitant renouveler leur certificat — 5 à 10 personnes maximum',
     prerequis:
       "Être titulaire du certificat de formateur SST délivré par une entité habilitée INRS + compétences de base en prévention",
-    prixIndicatif: 'Nous consulter',
+    prixIndicatif: 'Sur devis',
     modalite: 'Présentiel — habilitation INRS',
     inscription: '15 jours avant la session',
     recyclage: 'Obligatoire tous les 36 mois',

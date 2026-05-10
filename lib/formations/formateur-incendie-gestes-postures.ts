@@ -15,7 +15,7 @@ export const formation: Formation = {
     public: 'Futurs formateurs sécurité incendie ou gestes & postures — 3 à 10 personnes',
     prerequis:
       'Compétences de base en prévention INRS — pour Gestes & Postures : avoir suivi une formation Gestes & Postures',
-    prixIndicatif: 'Nous consulter',
+    prixIndicatif: 'Sur devis',
     modalite: 'Présentiel — sur site C-KIM ou client',
     inscription: '15 jours avant la session',
     recyclage: 'Conseillé tous les 36 mois',

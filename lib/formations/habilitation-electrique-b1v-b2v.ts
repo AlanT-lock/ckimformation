@@ -14,7 +14,7 @@ export const formation: Formation = {
     duree: '14 heures (2 jours)',
     public: 'Électriciens / techniciens de maintenance — 4 à 10 personnes par session',
     prerequis: 'Être électricien ou technicien de maintenance amené à réaliser des travaux BT',
-    prixIndicatif: '300 € HT / personne',
+    prixIndicatif: '550 € HT (indiv.) · 1 700 € HT (4-6 pers.) · 2 400 € HT (7-10 pers.)',
     modalite: 'Présentiel — sur site client (60 % de pratique)',
     inscription: '7 jours avant la session',
     recyclage: 'Tous les 3 ans, ou si absence supérieure à 6 mois au poste',

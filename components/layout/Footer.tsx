@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Container } from '@/components/ui/Container';
 
 export function Footer() {
@@ -7,8 +8,14 @@ export function Footer() {
       <Container>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 pb-10 border-b border-white/10">
           <div>
-            <p className="font-display text-2xl tracking-[0.25em]">C-KIM FORMATION</p>
-            <p className="mt-3 text-sm text-muted leading-relaxed">
+            <Image
+              src="/logo-ckim.png"
+              alt="C-KIM Formation"
+              width={512}
+              height={353}
+              className="h-20 w-auto"
+            />
+            <p className="mt-4 text-sm text-muted leading-relaxed">
               Centre de formation certifié Qualiopi — Sécurité, prévention et développement humain. Draguignan (83), région PACA.
             </p>
           </div>
@@ -24,7 +31,7 @@ export function Footer() {
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-teal-l mb-3">Contact</p>
             <ul className="space-y-2 text-sm">
-              <li><a href="tel:0662515659" className="hover:text-teal-l">06 62 51 56 59</a></li>
+              <li><a href="tel:0662515559" className="hover:text-teal-l">06 62 51 55 59</a></li>
               <li><a href="mailto:ckimsecuriteformation@gmail.com" className="hover:text-teal-l break-all">ckimsecuriteformation@gmail.com</a></li>
               <li className="text-muted">Draguignan (83) — PACA</li>
             </ul>

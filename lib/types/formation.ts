@@ -13,6 +13,24 @@ export interface Module {
   points: string[];
 }
 
+export type RecommandationType = 'recyclage' | 'suite' | 'complementaire';
+
+export interface FormationRecommandee {
+  slug: string;
+  type: RecommandationType;
+  delai_mois?: number;       // Pour recyclage uniquement (ex. 24 pour SST)
+}
+
+export interface TarifTier {
+  label: string;            // "Individuel", "Groupe 4 à 6 pers."
+  price: number | null;     // null → "Sur devis"
+  unit?: string;            // "HT" par défaut
+  pour?: string;            // "personne" / "groupe"
+  note?: string;            // ex. "DUERP finalisé inclus"
+  group?: string;           // ex. "Express 2h" pour formations multi-modes
+  highlight?: boolean;      // mettre en valeur
+}
+
 export interface Formation {
   slug: string;
   titre: string;
@@ -34,10 +52,13 @@ export interface Formation {
   };
   objectifs: string;
   programme: Module[];
+  tarifs?: TarifTier[];
   publicDetail?: string;
   evaluation: string;
   referencesReglementaires: string;
   formationsLiees: string[];
+  secteursCibles?: string[];
+  formationsRecommandees?: FormationRecommandee[];
   seo: {
     title: string;
     description: string;

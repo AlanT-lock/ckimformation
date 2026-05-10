@@ -8,8 +8,24 @@ import { StatCounter } from '@/components/motion/StatCounter';
 import { Marquee } from '@/components/motion/Marquee';
 import { PARCOURS_META } from '@/lib/parcours';
 import { JsonLd } from '@/components/seo/JsonLd';
+import { FormationsHighlight } from '@/components/sections/FormationsHighlight';
+import { getFormationBySlug } from '@/lib/db/formations';
 
-export default function Home() {
+const HIGHLIGHTED_SLUGS = [
+  'sst-initiale',
+  'incendie-extincteur-evacuation',
+  'gestes-et-postures',
+  'duerp-formation-accompagnement',
+  'hygiene-alimentaire-haccp',
+];
+
+export const revalidate = 300;
+
+export default async function Home() {
+  const highlighted = (await Promise.all(
+    HIGHLIGHTED_SLUGS.map((s) => getFormationBySlug(s))
+  )).filter((f): f is NonNullable<typeof f> => Boolean(f));
+
   return (
     <>
       <HeroAccueil />
@@ -54,14 +70,17 @@ export default function Home() {
         </Container>
       </section>
 
+      {/* Formations à l'affiche - carousel - light */}
+      <FormationsHighlight formations={highlighted} />
+
       {/* Parcours preview - white */}
       <section className="bg-white py-24">
         <Container>
           <FadeUp>
             <SectionHeader
               eyebrow="Catalogue"
-              titre="8 parcours, 15 formations."
-              accent="15 formations"
+              titre="8 parcours, 17 formations."
+              accent="17 formations"
               description="Un catalogue couvrant la sécurité au travail, la prévention, le management, les formateurs et le développement humain."
             />
           </FadeUp>
@@ -126,8 +145,8 @@ export default function Home() {
               />
               <div className="flex flex-wrap gap-4 justify-center mt-8">
                 <ButtonLink href="/contact" variant="primary">Demander un devis</ButtonLink>
-                <a href="tel:0662515659" className="inline-flex items-center justify-center gap-2 rounded-md px-6 py-3 font-sans text-sm font-semibold uppercase tracking-wider border border-dark text-dark hover:bg-dark hover:text-white transition-all">
-                  06 62 51 56 59
+                <a href="tel:0662515559" className="inline-flex items-center justify-center gap-2 rounded-md px-6 py-3 font-sans text-sm font-semibold uppercase tracking-wider border border-dark text-dark hover:bg-dark hover:text-white transition-all">
+                  06 62 51 55 59
                 </a>
               </div>
             </div>
@@ -149,7 +168,7 @@ export default function Home() {
             addressCountry: 'FR',
           },
           email: 'ckimsecuriteformation@gmail.com',
-          telephone: '+33-6-62-51-56-59',
+          telephone: '+33-6-62-51-55-59',
           areaServed: 'Provence-Alpes-Côte d\'Azur',
         }}
       />

@@ -16,7 +16,7 @@ export const formation: Formation = {
       'Toute personne souhaitant devenir formateur indépendant ou formateur interne — 2 à 8 personnes maximum',
     prerequis:
       "Maîtrise des outils informatiques de base + capacités relationnelles, d'animation et d'expression (évaluées par entretien)",
-    prixIndicatif: 'Nous consulter',
+    prixIndicatif: 'Sur devis',
     modalite: 'Présentiel / Distanciel / Mixte',
     inscription: '15 jours avant + entretien de positionnement',
     recyclage: 'Conseillé tous les 36 mois',

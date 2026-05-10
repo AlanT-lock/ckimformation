@@ -16,7 +16,7 @@ export const formation: Formation = {
       'Tout salarié souhaitant devenir formateur SST — 5 à 10 personnes maximum',
     prerequis:
       "Certificat SST à jour + compétences de base en prévention INRS + capacités relationnelles et d'animation",
-    prixIndicatif: 'Nous consulter',
+    prixIndicatif: 'Sur devis',
     modalite: "Présentiel — habilitation INRS uniquement (animation sous habilitation)",
     inscription: '15 jours avant la session',
     recyclage: 'MAC FO SST tous les 36 mois',

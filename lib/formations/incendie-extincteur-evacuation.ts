@@ -14,7 +14,7 @@ export const formation: Formation = {
     duree: '2 heures ou 5 heures',
     public: 'Tout public',
     prerequis: 'Avoir 18 ans — Savoir lire et écrire',
-    prixIndicatif: '70 à 200 € TTC',
+    prixIndicatif: 'Express 2h : 80 € HT (indiv.) · 450 € (4-6) · 700 € (7-10) — Complet 5h : 150 € HT (indiv.) · 800 € (4-6) · 1 200 € (7-10)',
     modalite: 'Présentiel — sur site client',
     inscription: '24h avant la session',
   },

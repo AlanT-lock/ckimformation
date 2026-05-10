@@ -1,10 +1,11 @@
 import type { MetadataRoute } from 'next';
-import { formations } from '@/lib/formations';
+import { getAllFormations } from '@/lib/db/formations';
 
-const BASE = 'https://ckim-formation.fr';
+const BASE = 'https://ckimformation.fr';
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
+  const formations = await getAllFormations();
   return [
     { url: `${BASE}/`, lastModified: now, priority: 1.0 },
     { url: `${BASE}/organisme`, lastModified: now, priority: 0.8 },

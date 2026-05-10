@@ -20,7 +20,7 @@ export default function MentionsLegalesPage() {
           <h2 className="font-display text-2xl mt-8">Hébergement</h2>
           <p>Vercel Inc., 340 S Lemon Ave #4133, Walnut, CA 91789, USA.</p>
           <h2 className="font-display text-2xl mt-8">Contact</h2>
-          <p>ckimsecuriteformation@gmail.com — 06 62 51 56 59</p>
+          <p>ckimsecuriteformation@gmail.com — 06 62 51 55 59</p>
           <h2 className="font-display text-2xl mt-8">Numéro Qualiopi</h2>
           <p>[Numéro de certification Qualiopi à insérer]</p>
         </div>

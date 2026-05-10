@@ -15,7 +15,7 @@ export const formation: Formation = {
     public:
       "Dirigeant, responsable d'établissement, référent sécurité, RH — 1 à 5 personnes",
     prerequis: "Aucun — idéalement, accès aux informations de l'entreprise",
-    prixIndicatif: 'Forfait 1 500 € HT — DUERP finalisé inclus',
+    prixIndicatif: '1 800 € HT (4-6 pers.) · 2 500 € HT (7-10 pers.) — DUERP finalisé inclus',
     modalite: 'Présentiel — formation + accompagnement sur site',
     inscription: '15 jours avant la session',
     recyclage: 'Mise à jour annuelle obligatoire et à chaque changement important',

@@ -16,8 +16,8 @@ export function CtaFinal({ formation }: { formation: Formation }) {
           <p className="mt-4 text-dark/70">Devis personnalisé sous 24h. Intervention partout en région PACA.</p>
           <div className="mt-8 flex justify-center gap-4 flex-wrap">
             <Button variant="primary" onClick={() => open(formation.titre)}>Demander un devis</Button>
-            <a href="tel:0662515659" className="inline-flex items-center justify-center gap-2 rounded-md px-6 py-3 font-sans text-sm font-semibold uppercase tracking-wider border border-dark text-dark hover:bg-dark hover:text-white transition-all">
-              06 62 51 56 59
+            <a href="tel:0662515559" className="inline-flex items-center justify-center gap-2 rounded-md px-6 py-3 font-sans text-sm font-semibold uppercase tracking-wider border border-dark text-dark hover:bg-dark hover:text-white transition-all">
+              06 62 51 55 59
             </a>
           </div>
         </div>

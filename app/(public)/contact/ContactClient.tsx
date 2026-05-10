@@ -4,9 +4,10 @@ import { Container } from '@/components/ui/Container';
 import { FadeUp } from '@/components/motion/FadeUp';
 import { ContactEntreprise } from '@/components/forms/ContactEntreprise';
 import { ContactParticulier } from '@/components/forms/ContactParticulier';
+import type { FormationOption } from '@/components/forms/FormationSelect';
 import { cn } from '@/lib/utils';
 
-export function ContactClient() {
+export function ContactClient({ formations }: { formations: FormationOption[] }) {
   const [tab, setTab] = useState<'entreprise' | 'particulier'>('entreprise');
 
   return (
@@ -19,7 +20,7 @@ export function ContactClient() {
             Parlons<br/><em className="not-italic text-teal-l">formation.</em>
           </h1>
           <p className="mt-8 text-muted max-w-xl">
-            Devis sous 24h. Téléphone direct : <a href="tel:0662515659" className="text-teal-l hover:underline">06 62 51 56 59</a>.
+            Devis sous 24h. Téléphone direct : <a href="tel:0662515559" className="text-teal-l hover:underline">06 62 51 55 59</a>.
           </p>
         </Container>
       </section>
@@ -42,7 +43,7 @@ export function ContactClient() {
                 </button>
               ))}
             </div>
-            {tab === 'entreprise' ? <ContactEntreprise /> : <ContactParticulier />}
+            {tab === 'entreprise' ? <ContactEntreprise formations={formations} /> : <ContactParticulier formations={formations} />}
           </FadeUp>
         </Container>
       </section>

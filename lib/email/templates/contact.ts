@@ -13,6 +13,7 @@ export function contactEntrepriseEmailHtml(d: ContactEntrepriseInput): string {
     ['Secteur', d.secteur],
     ['Email', d.email],
     ['Téléphone', d.telephone],
+    ['Formation', d.formation || 'Pas renseigné'],
     ['Message', d.message],
   ];
   const body = rows.filter(([,v]) => v).map(([k,v]) => `<tr><td style="padding:6px 12px;font-weight:600;">${k}</td><td style="padding:6px 12px;">${escapeHtml(v!)}</td></tr>`).join('');
@@ -25,6 +26,7 @@ export function contactParticulierEmailHtml(d: ContactParticulierInput): string 
     ['Nom', d.nom],
     ['Email', d.email],
     ['Téléphone', d.telephone],
+    ['Formation', d.formation || 'Pas renseigné'],
     ['Message', d.message],
   ];
   const body = rows.filter(([,v]) => v).map(([k,v]) => `<tr><td style="padding:6px 12px;font-weight:600;">${k}</td><td style="padding:6px 12px;">${escapeHtml(v!)}</td></tr>`).join('');
