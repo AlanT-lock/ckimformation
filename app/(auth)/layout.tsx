@@ -15,8 +15,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           />
         </Link>
       </header>
-      <div className="flex-1 flex items-center justify-center px-6 py-10">
-        <div className="w-full max-w-md">{children}</div>
+      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 py-10">
+        <div className="w-full max-w-lg">{children}</div>
       </div>
       <footer className="px-6 md:px-10 py-4 text-xs text-muted/70 text-center">
         © {new Date().getFullYear()} C-KIM Formation

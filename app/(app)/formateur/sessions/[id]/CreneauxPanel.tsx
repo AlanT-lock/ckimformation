@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { Button } from '@/components/app/Button';
 import { createClient } from '@/lib/supabase/client';
 import { triggerEmargement, closeEmargement, reopenEmargement } from './actions';
+import { loadAckedTriggers, markTriggerAcked } from '@/lib/ui/acked-store';
 
 const FR_DATE = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 const FR_TIME = (h: string) => h.slice(0, 5);
@@ -38,9 +39,15 @@ export function CreneauxPanel({
   const [signatures, setSignatures] = useState<Record<string, number>>({});
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [allDoneAlert, setAllDoneAlert] = useState<string | null>(null);
+  const [allDoneAlert, setAllDoneAlert] = useState<{ triggerId: string; creneauId: string } | null>(null);
+  const ackedRef = useRef<Set<string>>(new Set());
 
   const supabase = useMemo(() => createClient(), []);
+
+  // Charge les triggers déjà acquittés (localStorage) après mount
+  useEffect(() => {
+    ackedRef.current = loadAckedTriggers();
+  }, []);
 
   // Subscribe : triggers + emargements
   useEffect(() => {
@@ -89,15 +96,27 @@ export function CreneauxPanel({
     });
     setSignatures(counts);
 
-    // Détecte si un créneau ouvert vient d'atteindre 100%
+    // Détecte si un créneau ouvert vient d'atteindre 100% et n'a pas encore été acquitté
     setTriggers((arr) => {
-      const updated = arr;
-      const open = updated.find((t) => !t.closed_at);
-      if (open && expectedSignatures > 0 && counts[open.creneau_id] === expectedSignatures) {
-        setAllDoneAlert(open.creneau_id);
+      const open = arr.find((t) => !t.closed_at);
+      if (
+        open
+        && expectedSignatures > 0
+        && counts[open.creneau_id] === expectedSignatures
+        && !ackedRef.current.has(open.id)
+      ) {
+        setAllDoneAlert({ triggerId: open.id, creneauId: open.creneau_id });
       }
-      return updated;
+      return arr;
     });
+  }
+
+  function dismissAllDone() {
+    if (allDoneAlert) {
+      markTriggerAcked(allDoneAlert.triggerId);
+      ackedRef.current.add(allDoneAlert.triggerId);
+    }
+    setAllDoneAlert(null);
   }
 
   function open(creneauId: string) {
@@ -183,7 +202,7 @@ export function CreneauxPanel({
               Tous les stagiaires ont signé l&apos;émargement pour ce créneau. Vous pouvez passer à la suite.
             </p>
             <div className="flex justify-end">
-              <Button onClick={() => setAllDoneAlert(null)}>OK</Button>
+              <Button onClick={dismissAllDone}>OK</Button>
             </div>
           </div>
         </div>

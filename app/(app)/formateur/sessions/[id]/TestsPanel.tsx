@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/app/Button';
 import { createClient } from '@/lib/supabase/client';
 import { triggerTest, untriggerTest } from './actions';
+import { loadAckedTriggers, markTriggerAcked } from '@/lib/ui/acked-store';
 
 const KIND_LABEL: Record<string, string> = {
   quiz: 'Quiz',
@@ -31,9 +32,14 @@ export function TestsPanel({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [completions, setCompletions] = useState<Record<string, number>>({});
-  const [allDoneFor, setAllDoneFor] = useState<string | null>(null);
+  const [allDoneFor, setAllDoneFor] = useState<{ triggerId: string; testId: string } | null>(null);
+  const ackedRef = useRef<Set<string>>(new Set());
 
   const supabase = useMemo(() => createClient(), []);
+
+  useEffect(() => {
+    ackedRef.current = loadAckedTriggers();
+  }, []);
 
   useEffect(() => {
     if (participantIds.length === 0) return;
@@ -61,17 +67,28 @@ export function TestsPanel({
     (data ?? []).forEach((r) => {
       counts[r.test_id] = (counts[r.test_id] ?? 0) + 1;
     });
-    setCompletions((prev) => {
-      // Détecte ceux qui viennent d'atteindre 100% pour la 1re fois
+    setCompletions(() => {
+      // Détecte les triggers à 100% non encore acquittés
       for (const t of triggers) {
-        const before = prev[t.test_id] ?? 0;
         const now = counts[t.test_id] ?? 0;
-        if (before < expectedCompletions && now === expectedCompletions && expectedCompletions > 0) {
-          setAllDoneFor(t.test_id);
+        if (
+          now === expectedCompletions
+          && expectedCompletions > 0
+          && !ackedRef.current.has(t.id)
+        ) {
+          setAllDoneFor({ triggerId: t.id, testId: t.test_id });
         }
       }
       return counts;
     });
+  }
+
+  function dismissAllDone() {
+    if (allDoneFor) {
+      markTriggerAcked(allDoneFor.triggerId);
+      ackedRef.current.add(allDoneFor.triggerId);
+    }
+    setAllDoneFor(null);
   }
 
   function onTrigger(testId: string) {
@@ -159,12 +176,13 @@ export function TestsPanel({
             </p>
             <div className="flex justify-end gap-2">
               <Link
-                href={`/formateur/sessions/${sessionId}/tests/${allDoneFor}/reponses`}
+                href={`/formateur/sessions/${sessionId}/tests/${allDoneFor.testId}/reponses`}
+                onClick={dismissAllDone}
                 className="inline-flex items-center px-4 py-2 rounded text-sm font-medium bg-white border border-dark/15 hover:border-dark/40 text-dark"
               >
                 Voir les réponses
               </Link>
-              <Button onClick={() => setAllDoneFor(null)}>OK</Button>
+              <Button onClick={dismissAllDone}>OK</Button>
             </div>
           </div>
         </div>
