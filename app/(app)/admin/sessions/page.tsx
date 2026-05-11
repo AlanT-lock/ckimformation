@@ -32,14 +32,14 @@ export default async function AdminSessionsPage() {
         actions={<ButtonLink href="/admin/sessions/nouvelle">+ Nouvelle session</ButtonLink>}
       />
 
-      <div className="bg-white rounded-lg border border-dark/10 overflow-hidden">
+      <div className="bg-white rounded-lg border border-dark/10 overflow-x-auto">
         {(!sessions || sessions.length === 0) ? (
           <p className="p-8 text-sm text-dark/60 text-center">
             Aucune session pour l&apos;instant.{' '}
             <a href="/admin/sessions/nouvelle" className="text-teal underline">Créer la première</a>.
           </p>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[640px]">
             <thead className="bg-light text-xs uppercase tracking-[0.15em] text-dark/60">
               <tr>
                 <th className="text-left py-3 px-4">Formation</th>

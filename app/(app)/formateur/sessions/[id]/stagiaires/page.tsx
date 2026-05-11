@@ -2,7 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import { PageHeader } from '@/components/app/PageHeader';
 import { ButtonLink } from '@/components/app/Button';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
-import { StagiaireRow, type StagiaireRowData } from './StagiaireRow';
+import { StagiaireCard, type StagiaireRowData } from './StagiaireRow';
 
 interface PageProps { params: Promise<{ id: string }> }
 
@@ -93,29 +93,17 @@ export default async function StagiairesPage({ params }: PageProps) {
         </div>
       )}
 
-      <div className="bg-white border border-dark/10 rounded-lg overflow-hidden">
-        {rows.length === 0 ? (
-          <p className="p-8 text-sm text-dark/60 text-center">
-            Aucun stagiaire inscrit (confirmé) pour cette session.
-          </p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="text-left text-xs uppercase tracking-[0.15em] text-dark/60 bg-light/50">
-              <tr>
-                <th className="p-3">Nom</th>
-                <th className="p-3">Email</th>
-                <th className="p-3">Compte</th>
-                <th className="p-3">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <StagiaireRow key={r.inscriptionParticipantId} sessionId={id} row={r} />
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      {rows.length === 0 ? (
+        <div className="bg-white border border-dark/10 rounded-lg p-8 text-sm text-dark/60 text-center">
+          Aucun stagiaire inscrit (confirmé) pour cette session.
+        </div>
+      ) : (
+        <ul className="space-y-3">
+          {rows.map((r) => (
+            <StagiaireCard key={r.inscriptionParticipantId} sessionId={id} row={r} />
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

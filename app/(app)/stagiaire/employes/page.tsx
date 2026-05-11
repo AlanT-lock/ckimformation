@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/app/PageHeader';
 import { AddEmployeeForm } from './AddEmployeeForm';
-import { EmployeeRow } from './EmployeeRow';
+import { EmployeeCard } from './EmployeeRow';
 import type { Employee } from '@/lib/supabase/types';
 
 export const dynamic = 'force-dynamic';
@@ -34,33 +34,18 @@ export default async function EmployesPage() {
 
       <AddEmployeeForm />
 
-      <section className="bg-white border border-dark/10 rounded-lg">
-        <header className="px-6 py-4 border-b border-dark/10">
-          <h2 className="font-display text-xl">Liste des salariés ({list.length})</h2>
-        </header>
+      <section>
+        <h2 className="font-display text-xl mb-3">Liste des salariés ({list.length})</h2>
         {list.length === 0 ? (
-          <p className="px-6 py-8 text-sm text-dark/60">
+          <p className="bg-white border border-dark/10 rounded-lg p-6 text-sm text-dark/60">
             Aucun salarié pour le moment. Utilisez le formulaire ci-dessus pour en ajouter.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-[0.15em] text-dark/60 bg-light/50">
-                <tr>
-                  <th className="p-3">Prénom</th>
-                  <th className="p-3">Nom</th>
-                  <th className="p-3">Email</th>
-                  <th className="p-3">Statut</th>
-                  <th className="p-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {list.map((e) => (
-                  <EmployeeRow key={e.id} employee={e} />
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ul className="space-y-2">
+            {list.map((e) => (
+              <EmployeeCard key={e.id} employee={e} />
+            ))}
+          </ul>
         )}
       </section>
     </div>
