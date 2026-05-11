@@ -154,27 +154,40 @@ export async function demanderInscriptionParticulier(
     })
     .select('id')
     .single();
-  if (error || !insc) throw new Error(error?.message ?? 'Erreur inscription');
+  if (error || !insc) {
+    console.error('[demande/particulier] insert inscription failed', error);
+    throw new Error(error?.message ?? 'Erreur inscription');
+  }
 
   const { error: partErr } = await supabase.from('inscription_participants').insert({
     inscription_id: insc.id,
     participant_profile_id: profile.id,
   });
-  if (partErr) throw new Error(partErr.message);
+  if (partErr) {
+    console.error('[demande/particulier] insert participant failed', partErr);
+    throw new Error(partErr.message);
+  }
 
-  const admin = createAdminClient();
-  const [session, payer] = await Promise.all([
-    fetchSessionForEmail(sessionId, admin),
-    fetchPayerInfo(profile.id, admin),
-  ]);
-  const participants: InscriptionParticipantInfo[] = [
-    {
-      prenom: payer.full_name.split(' ')[0] ?? '',
-      nom: payer.full_name.split(' ').slice(1).join(' '),
-      email: payer.email,
-    },
-  ];
-  await sendDemandeAdminEmail(insc.id, payer, session, participants, besoins);
+  // Email + lecture admin sont accessoires : on n'échoue pas la demande si ça
+  // foire (sécurité contre RESEND_API_KEY manquant, SERVICE_ROLE_KEY manquant,
+  // Resend down, etc.).
+  try {
+    const admin = createAdminClient();
+    const [session, payer] = await Promise.all([
+      fetchSessionForEmail(sessionId, admin),
+      fetchPayerInfo(profile.id, admin),
+    ]);
+    const participants: InscriptionParticipantInfo[] = [
+      {
+        prenom: payer.full_name.split(' ')[0] ?? '',
+        nom: payer.full_name.split(' ').slice(1).join(' '),
+        email: payer.email,
+      },
+    ];
+    await sendDemandeAdminEmail(insc.id, payer, session, participants, besoins);
+  } catch (err) {
+    console.error('[demande/particulier] notification admin échouée (non-bloquant)', err);
+  }
 
   revalidatePath('/stagiaire/inscriptions');
   revalidatePath('/stagiaire');
@@ -273,25 +286,35 @@ export async function demanderInscriptionEntreprise(
     })
     .select('id')
     .single();
-  if (error || !insc) throw new Error(error?.message ?? 'Erreur création demande');
+  if (error || !insc) {
+    console.error('[demande/entreprise] insert inscription failed', error);
+    throw new Error(error?.message ?? 'Erreur création demande');
+  }
 
   const partRows = allEmployeeIds.map((eid) => ({ inscription_id: insc.id, employee_id: eid }));
   const { error: partErr } = await supabase.from('inscription_participants').insert(partRows);
-  if (partErr) throw new Error(partErr.message);
+  if (partErr) {
+    console.error('[demande/entreprise] insert participants failed', partErr);
+    throw new Error(partErr.message);
+  }
 
-  // 4) Email à l'admin
-  const admin = createAdminClient();
-  const [session, payer, employeesData] = await Promise.all([
-    fetchSessionForEmail(sessionId, admin),
-    fetchPayerInfo(profile.id, admin),
-    admin.from('employees').select('prenom, nom, email').in('id', allEmployeeIds),
-  ]);
-  const participants: InscriptionParticipantInfo[] = (employeesData.data ?? []).map((e) => ({
-    prenom: e.prenom,
-    nom: e.nom,
-    email: e.email,
-  }));
-  await sendDemandeAdminEmail(insc.id, payer, session, participants, besoins);
+  // Email + lecture admin sont accessoires
+  try {
+    const admin = createAdminClient();
+    const [session, payer, employeesData] = await Promise.all([
+      fetchSessionForEmail(sessionId, admin),
+      fetchPayerInfo(profile.id, admin),
+      admin.from('employees').select('prenom, nom, email').in('id', allEmployeeIds),
+    ]);
+    const participants: InscriptionParticipantInfo[] = (employeesData.data ?? []).map((e) => ({
+      prenom: e.prenom,
+      nom: e.nom,
+      email: e.email,
+    }));
+    await sendDemandeAdminEmail(insc.id, payer, session, participants, besoins);
+  } catch (err) {
+    console.error('[demande/entreprise] notification admin échouée (non-bloquant)', err);
+  }
 
   revalidatePath('/stagiaire/inscriptions');
   revalidatePath('/stagiaire');

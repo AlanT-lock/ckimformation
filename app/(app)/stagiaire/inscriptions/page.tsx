@@ -32,7 +32,7 @@ export default async function StagiaireDemandesPage({ searchParams }: PageProps)
   redirectEmployeeStagiaire(profile);
 
   const supabase = await createClient();
-  const { data: inscriptions } = await supabase
+  const { data: inscriptions, error: inscErr } = await supabase
     .from('inscriptions')
     .select(`
       id, statut, created_at, refus_motif, analyse_besoins,
@@ -49,6 +49,9 @@ export default async function StagiaireDemandesPage({ searchParams }: PageProps)
     `)
     .eq('payer_profile_id', profile.id)
     .order('created_at', { ascending: false });
+  if (inscErr) {
+    console.error('[stagiaire/inscriptions] query failed', inscErr);
+  }
 
   return (
     <div className="space-y-6">
