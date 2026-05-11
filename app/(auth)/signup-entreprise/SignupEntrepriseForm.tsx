@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { RgpdCheckbox } from '@/components/forms/RgpdCheckbox';
 import type { Secteur } from '@/lib/db/secteurs';
 
 interface FormState {
@@ -73,6 +74,10 @@ function validate(step: Step, f: FormState): string | null {
   return null;
 }
 
+function validateRgpd(rgpd: boolean): string | null {
+  return rgpd ? null : "Vous devez accepter la politique de confidentialité pour créer un compte.";
+}
+
 export function SignupEntrepriseForm({ secteurs }: { secteurs: Secteur[] }) {
   const router = useRouter();
   const supabase = createClient();
@@ -81,6 +86,7 @@ export function SignupEntrepriseForm({ secteurs }: { secteurs: Secteur[] }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [rgpd, setRgpd] = useState(false);
 
   function set<K extends keyof FormState>(k: K, v: string) {
     setForm((s) => ({ ...s, [k]: v }));
@@ -98,7 +104,7 @@ export function SignupEntrepriseForm({ secteurs }: { secteurs: Secteur[] }) {
   }
 
   async function submit() {
-    const err = validate(3, form);
+    const err = validate(3, form) ?? validateRgpd(rgpd);
     if (err) { setError(err); return; }
     setError(null);
     setMessage(null);
@@ -248,6 +254,9 @@ export function SignupEntrepriseForm({ secteurs }: { secteurs: Secteur[] }) {
               onChange={(v) => set('confirm', v)}
               autoComplete="new-password"
             />
+            <div className="pt-2">
+              <RgpdCheckbox checked={rgpd} onChange={setRgpd} variant="dark" />
+            </div>
           </StepContent>
         )}
 

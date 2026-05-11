@@ -11,6 +11,7 @@ export type InscriptionStatut =
   | 'cancelled'
   | 'refunded';
 export type TestKind = 'quiz' | 'enquete' | 'info';
+export type EnqueteKind = 'a_chaud' | 'a_froid';
 export type QuestionType =
   | 'qcm_unique'
   | 'qcm_multiple'

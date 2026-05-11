@@ -2,19 +2,27 @@
 import { useState } from 'react';
 import { submitContactParticulier } from '@/app/actions/contact';
 import { FormationSelect, type FormationOption } from './FormationSelect';
+import { RgpdCheckbox } from './RgpdCheckbox';
 
 export function ContactParticulier({ formations }: { formations: FormationOption[] }) {
   const [submitting, setSubmitting] = useState(false);
+  const [rgpd, setRgpd] = useState(false);
+  const [rgpdError, setRgpdError] = useState<string | null>(null);
   const [result, setResult] = useState<{ ok: boolean; message?: string; errors?: Record<string, string> } | null>(null);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setRgpdError(null);
+    if (!rgpd) {
+      setRgpdError('Vous devez accepter la politique de confidentialité.');
+      return;
+    }
     setSubmitting(true);
     const fd = new FormData(e.currentTarget);
     const r = await submitContactParticulier(Object.fromEntries(fd));
     setResult(r);
     setSubmitting(false);
-    if (r.ok) e.currentTarget.reset();
+    if (r.ok) { e.currentTarget.reset(); setRgpd(false); }
   }
 
   if (result?.ok) {
@@ -41,6 +49,10 @@ export function ContactParticulier({ formations }: { formations: FormationOption
         {result?.errors?.message && <span className="text-xs text-red-600 mt-1 block">{result.errors.message}</span>}
       </label>
       {result?.message && !result.ok && <p className="text-sm text-red-600">{result.message}</p>}
+      <div className="pt-1">
+        <RgpdCheckbox checked={rgpd} onChange={setRgpd} variant="light" />
+        {rgpdError && <p className="mt-1 text-xs text-red-600">{rgpdError}</p>}
+      </div>
       <button type="submit" disabled={submitting} className="w-full bg-teal text-white px-6 py-3 rounded-md font-sans text-sm font-semibold uppercase tracking-wider hover:bg-teal-l transition disabled:opacity-60">
         {submitting ? 'Envoi…' : 'Envoyer'}
       </button>

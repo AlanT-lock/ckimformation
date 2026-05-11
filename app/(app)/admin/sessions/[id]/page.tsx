@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { PageHeader } from '@/components/app/PageHeader';
 import { ButtonLink } from '@/components/app/Button';
@@ -116,9 +117,19 @@ export default async function AdminSessionDetailPage({ params }: PageProps) {
                           {parts.map((p) => {
                             const emp = Array.isArray(p.employee) ? p.employee[0] : p.employee;
                             const prof = Array.isArray(p.profile) ? p.profile[0] : p.profile;
-                            if (emp) return <li key={p.id}>{emp.prenom} {emp.nom} <span className="text-dark/50 text-xs">({emp.email})</span></li>;
-                            if (prof) return <li key={p.id}>{prof.full_name} <span className="text-dark/50 text-xs">({prof.email})</span></li>;
-                            return null;
+                            const label = emp ? `${emp.prenom} ${emp.nom}` : prof?.full_name ?? '—';
+                            const sub = emp?.email ?? prof?.email ?? '';
+                            return (
+                              <li key={p.id}>
+                                <Link
+                                  href={`/admin/sessions/${session.id}/participants/${p.id}`}
+                                  className="text-teal hover:underline"
+                                >
+                                  {label}
+                                </Link>
+                                {sub && <span className="text-dark/50 text-xs ml-1">({sub})</span>}
+                              </li>
+                            );
                           })}
                         </ul>
                       </td>

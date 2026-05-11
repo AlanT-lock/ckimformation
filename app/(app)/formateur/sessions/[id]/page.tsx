@@ -45,9 +45,11 @@ export default async function FormateurSessionDetail({ params }: PageProps) {
       .order('created_at'),
     supabase
       .from('tests')
-      .select('id, nom, kind, actif')
+      .select('id, nom, kind, enquete_kind, actif')
       .eq('formation_id', formation?.id ?? '')
       .eq('actif', true)
+      // Exclure les enquêtes à froid : elles sont envoyées par email automatiquement
+      .or('kind.neq.enquete,enquete_kind.eq.a_chaud')
       .order('ordre'),
     supabase
       .from('session_test_triggers')

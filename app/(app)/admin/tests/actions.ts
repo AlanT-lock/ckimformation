@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
-import type { TestKind, QuestionType } from '@/lib/supabase/types';
+import type { TestKind, EnqueteKind, QuestionType } from '@/lib/supabase/types';
 
 async function requireAdmin() {
   const profile = await getCurrentProfile();
@@ -18,9 +18,11 @@ export async function createTest(input: {
   nom: string;
   description?: string;
   kind: TestKind;
+  enquete_kind?: EnqueteKind | null;
 }) {
   await requireAdmin();
   const supabase = await createClient();
+  const enquete_kind = input.kind === 'enquete' ? (input.enquete_kind ?? null) : null;
   const { data, error } = await supabase
     .from('tests')
     .insert({
@@ -28,11 +30,13 @@ export async function createTest(input: {
       nom: input.nom,
       description: input.description ?? null,
       kind: input.kind,
+      enquete_kind,
     })
-    .select('id')
+    .select('id, formation_id')
     .single();
   if (error || !data) throw new Error(error?.message ?? 'Création échouée');
   revalidatePath('/admin/tests');
+  revalidatePath(`/admin/tests/formation/${data.formation_id}`);
   redirect(`/admin/tests/${data.id}`);
 }
 
@@ -40,16 +44,19 @@ export async function updateTest(id: string, input: {
   nom: string;
   description?: string | null;
   kind: TestKind;
+  enquete_kind?: EnqueteKind | null;
   actif: boolean;
 }) {
   await requireAdmin();
   const supabase = await createClient();
+  const enquete_kind = input.kind === 'enquete' ? (input.enquete_kind ?? null) : null;
   const { error } = await supabase
     .from('tests')
     .update({
       nom: input.nom,
       description: input.description ?? null,
       kind: input.kind,
+      enquete_kind,
       actif: input.actif,
       updated_at: new Date().toISOString(),
     })
@@ -62,10 +69,12 @@ export async function updateTest(id: string, input: {
 export async function deleteTest(id: string) {
   await requireAdmin();
   const supabase = await createClient();
+  const { data: t } = await supabase.from('tests').select('formation_id').eq('id', id).single();
   const { error } = await supabase.from('tests').delete().eq('id', id);
   if (error) throw new Error(error.message);
   revalidatePath('/admin/tests');
-  redirect('/admin/tests');
+  if (t?.formation_id) revalidatePath(`/admin/tests/formation/${t.formation_id}`);
+  redirect(t?.formation_id ? `/admin/tests/formation/${t.formation_id}` : '/admin/tests');
 }
 
 // ---------- Questions ----------
@@ -76,6 +85,8 @@ export interface QuestionInput {
   options: string[];
   echelle_max: number | null;
   required: boolean;
+  // QCM unique : string | null ; QCM multiple : string[] ; autres : null
+  bonne_reponse: unknown;
 }
 
 export async function createQuestion(testId: string, input: QuestionInput) {
@@ -97,6 +108,7 @@ export async function createQuestion(testId: string, input: QuestionInput) {
     options: input.options,
     echelle_max: input.echelle_max,
     required: input.required,
+    bonne_reponse: input.bonne_reponse ?? null,
   });
   if (error) throw new Error(error.message);
   revalidatePath(`/admin/tests/${testId}`);
@@ -113,6 +125,7 @@ export async function updateQuestion(id: string, testId: string, input: Question
       options: input.options,
       echelle_max: input.echelle_max,
       required: input.required,
+      bonne_reponse: input.bonne_reponse ?? null,
     })
     .eq('id', id);
   if (error) throw new Error(error.message);

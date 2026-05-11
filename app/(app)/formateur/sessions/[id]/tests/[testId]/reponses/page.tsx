@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import { PageHeader } from '@/components/app/PageHeader';
 import { ButtonLink } from '@/components/app/Button';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
+import { computeScore, type ScoringQuestion, type ScoringResponse } from '@/lib/scoring';
 import type { QuestionType } from '@/lib/supabase/types';
 
 interface PageProps { params: Promise<{ id: string; testId: string }> }
@@ -63,7 +64,7 @@ export default async function ResponsesPage({ params }: PageProps) {
   const formation = Array.isArray(session.formation) ? session.formation[0] : session.formation;
 
   const [{ data: test }, { data: questions }, { data: inscriptions }, { data: completions }] = await Promise.all([
-    supabase.from('tests').select('id, nom, kind, description').eq('id', testId).single(),
+    supabase.from('tests').select('id, nom, kind, enquete_kind, description').eq('id', testId).single(),
     supabase.from('questions').select('*').eq('test_id', testId).order('ordre'),
     supabase
       .from('inscriptions')
@@ -89,8 +90,16 @@ export default async function ResponsesPage({ params }: PageProps) {
   if (!test) notFound();
 
   const qs = (questions ?? []) as Array<{
-    id: string; ordre: number; libelle: string; type_reponse: QuestionType; options: string[]; required: boolean;
+    id: string; ordre: number; libelle: string; type_reponse: QuestionType; options: string[]; required: boolean; bonne_reponse: unknown;
   }>;
+
+  const scoringQs: ScoringQuestion[] = qs.map((q) => ({
+    id: q.id,
+    type_reponse: q.type_reponse,
+    bonne_reponse: q.bonne_reponse,
+    options: q.options,
+  }));
+  const isScorable = test.kind === 'quiz';
 
   // Liste des participants
   const participants: Array<{
@@ -133,16 +142,30 @@ export default async function ResponsesPage({ params }: PageProps) {
             const c = p.completion;
             const responses = (c?.responses ?? []) as Array<{ question_id: string; valeur: string | null; valeur_json: unknown }>;
             const byQ = new Map(responses.map((r) => [r.question_id, r]));
+            const score = isScorable && c?.completed_at
+              ? computeScore(scoringQs, responses as ScoringResponse[])
+              : null;
             return (
               <details key={p.inscriptionParticipantId} className="bg-white border border-dark/10 rounded-lg">
-                <summary className="px-4 py-3 cursor-pointer flex items-center justify-between gap-4 hover:bg-light/50">
-                  <div>
+                <summary className="px-4 py-3 cursor-pointer flex items-center justify-between gap-4 hover:bg-light/50 flex-wrap">
+                  <div className="min-w-0 flex-1">
                     <p className="font-medium">{p.nom}</p>
-                    <p className="text-xs text-dark/60 mt-0.5">{p.email}</p>
+                    <p className="text-xs text-dark/60 mt-0.5 break-all">{p.email}</p>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-full uppercase tracking-wider font-medium ${c?.completed_at ? 'bg-teal/10 text-teal' : 'bg-dark/10 text-dark/50'}`}>
-                    {c?.completed_at ? `Complété — ${FR_DATETIME.format(new Date(c.completed_at))}` : 'En attente'}
-                  </span>
+                  <div className="flex flex-col items-end gap-1">
+                    {score && score.scorePct !== null && (
+                      <span className={`text-xs px-2 py-1 rounded-full uppercase tracking-wider font-medium ${
+                        score.scorePct >= 80 ? 'bg-teal/10 text-teal'
+                          : score.scorePct >= 50 ? 'bg-orange/10 text-orange'
+                            : 'bg-orange/20 text-orange'
+                      }`}>
+                        Score : {score.scorePct}% ({score.correct}/{score.totalEvaluable})
+                      </span>
+                    )}
+                    <span className={`text-xs px-2 py-1 rounded-full uppercase tracking-wider font-medium ${c?.completed_at ? 'bg-teal/10 text-teal' : 'bg-dark/10 text-dark/50'}`}>
+                      {c?.completed_at ? `Complété — ${FR_DATETIME.format(new Date(c.completed_at))}` : 'En attente'}
+                    </span>
+                  </div>
                 </summary>
                 {c?.completed_at && (
                   <div className="border-t border-dark/10 p-4 space-y-4 text-sm">
@@ -157,6 +180,15 @@ export default async function ResponsesPage({ params }: PageProps) {
                             <div className="mt-1 text-dark/70 pl-4 border-l-2 border-dark/10">
                               {r ? renderAnswer(q, r.valeur, r.valeur_json) : <span>—</span>}
                             </div>
+                            {isScorable && (q.type_reponse === 'qcm_unique' || q.type_reponse === 'qcm_multiple') && q.bonne_reponse != null && (
+                              <p className="mt-1 pl-4 text-xs text-teal">
+                                Bonne réponse : {
+                                  q.type_reponse === 'qcm_unique'
+                                    ? String(q.bonne_reponse)
+                                    : Array.isArray(q.bonne_reponse) ? (q.bonne_reponse as string[]).join(', ') : ''
+                                }
+                              </p>
+                            )}
                           </div>
                         );
                       })

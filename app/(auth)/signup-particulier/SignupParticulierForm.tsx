@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { RgpdCheckbox } from '@/components/forms/RgpdCheckbox';
 import type { Secteur } from '@/lib/db/secteurs';
 
 export function SignupParticulierForm({ secteurs }: { secteurs: Secteur[] }) {
@@ -19,6 +20,7 @@ export function SignupParticulierForm({ secteurs }: { secteurs: Secteur[] }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [rgpd, setRgpd] = useState(false);
 
   function set<K extends keyof typeof form>(k: K, v: string) {
     setForm((s) => ({ ...s, [k]: v }));
@@ -31,6 +33,7 @@ export function SignupParticulierForm({ secteurs }: { secteurs: Secteur[] }) {
     if (!form.phone.trim()) return 'Le téléphone est obligatoire.';
     if (form.password.length < 8) return 'Mot de passe : 8 caractères minimum.';
     if (form.password !== form.confirm) return 'Les mots de passe ne correspondent pas.';
+    if (!rgpd) return "Vous devez accepter la politique de confidentialité pour créer un compte.";
     return null;
   }
 
@@ -118,6 +121,10 @@ export function SignupParticulierForm({ secteurs }: { secteurs: Secteur[] }) {
           autoComplete="new-password"
         />
       </Section>
+
+      <div className="pt-2">
+        <RgpdCheckbox checked={rgpd} onChange={setRgpd} variant="dark" />
+      </div>
 
       <button
         type="submit"

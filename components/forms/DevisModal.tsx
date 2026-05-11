@@ -2,6 +2,7 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { submitDevis, type ActionResult } from '@/app/actions/devis';
+import { RgpdCheckbox } from './RgpdCheckbox';
 
 interface ModalCtx {
   open: (formationTitre: string) => void;
@@ -21,16 +22,25 @@ export function DevisModalProvider({ children }: { children: ReactNode }) {
   const [formation, setFormation] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<ActionResult | null>(null);
+  const [rgpd, setRgpd] = useState(false);
+  const [rgpdError, setRgpdError] = useState<string | null>(null);
 
   const handleOpen = useCallback((titre: string) => {
     setFormation(titre);
     setResult(null);
+    setRgpd(false);
+    setRgpdError(null);
     setOpen(true);
   }, []);
   const handleClose = useCallback(() => setOpen(false), []);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setRgpdError(null);
+    if (!rgpd) {
+      setRgpdError('Vous devez accepter la politique de confidentialité.');
+      return;
+    }
     setSubmitting(true);
     const fd = new FormData(e.currentTarget);
     const r = await submitDevis(Object.fromEntries(fd));
@@ -82,6 +92,10 @@ export function DevisModalProvider({ children }: { children: ReactNode }) {
                   {result?.message && !result.ok && (
                     <p className="text-sm text-red-600">{result.message}</p>
                   )}
+                  <div className="pt-1">
+                    <RgpdCheckbox checked={rgpd} onChange={setRgpd} variant="light" />
+                    {rgpdError && <p className="mt-1 text-xs text-red-600">{rgpdError}</p>}
+                  </div>
                   <button
                     type="submit"
                     disabled={submitting}

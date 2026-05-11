@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/relance-annuelle",
       "schedule": "0 9 5 1 *"
+    },
+    {
+      "path": "/api/cron/enquete-froid",
+      "schedule": "0 10 * * *"
     }
   ]
 }
