@@ -89,6 +89,16 @@ export default async function AdminSessionParticipantPage({ params }: PageProps)
     .eq('inscription_participant_id', participantId)
     .order('completed_at', { ascending: false });
 
+  // Créneaux + émargements de la session
+  const [{ data: creneaux }, { data: emargements }] = await Promise.all([
+    supabase.from('session_creneaux').select('id, date, heure_debut, heure_fin, ordre').eq('session_id', sessionId).order('ordre'),
+    supabase.from('emargements').select('creneau_id, signed_at').eq('inscription_participant_id', participantId),
+  ]);
+  const signedSet = new Set((emargements ?? []).map((e) => e.creneau_id));
+  const FR_DATE_SHORT = new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: '2-digit', month: 'short' });
+  const totalCreneaux = creneaux?.length ?? 0;
+  const signedCount = (creneaux ?? []).filter((c) => signedSet.has(c.id)).length;
+
   // Charge les questions pour chaque test (pour afficher libellé + scoring)
   const testIds = Array.from(new Set((completions ?? []).map((c) => c.test_id)));
   const { data: allQuestions } = testIds.length > 0
@@ -143,10 +153,82 @@ export default async function AdminSessionParticipantPage({ params }: PageProps)
       </section>
 
       <section>
-        <h2 className="font-display text-2xl tracking-wide">Tests &amp; enquêtes complétés</h2>
-        <p className="text-xs text-dark/60 mt-1">
-          {completions?.length ?? 0} complétion{(completions?.length ?? 0) > 1 ? 's' : ''} pour cette session.
-        </p>
+        <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
+          <div>
+            <h2 className="font-display text-2xl tracking-wide">Émargements</h2>
+            <p className="text-xs text-dark/60 mt-1">
+              {signedCount} / {totalCreneaux} créneau{totalCreneaux > 1 ? 'x' : ''} signé{signedCount > 1 ? 's' : ''}.
+              {' '}Les signatures ne sont consultables que dans le PDF officiel.
+            </p>
+          </div>
+          {totalCreneaux > 0 && (
+            <a
+              href={`/api/pdf/emargements/${participantId}?session=${sessionId}`}
+              target="_blank"
+              rel="noopener"
+              className="inline-flex items-center px-4 py-2 rounded text-sm font-medium bg-teal hover:bg-teal-l text-white transition whitespace-nowrap"
+            >
+              Ouvrir le PDF d&apos;émargement
+            </a>
+          )}
+        </div>
+
+        {totalCreneaux === 0 ? (
+          <div className="bg-white rounded-lg border border-dark/10 p-6 text-sm text-dark/60">
+            Aucun créneau planifié pour cette session.
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg border border-dark/10 overflow-x-auto">
+            <table className="w-full text-sm min-w-[480px]">
+              <thead className="bg-light text-xs uppercase tracking-[0.15em] text-dark/60">
+                <tr>
+                  <th className="text-left py-2 px-3">Créneau</th>
+                  <th className="text-left py-2 px-3">Horaire</th>
+                  <th className="text-left py-2 px-3">État</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-dark/10">
+                {(creneaux ?? []).map((c) => {
+                  const signed = signedSet.has(c.id);
+                  return (
+                    <tr key={c.id}>
+                      <td className="py-2 px-3 capitalize">{FR_DATE_SHORT.format(new Date(c.date))}</td>
+                      <td className="py-2 px-3 text-dark/70">{c.heure_debut.slice(0, 5)} – {c.heure_fin.slice(0, 5)}</td>
+                      <td className="py-2 px-3">
+                        <span className={`text-xs px-2 py-0.5 rounded-full uppercase tracking-wider font-medium ${
+                          signed ? 'bg-teal/10 text-teal' : 'bg-dark/10 text-dark/50'
+                        }`}>
+                          {signed ? 'Signé' : 'Non signé'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section>
+        <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
+          <div>
+            <h2 className="font-display text-2xl tracking-wide">Tests &amp; enquêtes complétés</h2>
+            <p className="text-xs text-dark/60 mt-1">
+              {completions?.length ?? 0} complétion{(completions?.length ?? 0) > 1 ? 's' : ''} pour cette session.
+            </p>
+          </div>
+          {(completions?.length ?? 0) > 0 && (
+            <a
+              href={`/api/pdf/tests/${participantId}?session=${sessionId}`}
+              target="_blank"
+              rel="noopener"
+              className="inline-flex items-center px-4 py-2 rounded text-sm font-medium bg-teal hover:bg-teal-l text-white transition whitespace-nowrap"
+            >
+              Ouvrir toutes les réponses (PDF)
+            </a>
+          )}
+        </div>
 
         <div className="mt-4 space-y-3">
           {(completions ?? []).length === 0 ? (

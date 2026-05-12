@@ -38,6 +38,10 @@ interface Props {
   completedTestIds: string[];
   initialEmargements: ActiveEmargement[];
   initialTests: ActiveTest[];
+  /** Créneaux où le user est absent : pas de popup d'émargement */
+  absentCreneauIds: string[];
+  /** Sessions où le user est absent à tous les créneaux : pas de popup test non plus */
+  fullyAbsentSessionIds: string[];
 }
 
 const FR_DATE = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -50,12 +54,16 @@ export function ParcoursClient({
   completedTestIds,
   initialEmargements,
   initialTests,
+  absentCreneauIds,
+  fullyAbsentSessionIds,
 }: Props) {
   const router = useRouter();
   const [emargements, setEmargements] = useState<ActiveEmargement[]>(initialEmargements);
   const [tests, setTests] = useState<ActiveTest[]>(initialTests);
   const [signed, setSigned] = useState<Set<string>>(new Set(signedCreneauIds));
   const [completed, setCompleted] = useState<Set<string>>(new Set(completedTestIds));
+  const absentSet = useMemo(() => new Set(absentCreneauIds), [absentCreneauIds]);
+  const fullyAbsentSet = useMemo(() => new Set(fullyAbsentSessionIds), [fullyAbsentSessionIds]);
   const [popup, setPopup] = useState<
     | { kind: 'emargement'; emargement: ActiveEmargement; creneau: ParticipantSession['creneaux'][number]; session: ParticipantSession }
     | { kind: 'test'; test: ActiveTest; session: ParticipantSession }
@@ -78,8 +86,10 @@ export function ParcoursClient({
   // Recherche la prochaine action non faite et l'ouvre en popup
   useEffect(() => {
     if (popup) return;
-    // Priorité émargement
-    const pendingEmargement = emargements.find((e) => !signed.has(e.creneauId));
+    // Priorité émargement — on saute les créneaux où le user est marqué absent
+    const pendingEmargement = emargements.find(
+      (e) => !signed.has(e.creneauId) && !absentSet.has(e.creneauId)
+    );
     if (pendingEmargement) {
       const cre = findCreneau(pendingEmargement);
       const sess = findSession(pendingEmargement.sessionId);
@@ -88,7 +98,10 @@ export function ParcoursClient({
         return;
       }
     }
-    const pendingTest = tests.find((t) => !completed.has(t.testId));
+    // Tests — on saute les sessions où le user est totalement absent
+    const pendingTest = tests.find(
+      (t) => !completed.has(t.testId) && !fullyAbsentSet.has(t.sessionId)
+    );
     if (pendingTest) {
       const sess = findSession(pendingTest.sessionId);
       if (sess) {
@@ -96,7 +109,7 @@ export function ParcoursClient({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [emargements, tests, signed, completed, popup]);
+  }, [emargements, tests, signed, completed, popup, absentSet, fullyAbsentSet]);
 
   // Subscription realtime
   useEffect(() => {

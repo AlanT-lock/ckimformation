@@ -52,8 +52,8 @@ export default async function StagiaireParcoursPage() {
   const sessionIds = sessions.map((s) => s.sessionId);
   const partIds = sessions.map((s) => s.inscriptionParticipantId);
 
-  // Triggers ouverts + tests déclenchés + signés/complétés
-  const [{ data: emargTrigs }, { data: testTrigs }, { data: signed }, { data: completions }] = await Promise.all([
+  // Triggers ouverts + tests déclenchés + signés/complétés + absences propres
+  const [{ data: emargTrigs }, { data: testTrigs }, { data: signed }, { data: completions }, { data: myAbsences }] = await Promise.all([
     sessionIds.length > 0
       ? supabase
           .from('creneau_emargement_triggers')
@@ -80,7 +80,24 @@ export default async function StagiaireParcoursPage() {
           .in('inscription_participant_id', partIds)
           .not('completed_at', 'is', null)
       : Promise.resolve({ data: [] }),
+    partIds.length > 0
+      ? supabase
+          .from('creneau_absences')
+          .select('creneau_id, inscription_participant_id')
+          .in('inscription_participant_id', partIds)
+      : Promise.resolve({ data: [] }),
   ]);
+
+  // Créneaux où je suis absent
+  const myAbsentCreneauIds = (myAbsences ?? []).map((a) => a.creneau_id);
+
+  // Sessions où je suis absent à TOUS les créneaux → exclu des tests
+  const fullyAbsentSessionIds = new Set<string>();
+  for (const s of sessions) {
+    if (s.creneaux.length === 0) continue;
+    const allAbsent = s.creneaux.every((c) => myAbsentCreneauIds.includes(c.id));
+    if (allAbsent) fullyAbsentSessionIds.add(s.sessionId);
+  }
 
   const initialEmargements: ActiveEmargement[] = (emargTrigs ?? []).map((t) => ({
     triggerId: t.id,
@@ -118,6 +135,8 @@ export default async function StagiaireParcoursPage() {
         completedTestIds={completedTestIds}
         initialEmargements={initialEmargements}
         initialTests={initialTests}
+        absentCreneauIds={myAbsentCreneauIds}
+        fullyAbsentSessionIds={Array.from(fullyAbsentSessionIds)}
       />
     </div>
   );

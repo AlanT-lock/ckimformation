@@ -28,7 +28,7 @@ export default async function FormateurSessionDetail({ params }: PageProps) {
 
   const formation = Array.isArray(session.formation) ? session.formation[0] : session.formation;
 
-  const [{ data: creneaux }, { data: inscriptions }, { data: tests }, { data: triggers }, { data: emargementTriggers }] = await Promise.all([
+  const [{ data: creneaux }, { data: inscriptions }, { data: tests }, { data: triggers }, { data: emargementTriggers }, { data: absences }] = await Promise.all([
     supabase.from('session_creneaux').select('*').eq('session_id', id).order('ordre'),
     supabase
       .from('inscriptions')
@@ -59,12 +59,44 @@ export default async function FormateurSessionDetail({ params }: PageProps) {
       .from('creneau_emargement_triggers')
       .select('id, creneau_id, triggered_at, closed_at')
       .eq('session_id', id),
+    supabase
+      .from('creneau_absences')
+      .select('creneau_id, inscription_participant_id, session_creneaux!inner(session_id)')
+      .eq('session_creneaux.session_id', id),
   ]);
 
-  const totalParticipants = (inscriptions ?? []).reduce(
-    (acc, ins) => acc + ((ins.participants ?? []).length),
-    0
+  const allParticipantIds = (inscriptions ?? []).flatMap(
+    (ins) => ((ins.participants ?? []) as Array<{ id: string }>).map((p) => p.id)
   );
+  const totalParticipants = allParticipantIds.length;
+
+  // Comptes par créneau : participants non-absents
+  const absencesByCreneau = new Map<string, Set<string>>();
+  for (const a of absences ?? []) {
+    const set = absencesByCreneau.get(a.creneau_id) ?? new Set<string>();
+    set.add(a.inscription_participant_id);
+    absencesByCreneau.set(a.creneau_id, set);
+  }
+  const expectedByCreneau: Record<string, number> = {};
+  for (const c of creneaux ?? []) {
+    const absentCount = absencesByCreneau.get(c.id)?.size ?? 0;
+    expectedByCreneau[c.id] = Math.max(0, totalParticipants - absentCount);
+  }
+
+  // Pour les tests : exclure les participants absents à TOUS les créneaux
+  const totalCreneaux = (creneaux ?? []).length;
+  const absenceCountByParticipant = new Map<string, number>();
+  for (const a of absences ?? []) {
+    absenceCountByParticipant.set(
+      a.inscription_participant_id,
+      (absenceCountByParticipant.get(a.inscription_participant_id) ?? 0) + 1
+    );
+  }
+  const activeParticipantsForTests = allParticipantIds.filter((pid) => {
+    const absCount = absenceCountByParticipant.get(pid) ?? 0;
+    return absCount < totalCreneaux; // au moins un créneau de présence
+  });
+  const expectedCompletions = activeParticipantsForTests.length;
 
   const adr = session.adresse as { rue?: string; ville?: string; code_postal?: string; complement?: string } | null;
   const ville = [adr?.ville, adr?.code_postal].filter(Boolean).join(' ');
@@ -101,7 +133,7 @@ export default async function FormateurSessionDetail({ params }: PageProps) {
           sessionId={id}
           creneaux={(creneaux ?? []).map((c) => ({ id: c.id, date: c.date, heure_debut: c.heure_debut, heure_fin: c.heure_fin, ordre: c.ordre }))}
           initialTriggers={(emargementTriggers ?? []).map((t) => ({ id: t.id, creneau_id: t.creneau_id, triggered_at: t.triggered_at, closed_at: t.closed_at }))}
-          expectedSignatures={totalParticipants}
+          expectedByCreneau={expectedByCreneau}
         />
       </section>
 
@@ -109,15 +141,15 @@ export default async function FormateurSessionDetail({ params }: PageProps) {
       <section>
         <h2 className="font-display text-2xl tracking-wide">Tests & enquêtes</h2>
         <p className="text-xs text-dark/60 mt-1">
-          Déclenche un test : il apparaîtra immédiatement dans l&apos;espace de chaque stagiaire inscrit.
+          Déclenche un test : il apparaîtra immédiatement dans l&apos;espace de chaque stagiaire inscrit (hors absents).
         </p>
         <div className="mt-4">
           <TestsPanel
             sessionId={id}
             tests={(tests ?? []).map((t) => ({ id: t.id, nom: t.nom, kind: t.kind }))}
             triggers={(triggers ?? []).map((t) => ({ id: t.id, test_id: t.test_id, triggered_at: t.triggered_at }))}
-            expectedCompletions={totalParticipants}
-            participantIds={(inscriptions ?? []).flatMap((ins) => ((ins.participants ?? []) as Array<{ id: string }>).map((p) => p.id))}
+            expectedCompletions={expectedCompletions}
+            participantIds={activeParticipantsForTests}
           />
         </div>
       </section>

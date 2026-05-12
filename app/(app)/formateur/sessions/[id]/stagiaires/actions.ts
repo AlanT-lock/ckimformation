@@ -6,6 +6,46 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { resend, EMAIL_FROM } from '@/lib/email/resend';
 import { invitationEmailHtml, invitationEmailSubject } from '@/lib/email/templates/invitation';
 
+export async function toggleCreneauAbsence(
+  sessionId: string,
+  creneauId: string,
+  participantId: string,
+  absent: boolean
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const profile = await requireFormateurOfSession(sessionId);
+  const supabase = await createClient();
+
+  // Vérifie que le créneau appartient bien à la session
+  const { data: cre } = await supabase
+    .from('session_creneaux')
+    .select('id, session_id')
+    .eq('id', creneauId)
+    .single();
+  if (!cre || cre.session_id !== sessionId) {
+    return { ok: false, error: 'Créneau introuvable.' };
+  }
+
+  if (absent) {
+    const { error } = await supabase
+      .from('creneau_absences')
+      .upsert(
+        { creneau_id: creneauId, inscription_participant_id: participantId, marked_by: profile.id },
+        { onConflict: 'creneau_id,inscription_participant_id' }
+      );
+    if (error) return { ok: false, error: error.message };
+  } else {
+    const { error } = await supabase
+      .from('creneau_absences')
+      .delete()
+      .eq('creneau_id', creneauId)
+      .eq('inscription_participant_id', participantId);
+    if (error) return { ok: false, error: error.message };
+  }
+  revalidatePath(`/formateur/sessions/${sessionId}`);
+  revalidatePath(`/formateur/sessions/${sessionId}/stagiaires`);
+  return { ok: true };
+}
+
 function siteUrl(): string {
   return process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 }
@@ -63,7 +103,7 @@ export async function updateEmployeeEmailBeforeAccount(
 export async function sendInvitationToEmployee(
   sessionId: string,
   employeeId: string
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true; resent: boolean } | { ok: false; error: string }> {
   await requireFormateurOfSession(sessionId);
   const admin = createAdminClient();
 
@@ -73,7 +113,8 @@ export async function sendInvitationToEmployee(
     .eq('id', employeeId)
     .single();
   if (!emp) return { ok: false, error: 'Salarié introuvable.' };
-  if (emp.profile_id) return { ok: false, error: 'Le compte est déjà créé.' };
+
+  const isResend = !!emp.profile_id;
 
   // Charge contexte session pour l'email
   const { data: sess } = await admin
@@ -95,45 +136,68 @@ export async function sendInvitationToEmployee(
     .maybeSingle();
   const entrepriseLabel = company?.raison_sociale || employer?.full_name || 'Votre employeur';
 
-  // Invitation Supabase auth — le trigger handle_new_user lira employee_id
-  // et liera employees.profile_id à new.id automatiquement.
   const redirect = `${siteUrl()}/callback?redirect=/stagiaire/parcours`;
-  const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(emp.email, {
-    data: {
-      role: 'stagiaire',
-      account_type: 'particulier',
-      full_name: `${emp.prenom} ${emp.nom}`.trim(),
-      employer_profile_id: emp.employer_profile_id,
-      employee_id: emp.id,
-    },
-    redirectTo: redirect,
-  });
+  let actionLink: string;
 
-  if (inviteErr) {
-    return { ok: false, error: inviteErr.message };
-  }
-  if (!invited.user) {
-    return { ok: false, error: "L'invitation n'a pas pu être envoyée." };
+  if (isResend) {
+    // Le compte auth existe déjà — on génère un lien de récupération (set/reset password)
+    // qui ramène l'utilisateur sur /setup-password via /callback.
+    const { data, error } = await admin.auth.admin.generateLink({
+      type: 'recovery',
+      email: emp.email,
+      options: { redirectTo: redirect },
+    });
+    if (error || !data?.properties?.action_link) {
+      return {
+        ok: false,
+        error: error?.message ?? "Impossible de générer un nouveau lien d'invitation.",
+      };
+    }
+    actionLink = data.properties.action_link;
+  } else {
+    // Première invitation : crée l'auth user + récupère le lien.
+    // generateLink('invite') crée l'utilisateur sans envoyer d'email automatique
+    // (on envoie nous-mêmes l'email branded C-KIM ci-dessous).
+    const { data, error } = await admin.auth.admin.generateLink({
+      type: 'invite',
+      email: emp.email,
+      options: {
+        data: {
+          role: 'stagiaire',
+          account_type: 'particulier',
+          full_name: `${emp.prenom} ${emp.nom}`.trim(),
+          employer_profile_id: emp.employer_profile_id,
+          employee_id: emp.id,
+        },
+        redirectTo: redirect,
+      },
+    });
+    if (error || !data?.properties?.action_link) {
+      return { ok: false, error: error?.message ?? "L'invitation n'a pas pu être créée." };
+    }
+    actionLink = data.properties.action_link;
   }
 
-  // Email custom (en plus du mail Supabase) avec branding C-KIM
+  // Email custom branding C-KIM avec le lien valide
   try {
     await resend.emails.send({
       from: EMAIL_FROM,
       to: emp.email,
-      subject: invitationEmailSubject(formation?.titre ?? 'Formation'),
+      subject: invitationEmailSubject(formation?.titre ?? 'Formation', isResend),
       html: invitationEmailHtml({
         prenom: emp.prenom,
         nom: emp.nom,
         entrepriseLabel,
         formationTitre: formation?.titre ?? 'Formation',
-        invitationUrl: redirect,
+        invitationUrl: actionLink,
+        isResend,
       }),
     });
   } catch (err) {
-    console.error('[invitation] Email C-KIM failed (Supabase invite déjà envoyé):', err);
+    console.error('[invitation] Email failed:', err);
+    return { ok: false, error: "Le lien a été généré mais l'email n'a pas pu être envoyé." };
   }
 
   revalidatePath(`/formateur/sessions/${sessionId}/stagiaires`);
-  return { ok: true };
+  return { ok: true, resent: isResend };
 }

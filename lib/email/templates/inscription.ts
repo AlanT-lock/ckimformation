@@ -122,9 +122,24 @@ export interface ConfirmationEmailInput {
   payer: InscriptionPayerInfo;
   session: InscriptionSessionInfo;
   participants: InscriptionParticipantInfo[];
+  /** URL vers l'espace stagiaire si des documents ont été joints */
+  documentsUrl?: string;
+  /** Nombre de docs joints par l'admin (pour adapter le wording) */
+  adminDocsCount?: number;
 }
 
 export function confirmationEmailHtml(d: ConfirmationEmailInput): string {
+  const docsBlock = (d.adminDocsCount && d.adminDocsCount > 0 && d.documentsUrl)
+    ? `<h3 style="margin:24px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:0.06em;color:#475569;">Documents joints</h3>
+       <p style="margin:0 0 12px;">
+         ${d.adminDocsCount} document${d.adminDocsCount > 1 ? 's' : ''} ${d.adminDocsCount > 1 ? 'ont' : 'a'} été joint${d.adminDocsCount > 1 ? 's' : ''} à votre confirmation
+         (convention, programme, livret d'accueil, etc.). Vous pouvez les consulter et les télécharger depuis votre espace.
+       </p>
+       <p style="margin:0 0 16px;">
+         <a href="${d.documentsUrl}" style="display:inline-block;padding:10px 18px;background:#1B8FA0;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;">Voir mes documents</a>
+       </p>`
+    : '';
+
   return `<div style="font-family:system-ui,sans-serif;max-width:640px;margin:auto;color:#0f172a;">
   <h2 style="color:#1B8FA0;margin:0 0 8px;">Inscription confirmée</h2>
   <p style="margin:0 0 16px;">Bonjour ${escapeHtml(d.payer.full_name)},</p>
@@ -143,6 +158,8 @@ export function confirmationEmailHtml(d: ConfirmationEmailInput): string {
     ${participantsRows(d.participants)}
   </table>
 
+  ${docsBlock}
+
   <p style="margin:24px 0 0;color:#475569;">Pour toute question, contactez-nous à ckimsecuriteformation@gmail.com.</p>
 </div>`;
 }
@@ -155,9 +172,21 @@ export interface RefusEmailInput {
   payer: InscriptionPayerInfo;
   session: InscriptionSessionInfo;
   motif: string;
+  documentsUrl?: string;
+  adminDocsCount?: number;
 }
 
 export function refusEmailHtml(d: RefusEmailInput): string {
+  const docsBlock = (d.adminDocsCount && d.adminDocsCount > 0 && d.documentsUrl)
+    ? `<h3 style="margin:24px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:0.06em;color:#475569;">Documents joints</h3>
+       <p style="margin:0 0 12px;">
+         ${d.adminDocsCount} document${d.adminDocsCount > 1 ? 's' : ''} ${d.adminDocsCount > 1 ? 'sont' : 'est'} disponible${d.adminDocsCount > 1 ? 's' : ''} dans votre espace.
+       </p>
+       <p style="margin:0 0 16px;">
+         <a href="${d.documentsUrl}" style="display:inline-block;padding:10px 18px;background:#1B8FA0;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;">Voir mes documents</a>
+       </p>`
+    : '';
+
   return `<div style="font-family:system-ui,sans-serif;max-width:640px;margin:auto;color:#0f172a;">
   <h2 style="color:#1B8FA0;margin:0 0 8px;">Demande d'inscription non retenue</h2>
   <p style="margin:0 0 16px;">Bonjour ${escapeHtml(d.payer.full_name)},</p>
@@ -165,6 +194,8 @@ export function refusEmailHtml(d: RefusEmailInput): string {
 
   <h3 style="margin:0 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:0.06em;color:#475569;">Motif</h3>
   <div style="padding:12px;background:#FEF2F2;border-left:4px solid #DC2626;border-radius:4px;margin-bottom:24px;white-space:pre-wrap;">${escapeHtml(d.motif)}</div>
+
+  ${docsBlock}
 
   <p style="margin:0 0 16px;">N'hésitez pas à nous contacter pour échanger sur les prochaines sessions ou trouver une alternative.</p>
   <p style="margin:0;color:#475569;">ckimsecuriteformation@gmail.com</p>

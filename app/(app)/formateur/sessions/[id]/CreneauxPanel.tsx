@@ -28,12 +28,12 @@ export function CreneauxPanel({
   sessionId,
   creneaux,
   initialTriggers,
-  expectedSignatures,
+  expectedByCreneau,
 }: {
   sessionId: string;
   creneaux: CreneauInfo[];
   initialTriggers: EmargementTriggerInfo[];
-  expectedSignatures: number;
+  expectedByCreneau: Record<string, number>;
 }) {
   const [triggers, setTriggers] = useState<EmargementTriggerInfo[]>(initialTriggers);
   const [signatures, setSignatures] = useState<Record<string, number>>({});
@@ -96,16 +96,16 @@ export function CreneauxPanel({
     });
     setSignatures(counts);
 
-    // Détecte si un créneau ouvert vient d'atteindre 100% et n'a pas encore été acquitté
+    // Détecte les créneaux ouverts dont les émargements ont atteint l'effectif attendu
     setTriggers((arr) => {
-      const open = arr.find((t) => !t.closed_at);
-      if (
-        open
-        && expectedSignatures > 0
-        && counts[open.creneau_id] === expectedSignatures
-        && !ackedRef.current.has(open.id)
-      ) {
-        setAllDoneAlert({ triggerId: open.id, creneauId: open.creneau_id });
+      for (const trig of arr) {
+        if (trig.closed_at) continue;
+        const expected = expectedByCreneau[trig.creneau_id] ?? 0;
+        const got = counts[trig.creneau_id] ?? 0;
+        if (expected > 0 && got >= expected && !ackedRef.current.has(trig.id)) {
+          setAllDoneAlert({ triggerId: trig.id, creneauId: trig.creneau_id });
+          break;
+        }
       }
       return arr;
     });
@@ -150,6 +150,7 @@ export function CreneauxPanel({
         {creneaux.map((c) => {
           const trig = triggers.find((t) => t.creneau_id === c.id);
           const signed = signatures[c.id] ?? 0;
+          const expected = expectedByCreneau[c.id] ?? 0;
           const isOpen = trig && !trig.closed_at;
           const isClosed = trig && trig.closed_at;
           return (
@@ -166,7 +167,7 @@ export function CreneauxPanel({
                       {' · '}
                       <span>
                         {signed} signature{signed > 1 ? 's' : ''}
-                        {expectedSignatures > 0 && ` / ${expectedSignatures}`}
+                        {expected > 0 && ` / ${expected} attendue${expected > 1 ? 's' : ''}`}
                       </span>
                     </>
                   ) : (

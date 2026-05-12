@@ -19,6 +19,14 @@ export function CtaFinal({ formation }: { formation: Formation }) {
             <a href="tel:0662515559" className="inline-flex items-center justify-center gap-2 rounded-md px-6 py-3 font-sans text-sm font-semibold uppercase tracking-wider border border-dark text-dark hover:bg-dark hover:text-white transition-all">
               06 62 51 55 59
             </a>
+            <a
+              href={`/api/formations/${formation.slug}/pdf`}
+              target="_blank"
+              rel="noopener"
+              className="inline-flex items-center justify-center gap-2 rounded-md px-6 py-3 font-sans text-sm font-semibold uppercase tracking-wider border border-dark/30 text-dark/80 hover:border-dark hover:text-dark transition-all"
+            >
+              ↓ Fiche PDF
+            </a>
           </div>
         </div>
       </Container>

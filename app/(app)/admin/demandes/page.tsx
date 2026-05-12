@@ -5,15 +5,19 @@ import type { InscriptionStatut } from '@/lib/supabase/types';
 
 const STATUTS: { value: InscriptionStatut | 'all'; label: string }[] = [
   { value: 'en_attente', label: 'En attente' },
+  { value: 'documents_demandes', label: 'Docs demandés' },
+  { value: 'documents_recus', label: 'Docs reçus' },
   { value: 'confirmee', label: 'Confirmées' },
   { value: 'refusee', label: 'Refusées' },
   { value: 'all', label: 'Toutes' },
 ];
 
 const STATUT_LABEL: Record<string, { label: string; className: string }> = {
-  en_attente: { label: 'En attente', className: 'bg-orange/10 text-orange' },
-  confirmee:  { label: 'Confirmée',  className: 'bg-teal/10 text-teal' },
-  refusee:    { label: 'Refusée',    className: 'bg-dark/10 text-dark/60' },
+  en_attente:          { label: 'En attente',          className: 'bg-orange/10 text-orange' },
+  documents_demandes:  { label: 'Docs demandés',       className: 'bg-orange/15 text-orange' },
+  documents_recus:     { label: 'Docs reçus',          className: 'bg-teal/15 text-teal' },
+  confirmee:           { label: 'Confirmée',           className: 'bg-teal/10 text-teal' },
+  refusee:             { label: 'Refusée',             className: 'bg-dark/10 text-dark/60' },
 };
 
 const FR_DATE = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });

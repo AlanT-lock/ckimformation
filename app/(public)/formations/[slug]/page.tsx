@@ -46,6 +46,9 @@ export default async function FormationPage({ params }: PageProps) {
       <MetaBlock formation={formation} color={meta.couleur} />
       <TarifsSection tarifs={formation.tarifs ?? []} color={meta.couleur} />
 
+      {/* 2b. Prochaines sessions (remonté juste sous les tarifs) */}
+      <UpcomingSessions formationSlug={formation.slug} color={meta.couleur} />
+
       {/* 3. Objectifs - white */}
       <section className="bg-white py-20">
         <Container className="max-w-4xl">
@@ -126,9 +129,6 @@ export default async function FormationPage({ params }: PageProps) {
 
       {/* 8. Méthode C-KIM (transverse) - dark */}
       <MethodeCkim />
-
-      {/* 8b. Prochaines sessions (Supabase) */}
-      <UpcomingSessions formationSlug={formation.slug} color={meta.couleur} />
 
       {/* 9. CTA final - light */}
       <CtaFinal formation={formation} />

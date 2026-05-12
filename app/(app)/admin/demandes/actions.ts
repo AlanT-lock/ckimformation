@@ -14,6 +14,17 @@ import {
   type InscriptionPayerInfo,
   type InscriptionSessionInfo,
 } from '@/lib/email/templates/inscription';
+import {
+  documentsRequestedEmailHtml,
+  documentsRequestedEmailSubject,
+} from '@/lib/email/templates/documents';
+import { BUCKET_ADMIN, BUCKET_PAYER, deleteDocument } from '@/lib/storage/documents';
+
+const ADMIN_EMAIL = 'ckimsecuriteformation@gmail.com';
+
+function siteUrl(): string {
+  return process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+}
 
 async function requireAdmin() {
   const profile = await getCurrentProfile();
@@ -102,6 +113,17 @@ async function fetchInscriptionContext(inscriptionId: string, admin: ReturnType<
   return { ins, session, payer, participants, analyseBesoins: ins.analyse_besoins ?? '' };
 }
 
+async function countAdminDocs(inscriptionId: string, admin: ReturnType<typeof createAdminClient>): Promise<number> {
+  const { count } = await admin
+    .from('inscription_admin_documents')
+    .select('*', { count: 'exact', head: true })
+    .eq('inscription_id', inscriptionId);
+  return count ?? 0;
+}
+
+// -----------------------------------------------------------------------------
+// Confirmer
+// -----------------------------------------------------------------------------
 export async function confirmerDemande(inscriptionId: string): Promise<void> {
   await requireAdmin();
   const supabase = await createClient();
@@ -117,14 +139,23 @@ export async function confirmerDemande(inscriptionId: string): Promise<void> {
   if (error) throw new Error(error.message);
 
   const admin = createAdminClient();
-  const { session, payer, participants } = await fetchInscriptionContext(inscriptionId, admin);
+  const [{ session, payer, participants }, adminDocsCount] = await Promise.all([
+    fetchInscriptionContext(inscriptionId, admin),
+    countAdminDocs(inscriptionId, admin),
+  ]);
 
   try {
     await resend.emails.send({
       from: EMAIL_FROM,
       to: payer.email,
       subject: confirmationEmailSubject(session.formation_titre),
-      html: confirmationEmailHtml({ payer, session, participants }),
+      html: confirmationEmailHtml({
+        payer,
+        session,
+        participants,
+        adminDocsCount,
+        documentsUrl: `${siteUrl()}/stagiaire/inscriptions/${inscriptionId}`,
+      }),
     });
   } catch (err) {
     console.error('[confirm] Email payer failed:', err);
@@ -135,6 +166,9 @@ export async function confirmerDemande(inscriptionId: string): Promise<void> {
   redirect(`/admin/demandes/${inscriptionId}?confirmee=1`);
 }
 
+// -----------------------------------------------------------------------------
+// Refuser
+// -----------------------------------------------------------------------------
 export async function refuserDemande(inscriptionId: string, motif: string): Promise<void> {
   await requireAdmin();
   const m = motif.trim();
@@ -153,14 +187,23 @@ export async function refuserDemande(inscriptionId: string, motif: string): Prom
   if (error) throw new Error(error.message);
 
   const admin = createAdminClient();
-  const { session, payer } = await fetchInscriptionContext(inscriptionId, admin);
+  const [{ session, payer }, adminDocsCount] = await Promise.all([
+    fetchInscriptionContext(inscriptionId, admin),
+    countAdminDocs(inscriptionId, admin),
+  ]);
 
   try {
     await resend.emails.send({
       from: EMAIL_FROM,
       to: payer.email,
       subject: refusEmailSubject(session.formation_titre),
-      html: refusEmailHtml({ payer, session, motif: m }),
+      html: refusEmailHtml({
+        payer,
+        session,
+        motif: m,
+        adminDocsCount,
+        documentsUrl: `${siteUrl()}/stagiaire/inscriptions/${inscriptionId}`,
+      }),
     });
   } catch (err) {
     console.error('[refuse] Email payer failed:', err);
@@ -169,4 +212,108 @@ export async function refuserDemande(inscriptionId: string, motif: string): Prom
   revalidatePath('/admin/demandes');
   revalidatePath(`/admin/demandes/${inscriptionId}`);
   redirect(`/admin/demandes/${inscriptionId}?refusee=1`);
+}
+
+// -----------------------------------------------------------------------------
+// Demander des documents au payer
+// -----------------------------------------------------------------------------
+export async function requestDocuments(
+  inscriptionId: string,
+  documentNames: string[]
+): Promise<void> {
+  const profile = await requireAdmin();
+  const names = documentNames.map((n) => n.trim()).filter(Boolean);
+  if (names.length === 0) throw new Error('Indiquez au moins un document à demander.');
+
+  const admin = createAdminClient();
+  const now = new Date().toISOString();
+  const rows = names.map((nom, i) => ({
+    inscription_id: inscriptionId,
+    nom,
+    ordre: i,
+    requested_by: profile.id,
+    requested_at: now,
+  }));
+  const { error: insErr } = await admin.from('inscription_document_demandes').insert(rows);
+  if (insErr) throw new Error(insErr.message);
+
+  // Changement de statut
+  const { error: upErr } = await admin
+    .from('inscriptions')
+    .update({ statut: 'documents_demandes' })
+    .eq('id', inscriptionId);
+  if (upErr) throw new Error(upErr.message);
+
+  // Email au payer
+  const ctx = await fetchInscriptionContext(inscriptionId, admin);
+  const prenom = ctx.payer.full_name.split(' ')[0] || ctx.payer.full_name;
+  try {
+    await resend.emails.send({
+      from: EMAIL_FROM,
+      to: ctx.payer.email,
+      subject: documentsRequestedEmailSubject(ctx.session.formation_titre),
+      html: documentsRequestedEmailHtml({
+        prenom,
+        formationTitre: ctx.session.formation_titre,
+        documentNames: names,
+        url: `${siteUrl()}/stagiaire/inscriptions/${inscriptionId}`,
+      }),
+    });
+  } catch (err) {
+    console.error('[requestDocs] Email payer failed:', err);
+  }
+
+  revalidatePath('/admin/demandes');
+  revalidatePath(`/admin/demandes/${inscriptionId}`);
+  redirect(`/admin/demandes/${inscriptionId}?docs_demandes=${names.length}`);
+}
+
+// -----------------------------------------------------------------------------
+// Supprimer une demande de document (avant qu'elle ne soit remplie)
+// -----------------------------------------------------------------------------
+export async function deleteDocumentRequest(demandeId: string): Promise<void> {
+  await requireAdmin();
+  const admin = createAdminClient();
+
+  const { data: demande } = await admin
+    .from('inscription_document_demandes')
+    .select('id, inscription_id, storage_path')
+    .eq('id', demandeId)
+    .single();
+  if (!demande) throw new Error('Demande de document introuvable.');
+
+  if (demande.storage_path) {
+    await deleteDocument(BUCKET_PAYER, demande.storage_path);
+  }
+  const { error } = await admin
+    .from('inscription_document_demandes')
+    .delete()
+    .eq('id', demandeId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/admin/demandes/${demande.inscription_id}`);
+}
+
+// -----------------------------------------------------------------------------
+// Supprimer un document admin
+// -----------------------------------------------------------------------------
+export async function deleteAdminDocument(docId: string): Promise<void> {
+  await requireAdmin();
+  const admin = createAdminClient();
+
+  const { data: doc } = await admin
+    .from('inscription_admin_documents')
+    .select('id, inscription_id, storage_path')
+    .eq('id', docId)
+    .single();
+  if (!doc) throw new Error('Document introuvable.');
+
+  await deleteDocument(BUCKET_ADMIN, doc.storage_path);
+  const { error } = await admin
+    .from('inscription_admin_documents')
+    .delete()
+    .eq('id', docId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/admin/demandes/${doc.inscription_id}`);
 }

@@ -51,7 +51,11 @@ export async function UpcomingSessions({ formationSlug, color }: Props) {
     .sort((a, b) => (a.creneaux[0]?.date ?? '').localeCompare(b.creneaux[0]?.date ?? ''));
 
   return (
-    <section className="bg-light py-20" style={{ borderTop: `1px solid ${color}33` }}>
+    <section
+      id="prochaines-sessions"
+      className="bg-light py-20 scroll-mt-24"
+      style={{ borderTop: `1px solid ${color}33` }}
+    >
       <Container className="max-w-5xl">
         <FadeUp>
           <p className="text-xs uppercase tracking-[0.3em]" style={{ color }}>

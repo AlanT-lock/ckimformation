@@ -3,6 +3,7 @@ import { PageHeader } from '@/components/app/PageHeader';
 import { ButtonLink } from '@/components/app/Button';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { StagiaireCard, type StagiaireRowData } from './StagiaireRow';
+import { AbsenceMatrix, type MatrixCreneau, type MatrixParticipant } from './AbsenceMatrix';
 
 interface PageProps { params: Promise<{ id: string }> }
 
@@ -77,6 +78,29 @@ export default async function StagiairesPage({ params }: PageProps) {
 
   const sansCompte = rows.filter((r) => r.type === 'employee' && !r.hasAccount).length;
 
+  // Créneaux + absences existantes
+  const [{ data: creneaux }, { data: absences }] = await Promise.all([
+    supabase.from('session_creneaux').select('id, date, heure_debut, heure_fin, ordre').eq('session_id', id).order('ordre'),
+    supabase
+      .from('creneau_absences')
+      .select('creneau_id, inscription_participant_id, session_creneaux!inner(session_id)')
+      .eq('session_creneaux.session_id', id),
+  ]);
+
+  const matrixCreneaux: MatrixCreneau[] = (creneaux ?? []).map((c) => ({
+    id: c.id,
+    date: c.date,
+    heure_debut: c.heure_debut,
+    heure_fin: c.heure_fin,
+    ordre: c.ordre,
+  }));
+  const matrixParticipants: MatrixParticipant[] = rows.map((r) => ({
+    inscriptionParticipantId: r.inscriptionParticipantId,
+    fullName: `${r.prenom} ${r.nom}`.trim(),
+    email: r.email,
+  }));
+  const initialAbsences = (absences ?? []).map((a) => `${a.creneau_id}:${a.inscription_participant_id}`);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -98,11 +122,28 @@ export default async function StagiairesPage({ params }: PageProps) {
           Aucun stagiaire inscrit (confirmé) pour cette session.
         </div>
       ) : (
-        <ul className="space-y-3">
-          {rows.map((r) => (
-            <StagiaireCard key={r.inscriptionParticipantId} sessionId={id} row={r} />
-          ))}
-        </ul>
+        <>
+          <section>
+            <h2 className="font-display text-xl mb-3">Liste des stagiaires</h2>
+            <ul className="space-y-3">
+              {rows.map((r) => (
+                <StagiaireCard key={r.inscriptionParticipantId} sessionId={id} row={r} />
+              ))}
+            </ul>
+          </section>
+
+          {matrixCreneaux.length > 0 && (
+            <section>
+              <h2 className="font-display text-xl mb-3">Présences par créneau</h2>
+              <AbsenceMatrix
+                sessionId={id}
+                creneaux={matrixCreneaux}
+                participants={matrixParticipants}
+                initialAbsences={initialAbsences}
+              />
+            </section>
+          )}
+        </>
       )}
     </div>
   );

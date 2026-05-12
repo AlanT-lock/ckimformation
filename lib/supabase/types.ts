@@ -3,6 +3,8 @@ export type AccountType = 'particulier' | 'entreprise';
 export type SessionStatut = 'draft' | 'published' | 'cancelled' | 'completed';
 export type InscriptionStatut =
   | 'en_attente'
+  | 'documents_demandes'
+  | 'documents_recus'
   | 'confirmee'
   | 'refusee'
   // Dormant : ancien workflow paiement Stripe, conservé pour compat enum BDD
@@ -139,4 +141,40 @@ export interface SessionTestTrigger {
   test_id: string;
   triggered_at: string;
   triggered_by: string | null;
+}
+
+export interface InscriptionDocumentDemande {
+  id: string;
+  inscription_id: string;
+  nom: string;
+  ordre: number;
+  storage_path: string | null;
+  file_name: string | null;
+  file_size: number | null;
+  mime_type: string | null;
+  uploaded_at: string | null;
+  declined: boolean;
+  decline_reason: string | null;
+  requested_by: string | null;
+  requested_at: string;
+}
+
+export interface InscriptionAdminDocument {
+  id: string;
+  inscription_id: string;
+  storage_path: string;
+  file_name: string;
+  file_size: number | null;
+  mime_type: string | null;
+  uploaded_by: string | null;
+  created_at: string;
+}
+
+export interface CreneauAbsence {
+  id: string;
+  creneau_id: string;
+  inscription_participant_id: string;
+  marked_by: string | null;
+  marked_at: string;
+  reason: string | null;
 }

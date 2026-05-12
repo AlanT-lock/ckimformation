@@ -31,6 +31,14 @@ export default async function AdminEditFormationPage({ params }: PageProps) {
           <>
             <ButtonLink href="/admin/formations" variant="secondary">← Retour</ButtonLink>
             <ButtonLink href={`/formations/${f.slug}`} variant="secondary">Voir le site →</ButtonLink>
+            <ButtonLink
+              href={`/api/formations/${f.id}/pdf`}
+              variant="secondary"
+              target="_blank"
+              rel="noopener"
+            >
+              ↓ Télécharger la fiche PDF
+            </ButtonLink>
             <DeleteFormationButton formationId={f.id} />
           </>
         }

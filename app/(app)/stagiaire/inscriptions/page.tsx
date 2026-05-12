@@ -6,13 +6,15 @@ import { redirectEmployeeStagiaire } from '@/lib/auth/employee-guard';
 import type { InscriptionStatut } from '@/lib/supabase/types';
 
 const STATUT_LABEL: Record<string, { label: string; className: string }> = {
-  en_attente:      { label: 'En attente',  className: 'bg-orange/10 text-orange' },
-  confirmee:       { label: 'Confirmée',   className: 'bg-teal/10 text-teal' },
-  refusee:         { label: 'Refusée',     className: 'bg-dark/10 text-dark/60' },
-  pending_payment: { label: 'En attente',  className: 'bg-orange/10 text-orange' },
-  paid:            { label: 'Confirmée',   className: 'bg-teal/10 text-teal' },
-  cancelled:       { label: 'Annulée',     className: 'bg-dark/10 text-dark/50' },
-  refunded:        { label: 'Remboursée',  className: 'bg-dark/5 text-dark/40' },
+  en_attente:          { label: 'En attente',          className: 'bg-orange/10 text-orange' },
+  documents_demandes:  { label: 'Documents demandés',  className: 'bg-orange/15 text-orange' },
+  documents_recus:     { label: 'Documents reçus',     className: 'bg-teal/10 text-teal' },
+  confirmee:           { label: 'Confirmée',           className: 'bg-teal/10 text-teal' },
+  refusee:             { label: 'Refusée',             className: 'bg-dark/10 text-dark/60' },
+  pending_payment:     { label: 'En attente',          className: 'bg-orange/10 text-orange' },
+  paid:                { label: 'Confirmée',           className: 'bg-teal/10 text-teal' },
+  cancelled:           { label: 'Annulée',             className: 'bg-dark/10 text-dark/50' },
+  refunded:            { label: 'Remboursée',          className: 'bg-dark/5 text-dark/40' },
 };
 
 const FR_DATE = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -130,39 +132,50 @@ export default async function StagiaireDemandesPage({ searchParams }: PageProps)
                 const statut = STATUT_LABEL[ins.statut as InscriptionStatut] ?? STATUT_LABEL.en_attente;
                 const participants = (ins.participants ?? []) as ParticipantRow[];
                 return (
-                  <li key={ins.id} className="p-5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="font-medium">{form?.titre ?? '—'}</div>
-                        <div className="text-xs text-dark/60 mt-1">
-                          {first ? FR_DATE.format(new Date(first)) : '—'}
-                          {last && last !== first && <> → {FR_DATE.format(new Date(last))}</>}
+                  <li key={ins.id}>
+                    <Link
+                      href={`/stagiaire/inscriptions/${ins.id}`}
+                      className="block p-5 hover:bg-light/40 transition"
+                    >
+                      <div className="flex items-start justify-between gap-4 flex-wrap">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium">{form?.titre ?? '—'}</div>
+                          <div className="text-xs text-dark/60 mt-1">
+                            {first ? FR_DATE.format(new Date(first)) : '—'}
+                            {last && last !== first && <> → {FR_DATE.format(new Date(last))}</>}
+                          </div>
                         </div>
+                        <span className={`text-xs px-2 py-1 rounded-full uppercase tracking-wider font-medium whitespace-nowrap ${statut.className}`}>
+                          {statut.label}
+                        </span>
                       </div>
-                      <span className={`text-xs px-2 py-1 rounded-full uppercase tracking-wider font-medium ${statut.className}`}>
-                        {statut.label}
-                      </span>
-                    </div>
 
-                    <div className="mt-3 text-sm">
-                      <span className="text-xs uppercase tracking-[0.15em] text-dark/50">Participants</span>
-                      <ul className="mt-1 text-dark/80">
-                        {participants.map((p, idx) => {
-                          const emp = Array.isArray(p.employee) ? p.employee[0] : p.employee;
-                          const prof = Array.isArray(p.profile) ? p.profile[0] : p.profile;
-                          if (emp) return <li key={`emp-${idx}`}>{emp.prenom} {emp.nom} — <span className="text-dark/60">{emp.email}</span></li>;
-                          if (prof) return <li key={`prof-${idx}`}>{prof.full_name} — <span className="text-dark/60">{prof.email}</span></li>;
-                          return null;
-                        })}
-                      </ul>
-                    </div>
-
-                    {ins.statut === 'refusee' && ins.refus_motif && (
-                      <div className="mt-3 p-3 rounded bg-orange/10 border border-orange/30 text-sm text-orange whitespace-pre-line">
-                        <span className="font-medium">Motif du refus : </span>
-                        {ins.refus_motif}
+                      <div className="mt-3 text-sm">
+                        <span className="text-xs uppercase tracking-[0.15em] text-dark/50">Participants</span>
+                        <ul className="mt-1 text-dark/80">
+                          {participants.map((p, idx) => {
+                            const emp = Array.isArray(p.employee) ? p.employee[0] : p.employee;
+                            const prof = Array.isArray(p.profile) ? p.profile[0] : p.profile;
+                            if (emp) return <li key={`emp-${idx}`}>{emp.prenom} {emp.nom} — <span className="text-dark/60">{emp.email}</span></li>;
+                            if (prof) return <li key={`prof-${idx}`}>{prof.full_name} — <span className="text-dark/60">{prof.email}</span></li>;
+                            return null;
+                          })}
+                        </ul>
                       </div>
-                    )}
+
+                      {ins.statut === 'documents_demandes' && (
+                        <p className="mt-3 text-xs text-orange font-medium">
+                          → Cliquez pour transmettre les documents demandés
+                        </p>
+                      )}
+
+                      {ins.statut === 'refusee' && ins.refus_motif && (
+                        <div className="mt-3 p-3 rounded bg-orange/10 border border-orange/30 text-sm text-orange whitespace-pre-line">
+                          <span className="font-medium">Motif du refus : </span>
+                          {ins.refus_motif}
+                        </div>
+                      )}
+                    </Link>
                   </li>
                 );
               })}

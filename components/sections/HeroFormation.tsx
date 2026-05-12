@@ -28,6 +28,20 @@ export function HeroFormation({ formation, meta }: { formation: Formation; meta:
           {formation.titre}
           {formation.sousTitre && (<><br/><span className="text-teal-l">{formation.sousTitre}</span></>)}
         </h1>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <a
+            href="#prochaines-sessions"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-md font-sans text-sm font-semibold uppercase tracking-wider text-white transition hover:opacity-90"
+            style={{ backgroundColor: meta.couleur }}
+            data-track="hero_voir_sessions"
+            data-track-formation={formation.slug}
+          >
+            Voir les prochaines sessions
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 5v14M5 12l7 7 7-7" />
+            </svg>
+          </a>
+        </div>
       </Container>
     </section>
   );

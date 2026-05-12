@@ -24,12 +24,13 @@ export function StagiaireCard({ sessionId, row }: { sessionId: string; row: Stag
 
   function invite() {
     if (!row.employeeId) return;
+    if (row.hasAccount && !confirm('Renvoyer un nouveau lien d\'invitation à ce stagiaire ?\nLe précédent ne sera plus valable.')) return;
     setError(null);
     setSuccess(null);
     startTransition(async () => {
       const res = await sendInvitationToEmployee(sessionId, row.employeeId!);
       if (!res.ok) setError(res.error);
-      else setSuccess('Invitation envoyée.');
+      else setSuccess(res.resent ? 'Nouveau lien envoyé.' : 'Invitation envoyée.');
     });
   }
 
@@ -82,6 +83,14 @@ export function StagiaireCard({ sessionId, row }: { sessionId: string; row: Stag
           </Button>
           <Button variant="secondary" onClick={() => setEditing(true)} disabled={pending} className="sm:flex-1">
             Modifier l&apos;email
+          </Button>
+        </div>
+      )}
+
+      {!editing && row.type === 'employee' && row.hasAccount && (
+        <div className="flex pt-2 border-t border-dark/10">
+          <Button variant="secondary" onClick={invite} disabled={pending} className="w-full sm:w-auto">
+            {pending ? '…' : 'Renvoyer l\'invitation'}
           </Button>
         </div>
       )}
