@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { Field, Select, Textarea } from '@/components/app/Field';
 import { Button } from '@/components/app/Button';
+import { HeroImageUpload } from '@/components/app/HeroImageUpload';
 import { createFormation, updateFormation, type FormationInput } from './actions';
 import { PARCOURS_META } from '@/lib/parcours';
 import type {
@@ -270,17 +271,26 @@ export function FormationForm({ initial, allFormations, allSecteurs }: Props) {
       </Section>
 
       <Section title="Image hero">
-        <Field
-          label="Chemin de l'image"
+        <HeroImageUpload
           value={data.hero_image ?? ''}
-          onChange={(e) => set('hero_image', e.target.value)}
-          placeholder="/images/formations/exemple.jpg"
+          onChange={(url) => set('hero_image', url)}
+          alt={data.hero_alt ?? ''}
+          onAltChange={(v) => set('hero_alt', v)}
+          slugHint={data.slug || undefined}
         />
-        <Field
-          label="Texte alternatif (alt)"
-          value={data.hero_alt ?? ''}
-          onChange={(e) => set('hero_alt', e.target.value)}
-        />
+        <details className="text-xs">
+          <summary className="cursor-pointer text-dark/50 hover:text-dark">
+            Édition avancée — saisir un chemin manuellement
+          </summary>
+          <div className="mt-2">
+            <Field
+              label="Chemin / URL de l'image"
+              value={data.hero_image ?? ''}
+              onChange={(e) => set('hero_image', e.target.value)}
+              placeholder="/images/formations/exemple.jpg"
+            />
+          </div>
+        </details>
       </Section>
 
       <Section title="Infos pratiques">

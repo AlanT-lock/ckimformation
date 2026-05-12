@@ -52,7 +52,7 @@ export function Navbar() {
         <Container className="flex h-20 items-center justify-between">
           <Link href="/" aria-label="C-KIM Formation — Accueil" className="block relative z-10">
             <Image
-              src="/logo-ckim.png"
+              src="/logo-ckim-noir.png"
               alt="C-KIM Formation"
               width={512}
               height={353}
