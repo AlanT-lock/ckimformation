@@ -5,6 +5,7 @@ import { FadeUp } from '@/components/motion/FadeUp';
 import { ContactEntreprise } from '@/components/forms/ContactEntreprise';
 import { ContactParticulier } from '@/components/forms/ContactParticulier';
 import type { FormationOption } from '@/components/forms/FormationSelect';
+import { QualiopiBanner } from '@/components/sections/QualiopiBanner';
 import { cn } from '@/lib/utils';
 
 export function ContactClient({ formations }: { formations: FormationOption[] }) {
@@ -47,6 +48,13 @@ export function ContactClient({ formations }: { formations: FormationOption[] })
           </FadeUp>
         </Container>
       </section>
+
+      <QualiopiBanner
+        variant="compact"
+        eyebrow="Pourquoi choisir C-KIM"
+        title="Une certification qualité reconnue par l'État."
+        description="Nos formations sont éligibles à tous les dispositifs de financement publics et conventionnels grâce à notre certification Qualiopi. Un gage de sérieux pédagogique et un avantage concret pour votre budget formation."
+      />
     </>
   );
 }

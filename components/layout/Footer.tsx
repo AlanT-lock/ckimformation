@@ -18,13 +18,31 @@ export function Footer() {
             <p className="mt-4 text-sm text-muted leading-relaxed">
               Centre de formation certifié Qualiopi — Sécurité, prévention et développement humain. Draguignan (83), région PACA.
             </p>
+
+            {/* Encart Qualiopi */}
+            <div className="mt-6 inline-flex items-start gap-3 bg-white/[0.04] border border-white/10 rounded-lg p-3">
+              <div className="shrink-0 bg-white rounded p-2">
+                <Image
+                  src="/logo-qualiopi.png"
+                  alt="Logo Qualiopi — Processus certifié — République française"
+                  width={633}
+                  height={338}
+                  className="h-10 w-auto"
+                />
+              </div>
+              <div className="text-xs leading-relaxed">
+                <p className="text-teal-l font-semibold uppercase tracking-wider mb-0.5">Certifié Qualiopi</p>
+                <p className="text-muted">Catégorie « Actions de formation ». Éligible OPCO, CPF, Pôle Emploi.</p>
+              </div>
+            </div>
           </div>
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-teal-l mb-3">Navigation</p>
             <ul className="space-y-2 text-sm">
               <li><Link href="/" className="hover:text-teal-l">Accueil</Link></li>
-              <li><Link href="/organisme" className="hover:text-teal-l">L'organisme</Link></li>
+              <li><Link href="/organisme" className="hover:text-teal-l">L&apos;organisme</Link></li>
               <li><Link href="/formations" className="hover:text-teal-l">Formations</Link></li>
+              <li><Link href="/financement" className="hover:text-teal-l">Financement</Link></li>
               <li><Link href="/contact" className="hover:text-teal-l">Contact</Link></li>
             </ul>
           </div>

@@ -11,6 +11,7 @@ import { MethodeCkim } from '@/components/sections/MethodeCkim';
 import { CtaFinal } from '@/components/sections/CtaFinal';
 import { UpcomingSessions } from '@/components/sections/UpcomingSessions';
 import { TarifsSection } from '@/components/sections/TarifsSection';
+import { QualiopiBanner } from '@/components/sections/QualiopiBanner';
 import { getAllFormations, getFormationBySlug } from '@/lib/db/formations';
 import { getParcoursMeta } from '@/lib/parcours';
 import { JsonLd } from '@/components/seo/JsonLd';
@@ -126,6 +127,14 @@ export default async function FormationPage({ params }: PageProps) {
           </FadeUp>
         </Container>
       </section>
+
+      {/* 7b. Qualiopi — bandeau qualité */}
+      <QualiopiBanner
+        variant="compact"
+        eyebrow="Formation certifiée"
+        title="Cette formation est éligible aux financements qualité."
+        description="Conçue dans le cadre du référentiel Qualiopi, cette action est mobilisable via OPCO, CPF, Pôle Emploi ou plan de développement des compétences."
+      />
 
       {/* 8. Méthode C-KIM (transverse) - dark */}
       <MethodeCkim />

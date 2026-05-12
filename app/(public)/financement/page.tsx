@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Container } from '@/components/ui/Container';
 import { ButtonLink } from '@/components/ui/Button';
 import { FadeUp } from '@/components/motion/FadeUp';
+import { QualiopiBanner } from '@/components/sections/QualiopiBanner';
 
 export const metadata: Metadata = {
   title: 'Financement de formation — OPCO, CPF | C-KIM Formation',
@@ -380,6 +381,14 @@ export default function FinancementPage() {
           </ol>
         </Container>
       </section>
+
+      {/* ========== QUALIOPI — bandeau de réassurance ========== */}
+      <QualiopiBanner
+        variant="compact"
+        eyebrow="Condition d'éligibilité"
+        title="Notre certification Qualiopi rend votre formation finançable."
+        description="La certification Qualiopi est la condition légale pour qu'une action de formation soit prise en charge par les financeurs publics (OPCO, CPF, Pôle Emploi, État, collectivités). C-KIM Formation la détient pour l'ensemble de son catalogue."
+      />
 
       {/* ========== CTA FINAL ========== */}
       <section className="bg-light py-24 md:py-28">

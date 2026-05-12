@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { Container } from '@/components/ui/Container';
 import { ButtonLink } from '@/components/ui/Button';
 import { FadeUp } from '@/components/motion/FadeUp';
+import { QualiopiBanner } from '@/components/sections/QualiopiBanner';
 import { getAllFormations } from '@/lib/db/formations';
 import { PARCOURS_META } from '@/lib/parcours';
 import type { Parcours, Formation } from '@/lib/types/formation';
@@ -88,6 +89,14 @@ export default async function FormationsIndex() {
           </div>
         </Container>
       </section>
+
+      {/* ========== ENGAGEMENT QUALITÉ — QUALIOPI ========== */}
+      <QualiopiBanner
+        variant="compact"
+        eyebrow="Notre engagement"
+        title="Toutes nos formations sont éligibles aux financements."
+        description="Chaque action portée par C-KIM Formation est conçue dans le cadre du référentiel Qualiopi."
+      />
 
       {/* ========== SECTIONS PAR PARCOURS ========== */}
       {grouped.map((g, gi) => (

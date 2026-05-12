@@ -9,6 +9,7 @@ import { Marquee } from '@/components/motion/Marquee';
 import { PARCOURS_META } from '@/lib/parcours';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { FormationsHighlight } from '@/components/sections/FormationsHighlight';
+import { QualiopiBanner } from '@/components/sections/QualiopiBanner';
 import { getFormationBySlug } from '@/lib/db/formations';
 
 const HIGHLIGHTED_SLUGS = [
@@ -108,6 +109,9 @@ export default async function Home() {
           </FadeUp>
         </Container>
       </section>
+
+      {/* Qualiopi — engagement qualité */}
+      <QualiopiBanner variant="feature" tone="light" />
 
       {/* Citation - dark */}
       <section className="bg-dark text-white py-32 relative overflow-hidden">

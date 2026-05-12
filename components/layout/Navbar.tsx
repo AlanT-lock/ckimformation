@@ -49,7 +49,7 @@ export function Navbar() {
           scrolled || menuOpen ? 'bg-white/95 backdrop-blur shadow-sm' : 'bg-transparent'
         }`}
       >
-        <Container className="flex h-20 items-center justify-between">
+        <Container className="flex h-24 items-center justify-between">
           <Link href="/" aria-label="C-KIM Formation — Accueil" className="block relative z-10">
             <Image
               src="/logo-ckim-noir.png"
@@ -57,7 +57,7 @@ export function Navbar() {
               width={512}
               height={353}
               priority
-              className="h-10 sm:h-12 w-auto"
+              className="h-16 sm:h-[72px] md:h-20 w-auto"
             />
           </Link>
 
@@ -123,7 +123,7 @@ export function Navbar() {
 
         {/* Panneau */}
         <div
-          className={`absolute inset-x-0 top-20 bg-white shadow-2xl border-t border-light transition-transform duration-300 ${
+          className={`absolute inset-x-0 top-24 bg-white shadow-2xl border-t border-light transition-transform duration-300 ${
             menuOpen ? 'translate-y-0' : '-translate-y-4'
           }`}
         >

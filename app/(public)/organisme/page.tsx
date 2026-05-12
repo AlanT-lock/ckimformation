@@ -9,6 +9,7 @@ import { Marquee } from '@/components/motion/Marquee';
 import { getFormationBySlug } from '@/lib/db/formations';
 import { getParcoursMeta } from '@/lib/parcours';
 import { JsonLd } from '@/components/seo/JsonLd';
+import { QualiopiBanner } from '@/components/sections/QualiopiBanner';
 
 export const metadata: Metadata = {
   title: "L'organisme — C-KIM Formation, Draguignan PACA",
@@ -513,6 +514,15 @@ export default async function OrganismePage() {
           ))}
         </Marquee>
       </section>
+
+      {/* ========== 10b. ENGAGEMENT QUALITÉ — QUALIOPI ========== */}
+      <QualiopiBanner
+        variant="feature"
+        tone="light"
+        eyebrow="Référentiel national qualité"
+        title="Une exigence qualité auditée chaque année."
+        description="C-KIM Formation est certifié Qualiopi pour la catégorie « Actions de formation ». Cette certification, délivrée après un audit indépendant, atteste de la conformité de nos processus au Référentiel National Qualité — de l'analyse du besoin jusqu'au suivi post-formation."
+      />
 
       {/* ========== 11. CTA FINAL ========== */}
       <section className="bg-dark text-white py-24 md:py-28 relative overflow-hidden">
