@@ -59,6 +59,16 @@ export function Footer() {
             <ul className="space-y-2 text-sm">
               <li><Link href="/mentions-legales" className="hover:text-teal-l">Mentions légales</Link></li>
               <li><Link href="/confidentialite" className="hover:text-teal-l">Confidentialité</Link></li>
+              <li>
+                <a
+                  href="/documents/livret-accueil-ckim-formation.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-teal-l"
+                >
+                  Livret d&apos;accueil
+                </a>
+              </li>
             </ul>
           </div>
         </div>
