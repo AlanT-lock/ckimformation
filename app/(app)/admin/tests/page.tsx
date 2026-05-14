@@ -25,6 +25,22 @@ export default async function AdminTestsPage() {
         description="Sélectionnez une formation pour gérer ses tests et enquêtes de satisfaction."
       />
 
+      <Link
+        href="/admin/tests/financeur"
+        className="block bg-white rounded-lg border border-orange/30 bg-orange/5 p-5 hover:shadow-md hover:-translate-y-0.5 transition-all"
+      >
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="min-w-0">
+            <p className="text-xs uppercase tracking-[0.2em] text-orange">Enquête globale</p>
+            <p className="font-medium mt-1">Enquête de satisfaction financeur</p>
+            <p className="text-xs text-dark/60 mt-1 max-w-xl">
+              S'applique à toutes les formations. Envoyée aux entreprises 1 semaine après la fin de la formation, avec relances 7j et max 2.
+            </p>
+          </div>
+          <span className="text-xs uppercase tracking-[0.2em] text-orange whitespace-nowrap self-center">Configurer →</span>
+        </div>
+      </Link>
+
       {(!formations || formations.length === 0) ? (
         <div className="bg-white rounded-lg border border-dark/10 p-8 text-sm text-dark/60 text-center">
           Aucune formation. Créez-en une depuis l&apos;onglet Formations.

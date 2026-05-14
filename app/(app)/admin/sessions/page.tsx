@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ButtonLink } from '@/components/app/Button';
 import { PageHeader } from '@/components/app/PageHeader';
 import { createClient } from '@/lib/supabase/server';
+import { SessionsFilters } from './SessionsFilters';
 
 const STATUT_LABEL: Record<string, { label: string; className: string }> = {
   draft:     { label: 'Brouillon',  className: 'bg-dark/10 text-dark/70' },
@@ -18,28 +19,50 @@ interface SessionRow {
   id: string;
   statut: string;
   created_at: string;
+  formation_id: string;
   formation: { slug: string; titre: string } | { slug: string; titre: string }[] | null;
   formateur: { full_name: string; email: string } | { full_name: string; email: string }[] | null;
   creneaux: { date: string; ordre: number }[] | null;
 }
 
-export default async function AdminSessionsPage() {
+interface PageProps {
+  searchParams: Promise<{ statut?: string; formation?: string }>;
+}
+
+export default async function AdminSessionsPage({ searchParams }: PageProps) {
+  const sp = await searchParams;
+  const statutFilter = sp.statut ?? '';
+  const formationFilter = sp.formation ?? '';
+
   const supabase = await createClient();
-  const { data: sessions } = await supabase
-    .from('sessions')
-    .select(`
-      id, statut, created_at,
-      formation:formations(slug, titre),
-      formateur:profiles!sessions_formateur_id_fkey(full_name, email),
-      creneaux:session_creneaux(date, ordre)
-    `)
-    .order('created_at', { ascending: false });
+
+  const [{ data: sessions }, { data: formationsList }] = await Promise.all([
+    supabase
+      .from('sessions')
+      .select(`
+        id, statut, created_at, formation_id,
+        formation:formations(slug, titre),
+        formateur:profiles!sessions_formateur_id_fkey(full_name, email),
+        creneaux:session_creneaux(date, ordre)
+      `),
+    supabase.from('formations').select('id, titre').order('titre'),
+  ]);
 
   const today = new Date().toISOString().slice(0, 10);
-  const rows = (sessions ?? []) as SessionRow[];
+  const allRows = (sessions ?? []) as SessionRow[];
 
-  // Split prochaines / terminées : terminée si statut='completed' OU dernier créneau passé
-  // (et pas 'cancelled' → on classe les annulées avec les terminées par convention)
+  // Filtres
+  let rows = allRows;
+  if (statutFilter) rows = rows.filter((s) => s.statut === statutFilter);
+  if (formationFilter) rows = rows.filter((s) => s.formation_id === formationFilter);
+
+  // Tri par date du premier créneau (puis fallback created_at desc)
+  function firstDate(s: SessionRow): string {
+    const cre = (s.creneaux ?? []).slice().sort((a, b) => a.ordre - b.ordre);
+    return cre[0]?.date ?? '';
+  }
+
+  // Split prochaines / terminées : terminée si statut='completed'/'cancelled' OU dernier créneau passé
   const upcoming: SessionRow[] = [];
   const past: SessionRow[] = [];
   for (const s of rows) {
@@ -49,6 +72,19 @@ export default async function AdminSessionsPage() {
     (isPast ? past : upcoming).push(s);
   }
 
+  // Tri : prochaines par date croissante (la plus proche en premier),
+  // terminées par date décroissante (la plus récente en premier).
+  upcoming.sort((a, b) => {
+    const da = firstDate(a) || '9999-12-31';
+    const db = firstDate(b) || '9999-12-31';
+    return da.localeCompare(db);
+  });
+  past.sort((a, b) => {
+    const da = firstDate(a) || '0000-01-01';
+    const db = firstDate(b) || '0000-01-01';
+    return db.localeCompare(da);
+  });
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -56,6 +92,12 @@ export default async function AdminSessionsPage() {
         title="Sessions"
         description="Toutes les sessions de formation. Créez, éditez et publiez."
         actions={<ButtonLink href="/admin/sessions/nouvelle">+ Nouvelle session</ButtonLink>}
+      />
+
+      <SessionsFilters
+        statut={statutFilter}
+        formationId={formationFilter}
+        formations={(formationsList ?? []) as { id: string; titre: string }[]}
       />
 
       <SessionsSection title="Prochaines sessions" rows={upcoming} emptyText="Aucune session à venir pour le moment." />

@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getCurrentProfile } from '@/lib/supabase/server';
+import { GoogleReviewThanks } from '@/components/app/GoogleReviewThanks';
 
 export default async function StagiaireLayout({ children }: { children: React.ReactNode }) {
   const profile = await getCurrentProfile();
@@ -8,5 +9,10 @@ export default async function StagiaireLayout({ children }: { children: React.Re
     const home = profile.role === 'admin' ? '/admin' : '/formateur';
     redirect(home);
   }
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <GoogleReviewThanks />
+    </>
+  );
 }

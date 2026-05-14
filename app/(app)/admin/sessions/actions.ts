@@ -92,11 +92,29 @@ export async function updateSession(id: string, input: Omit<SessionInput, 'crene
   revalidatePath('/formations', 'layout');
 }
 
-export async function deleteSession(id: string) {
+export type DeleteSessionResult = { ok: true } | { ok: false; error: string };
+
+export async function deleteSession(id: string): Promise<DeleteSessionResult> {
   await requireAdmin();
   const supabase = await createClient();
+
+  // Pré-check : inscriptions liées (FK ON DELETE RESTRICT côté BDD)
+  const { count, error: countErr } = await supabase
+    .from('inscriptions')
+    .select('id', { count: 'exact', head: true })
+    .eq('session_id', id);
+  if (countErr) return { ok: false, error: countErr.message };
+  if ((count ?? 0) > 0) {
+    return {
+      ok: false,
+      error:
+        `Impossible de supprimer cette session : ${count} inscription(s) ou demande(s) y sont liée(s). ` +
+        `Annulez la session (statut « Annulée ») ou supprimez d'abord les inscriptions.`,
+    };
+  }
+
   const { error } = await supabase.from('sessions').delete().eq('id', id);
-  if (error) throw new Error(error.message);
+  if (error) return { ok: false, error: error.message };
   revalidatePath('/admin/sessions');
   revalidatePath('/formations', 'layout');
   redirect('/admin/sessions');

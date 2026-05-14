@@ -52,6 +52,11 @@ export default async function AdminTestDetailPage({ params }: PageProps) {
             >
               ← Retour
             </ButtonLink>
+            {test.kind === 'enquete' && (
+              <ButtonLink href={`/admin/tests/${test.id}/resultats`} variant="secondary">
+                Voir les résultats
+              </ButtonLink>
+            )}
             <DeleteTestButton testId={test.id} />
           </>
         }

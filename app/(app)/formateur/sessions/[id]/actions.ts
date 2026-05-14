@@ -81,3 +81,16 @@ export async function reopenEmargement(sessionId: string, triggerId: string) {
   if (error) throw new Error(error.message);
   revalidatePath(`/formateur/sessions/${sessionId}`);
 }
+
+export async function terminateSession(sessionId: string) {
+  await requireFormateurOfSession(sessionId);
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('sessions')
+    .update({ statut: 'completed', updated_at: new Date().toISOString() })
+    .eq('id', sessionId);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/formateur/sessions/${sessionId}`);
+  revalidatePath('/formateur/sessions');
+  revalidatePath('/admin/sessions');
+}

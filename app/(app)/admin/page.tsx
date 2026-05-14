@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { PageHeader } from '@/components/app/PageHeader';
 import { createClient } from '@/lib/supabase/server';
+import { QualiopiAlertsBanner } from './QualiopiAlertsBanner';
 
 export const dynamic = 'force-dynamic';
 
@@ -94,6 +95,8 @@ export default async function AdminHome() {
   return (
     <div className="space-y-8">
       <PageHeader eyebrow="Administration" title="Tableau de bord" />
+
+      <QualiopiAlertsBanner />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <Stat label="Formations actives" value={nbFormations ?? 0} href="/admin/formations" />

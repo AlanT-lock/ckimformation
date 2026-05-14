@@ -110,26 +110,29 @@ function Section({
           <ul className="space-y-2">
             {rows.map((t) => {
               const qc = t.questions?.[0]?.count ?? 0;
+              const isEnquete = t.kind === 'enquete';
               return (
-                <li key={t.id}>
-                  <Link
-                    href={`/admin/tests/${t.id}`}
-                    className="block bg-white rounded-lg border border-dark/10 p-4 hover:shadow-sm hover:-translate-y-0.5 transition-all"
-                  >
-                    <div className="flex items-start justify-between gap-3 flex-wrap">
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium">{t.nom}</p>
-                        {t.description && <p className="text-xs text-dark/60 mt-0.5 line-clamp-1">{t.description}</p>}
-                        <p className="text-xs text-dark/50 mt-1">
-                          {qc} question{qc > 1 ? 's' : ''}
-                          {!t.actif && <> · <span className="text-orange">Désactivé</span></>}
-                        </p>
-                      </div>
-                      <span className="text-xs uppercase tracking-[0.2em] text-teal whitespace-nowrap self-center">
+                <li key={t.id} className="bg-white rounded-lg border border-dark/10 hover:shadow-sm transition-all">
+                  <div className="flex items-start justify-between gap-3 flex-wrap p-4">
+                    <Link href={`/admin/tests/${t.id}`} className="min-w-0 flex-1">
+                      <p className="font-medium">{t.nom}</p>
+                      {t.description && <p className="text-xs text-dark/60 mt-0.5 line-clamp-1">{t.description}</p>}
+                      <p className="text-xs text-dark/50 mt-1">
+                        {qc} question{qc > 1 ? 's' : ''}
+                        {!t.actif && <> · <span className="text-orange">Désactivé</span></>}
+                      </p>
+                    </Link>
+                    <div className="flex items-center gap-3 self-center whitespace-nowrap">
+                      {isEnquete && (
+                        <Link href={`/admin/tests/${t.id}/resultats`} className="text-xs uppercase tracking-[0.2em] text-orange hover:underline">
+                          Résultats →
+                        </Link>
+                      )}
+                      <Link href={`/admin/tests/${t.id}`} className="text-xs uppercase tracking-[0.2em] text-teal hover:underline">
                         Éditer →
-                      </span>
+                      </Link>
                     </div>
-                  </Link>
+                  </div>
                 </li>
               );
             })}

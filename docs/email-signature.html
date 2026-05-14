@@ -1,0 +1,116 @@
+<!--
+  Signature email CKIM Formation — Camel ATIL
+  ───────────────────────────────────────────────
+  Comment l'installer dans Hostinger Webmail :
+    1. Webmail → ⚙ Paramètres → Identités → sélectionner votre adresse
+    2. Activer « Signature en HTML »
+    3. Copier-coller TOUT le bloc <table>…</table> ci-dessous
+       (à partir de <!-- =========== SIGNATURE =========== --> jusqu'à la fin)
+    4. Enregistrer
+
+  Notes :
+    - Largeur : ~500 px (s'affiche bien sur desktop et mobile)
+    - Le logo pointe vers https://ckimformation.fr/logo-ckim-noir.png — il doit
+      rester accessible publiquement (il l'est : c'est le logo du header du site)
+    - Dark mode : un bloc <style> avec @media (prefers-color-scheme: dark)
+      est inclus. Pris en charge par Apple Mail, iOS Mail, Outlook.com et la
+      plupart des webmails modernes. Gmail/Outlook desktop : afficheront la
+      version claire (volontairement lisible sur fond clair ET sombre).
+    - Tout est en tables + styles inline → compatibilité maximale (Outlook,
+      Gmail, Apple Mail, Hostinger Webmail, Thunderbird).
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>Signature email — Camel ATIL</title>
+<style>
+  /* Dark mode : inversion ciblée sur les éléments marqués */
+  @media (prefers-color-scheme: dark) {
+    .sig-name      { color: #FFFFFF !important; }
+    .sig-role      { color: #D8EDEF !important; }
+    .sig-label     { color: #7AACB2 !important; }
+    .sig-value     { color: #EEF5F7 !important; }
+    .sig-link      { color: #3AB5CA !important; }
+    .sig-divider   { background-color: #2A4148 !important; }
+    .sig-rule      { border-color: #2A4148 !important; }
+  }
+  /* Empêche iOS de "linkifier" automatiquement le téléphone / adresse */
+  a[x-apple-data-detectors] {
+    color: inherit !important;
+    text-decoration: none !important;
+    font-size: inherit !important;
+    font-family: inherit !important;
+    font-weight: inherit !important;
+    line-height: inherit !important;
+  }
+</style>
+</head>
+<body style="margin:0;padding:24px;background:#ffffff;">
+
+<!-- =========== SIGNATURE — copier à partir d'ici =========== -->
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;line-height:1.45;color:#0A1A1E;">
+  <tr>
+    <!-- LOGO -->
+    <td valign="top" style="padding:0 22px 0 0;border-right:1px solid #E2EAEC;" class="sig-rule">
+      <a href="https://ckimformation.fr" style="text-decoration:none;border:0;outline:none;">
+        <img src="https://ckimformation.fr/logo-ckim-noir.png"
+             alt="CKIM Formation"
+             width="92"
+             style="display:block;width:92px;height:auto;border:0;outline:none;text-decoration:none;">
+      </a>
+    </td>
+
+    <!-- BLOC TEXTE -->
+    <td valign="top" style="padding:0 0 0 22px;">
+      <!-- Nom -->
+      <div class="sig-name" style="font-size:18px;font-weight:600;letter-spacing:0.2px;color:#0A1A1E;margin:0 0 2px 0;">
+        Camel ATIL
+      </div>
+      <!-- Rôle -->
+      <div class="sig-role" style="font-size:13px;color:#1B8FA0;font-weight:500;margin:0 0 12px 0;">
+        Directeur &amp; fondateur — CKIM Formation
+      </div>
+
+      <!-- Filet de séparation -->
+      <div class="sig-divider" style="width:36px;height:2px;background:#E8692A;margin:0 0 12px 0;line-height:2px;font-size:0;">&nbsp;</div>
+
+      <!-- Coordonnées : table imbriquée pour aligner les icônes -->
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+        <tr>
+          <td valign="top" style="padding:0 8px 6px 0;font-size:13px;line-height:1.4;color:#7AACB2;width:18px;" class="sig-label">📞</td>
+          <td valign="top" style="padding:0 0 6px 0;font-size:13px;line-height:1.4;color:#0A1A1E;" class="sig-value">
+            <a href="tel:+33662515559" class="sig-link" style="color:#0A1A1E;text-decoration:none;">+33 6 62 51 55 59</a>
+          </td>
+        </tr>
+        <tr>
+          <td valign="top" style="padding:0 8px 6px 0;font-size:13px;line-height:1.4;color:#7AACB2;width:18px;" class="sig-label">📍</td>
+          <td valign="top" style="padding:0 0 6px 0;font-size:13px;line-height:1.4;color:#0A1A1E;" class="sig-value">
+            Région PACA / Draguignan, Var (83) — France
+          </td>
+        </tr>
+        <tr>
+          <td valign="top" style="padding:0 8px 0 0;font-size:13px;line-height:1.4;color:#7AACB2;width:18px;" class="sig-label">🌐</td>
+          <td valign="top" style="padding:0;font-size:13px;line-height:1.4;color:#0A1A1E;" class="sig-value">
+            <a href="https://ckimformation.fr" class="sig-link" style="color:#1B8FA0;text-decoration:none;font-weight:500;">ckimformation.fr</a>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<!-- Mention légale fine (optionnelle) -->
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-top:14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+  <tr>
+    <td style="font-size:11px;line-height:1.5;color:#7AACB2;" class="sig-label">
+      Organisme de formation certifié <strong style="color:#0A1A1E;" class="sig-value">Qualiopi</strong> — Ce message et ses pièces jointes sont confidentiels.
+    </td>
+  </tr>
+</table>
+<!-- =========== fin de la signature =========== -->
+
+</body>
+</html>

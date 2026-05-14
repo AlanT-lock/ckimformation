@@ -13,6 +13,60 @@ async function requireAdmin() {
 
 // ---------- Tests ----------
 
+/**
+ * Trouve ou crée l'UNIQUE enquête financeur globale (formation_id NULL).
+ * Retourne l'id du test.
+ */
+export async function getOrCreateEnqueteFinanceur(): Promise<string> {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from('tests')
+    .select('id')
+    .eq('kind', 'enquete')
+    .eq('enquete_kind', 'financeur')
+    .is('formation_id', null)
+    .maybeSingle();
+  if (existing?.id) return existing.id;
+
+  const { data, error } = await supabase
+    .from('tests')
+    .insert({
+      formation_id: null,
+      nom: 'Enquête de satisfaction financeur',
+      description: 'Enquête envoyée aux entreprises ayant financé une formation pour leurs salariés.',
+      kind: 'enquete',
+      enquete_kind: 'financeur',
+      actif: true,
+    })
+    .select('id')
+    .single();
+  if (error || !data) throw new Error(error?.message ?? 'Création échouée');
+  return data.id;
+}
+
+export async function updateEnqueteFinanceurMeta(id: string, input: {
+  nom: string;
+  description?: string | null;
+  actif: boolean;
+}) {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('tests')
+    .update({
+      nom: input.nom,
+      description: input.description ?? null,
+      actif: input.actif,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .eq('enquete_kind', 'financeur');
+  if (error) throw new Error(error.message);
+  revalidatePath('/admin/tests');
+  revalidatePath('/admin/tests/financeur');
+}
+
 export async function createTest(input: {
   formation_id: string;
   nom: string;

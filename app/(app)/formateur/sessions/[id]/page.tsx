@@ -4,6 +4,7 @@ import { ButtonLink } from '@/components/app/Button';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { TestsPanel } from './TestsPanel';
 import { CreneauxPanel } from './CreneauxPanel';
+import { TerminateSessionPopup } from './TerminateSessionPopup';
 
 interface PageProps { params: Promise<{ id: string }> }
 
@@ -153,6 +154,14 @@ export default async function FormateurSessionDetail({ params }: PageProps) {
           />
         </div>
       </section>
+
+      <TerminateSessionPopup
+        sessionId={id}
+        statut={session.statut}
+        testIds={(tests ?? []).map((t) => t.id)}
+        participantIds={activeParticipantsForTests}
+        expectedCompletions={expectedCompletions}
+      />
     </div>
   );
 }

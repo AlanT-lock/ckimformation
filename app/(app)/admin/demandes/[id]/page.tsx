@@ -1,8 +1,10 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/app/PageHeader';
 import { ButtonLink } from '@/components/app/Button';
 import { createClient } from '@/lib/supabase/server';
 import { DemandeActions } from './DemandeActions';
+import { EnqueteFinanceurSection } from './EnqueteFinanceurSection';
 import type { InscriptionDocumentDemande, InscriptionAdminDocument } from '@/lib/supabase/types';
 
 const FR_DATE = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
@@ -20,7 +22,7 @@ function fmtSize(bytes: number | null): string {
 
 interface PageProps {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ confirmee?: string; refusee?: string; docs_demandes?: string }>;
+  searchParams: Promise<{ confirmee?: string; refusee?: string; docs_demandes?: string; tab?: string }>;
 }
 
 const STATUT_LABEL: Record<string, { label: string; className: string }> = {
@@ -127,6 +129,26 @@ export default async function AdminDemandeDetailPage({ params, searchParams }: P
         </div>
       )}
 
+      {/* Onglets */}
+      <nav className="border-b border-dark/10 flex gap-1 flex-wrap">
+        <TabLink href={`/admin/demandes/${ins.id}`} active={sp.tab !== 'financeur'}>
+          Détails
+        </TabLink>
+        <TabLink
+          href={`/admin/demandes/${ins.id}?tab=financeur`}
+          active={sp.tab === 'financeur'}
+        >
+          Enquête financeur
+        </TabLink>
+      </nav>
+
+      {sp.tab === 'financeur' ? (
+        <EnqueteFinanceurSection
+          inscriptionId={ins.id}
+          payerIsEntreprise={payer?.account_type === 'entreprise'}
+        />
+      ) : (
+      <>
       <div className="grid lg:grid-cols-2 gap-6">
         <section className="bg-white rounded-lg border border-dark/10 p-6 space-y-3">
           <h2 className="font-display text-xl">Demandeur</h2>
@@ -295,6 +317,23 @@ export default async function AdminDemandeDetailPage({ params, searchParams }: P
           createdAt: d.created_at,
         }))}
       />
+      </>
+      )}
     </div>
+  );
+}
+
+function TabLink({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className={`px-4 py-2 text-sm uppercase tracking-[0.15em] font-medium border-b-2 -mb-px transition ${
+        active
+          ? 'border-teal text-teal'
+          : 'border-transparent text-dark/50 hover:text-dark'
+      }`}
+    >
+      {children}
+    </Link>
   );
 }

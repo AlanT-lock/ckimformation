@@ -74,6 +74,7 @@ export default async function TestResponsePage({ params }: PageProps) {
       <TestResponseForm
         sessionId={sessionId}
         testId={testId}
+        isEnqueteChaud={test.kind === 'enquete' && test.enquete_kind === 'a_chaud'}
         questions={(questions ?? []).map((q) => ({
           id: q.id,
           ordre: q.ordre,

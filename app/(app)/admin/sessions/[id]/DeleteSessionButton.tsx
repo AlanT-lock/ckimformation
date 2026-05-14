@@ -7,10 +7,17 @@ import { deleteSession } from '../actions';
 export function DeleteSessionButton({ sessionId }: { sessionId: string }) {
   const [pending, startTransition] = useTransition();
   function onClick() {
-    if (!confirm('Supprimer définitivement cette session ?\nLes créneaux et inscriptions associés seront perdus.')) return;
+    if (!confirm('Supprimer définitivement cette session ?\nLes créneaux associés seront perdus.')) return;
     startTransition(async () => {
-      try { await deleteSession(sessionId); }
-      catch (err) { alert(err instanceof Error ? err.message : 'Erreur'); }
+      try {
+        const res = await deleteSession(sessionId);
+        if (res && res.ok === false) alert(res.error);
+      } catch (err) {
+        // redirect() lance NEXT_REDIRECT — pas une vraie erreur
+        if (err instanceof Error && err.message !== 'NEXT_REDIRECT') {
+          alert(err.message);
+        }
+      }
     });
   }
   return (
