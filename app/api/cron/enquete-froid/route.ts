@@ -2,8 +2,8 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { randomBytes } from 'node:crypto';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isAuthorizedCron } from '@/lib/recommendations/cron-auth';
-import { resend, EMAIL_FROM } from '@/lib/email/resend';
 import { enqueteFroidEmailHtml, enqueteFroidEmailSubject } from '@/lib/email/templates/enquete-froid';
+import { sendAndLog } from '@/lib/email/log';
 
 /**
  * Cron quotidien :
@@ -73,8 +73,8 @@ export async function GET(request: NextRequest) {
         inscriptions:inscriptions!inner(
           id, statut,
           participants:inscription_participants(
-            id,
-            employee:employees(prenom, nom, email),
+            id, participant_profile_id,
+            employee:employees(prenom, nom, email, profile_id),
             profile:profiles!inscription_participants_participant_profile_id_fkey(full_name, email)
           )
         )
@@ -94,8 +94,8 @@ export async function GET(request: NextRequest) {
       for (const ins of (s.inscriptions ?? []) as Array<{
         id: string; statut: string;
         participants: Array<{
-          id: string;
-          employee: { prenom: string; nom: string; email: string } | { prenom: string; nom: string; email: string }[] | null;
+          id: string; participant_profile_id: string | null;
+          employee: { prenom: string; nom: string; email: string; profile_id: string | null } | { prenom: string; nom: string; email: string; profile_id: string | null }[] | null;
           profile: { full_name: string; email: string } | { full_name: string; email: string }[] | null;
         }>;
       }>) {
@@ -105,6 +105,7 @@ export async function GET(request: NextRequest) {
           const email = emp?.email ?? prof?.email ?? null;
           if (!email) continue;
           const prenom = emp?.prenom ?? (prof?.full_name?.split(' ')[0] ?? null);
+          const toProfileId = emp?.profile_id ?? p.participant_profile_id ?? null;
 
           // Récupère ou crée l'envoi
           let { data: envoi } = await admin
@@ -146,37 +147,45 @@ export async function GET(request: NextRequest) {
           }
 
           const enqueteUrl = `${siteUrl()}/enquete/${envoi.token}`;
+          const subject = enqueteFroidEmailSubject(formationTitre, isReminder);
+          const reminderNumber = isReminder ? envoi.reminder_count + 1 : 0;
 
-          try {
-            await resend.emails.send({
-              from: EMAIL_FROM,
-              to: email,
-              subject: enqueteFroidEmailSubject(formationTitre, isReminder),
-              html: enqueteFroidEmailHtml({
-                prenom,
-                formationTitre,
-                formationDate: `le ${lastDateLabel}`,
-                enqueteUrl,
-                isReminder,
-                reminderNumber: isReminder ? envoi.reminder_count + 1 : 0,
-              }),
-            });
+          const sendRes = await sendAndLog({
+            kind: 'enquete_froid',
+            to: email,
+            toProfileId,
+            subject,
+            html: enqueteFroidEmailHtml({
+              prenom,
+              formationTitre,
+              formationDate: `le ${lastDateLabel}`,
+              enqueteUrl,
+              isReminder,
+              reminderNumber,
+            }),
+            refTable: 'enquete_froid_envois',
+            refId: envoi.id,
+            isReminder,
+            reminderNumber,
+            metadata: { formationTitre, sessionId: s.id, inscriptionId: ins.id, inscriptionParticipantId: p.id },
+          });
 
-            const patch: Record<string, unknown> = {};
-            if (!envoi.first_sent_at) {
-              patch.first_sent_at = new Date(now).toISOString();
-              summary.initialSent++;
-            } else {
-              patch.last_reminder_at = new Date(now).toISOString();
-              patch.reminder_count = envoi.reminder_count + 1;
-              summary.remindersSent++;
-            }
-            await admin.from('enquete_froid_envois').update(patch).eq('id', envoi.id);
-          } catch (err) {
-            const msg = err instanceof Error ? err.message : String(err);
-            summary.errors.push(`Send email ${email}: ${msg}`);
-            console.error('[cron enquete-froid] send failed', email, err);
+          if (!sendRes.ok) {
+            summary.errors.push(`Send email ${email}: ${sendRes.error}`);
+            console.error('[cron enquete-froid] send failed', email, sendRes.error);
+            continue;
           }
+
+          const patch: Record<string, unknown> = {};
+          if (!envoi.first_sent_at) {
+            patch.first_sent_at = new Date(now).toISOString();
+            summary.initialSent++;
+          } else {
+            patch.last_reminder_at = new Date(now).toISOString();
+            patch.reminder_count = envoi.reminder_count + 1;
+            summary.remindersSent++;
+          }
+          await admin.from('enquete_froid_envois').update(patch).eq('id', envoi.id);
         }
       }
     }

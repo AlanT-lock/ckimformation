@@ -2,8 +2,8 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { randomBytes } from 'node:crypto';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isAuthorizedCron } from '@/lib/recommendations/cron-auth';
-import { resend, EMAIL_FROM } from '@/lib/email/resend';
 import { enqueteFinanceurEmailHtml, enqueteFinanceurEmailSubject } from '@/lib/email/templates/enquete-financeur';
+import { sendAndLog } from '@/lib/email/log';
 
 /**
  * Cron quotidien — enquête financeur.
@@ -152,38 +152,46 @@ export async function GET(request: NextRequest) {
     }
 
     const enqueteUrl = `${siteUrl()}/enquete-financeur/${envoi.token}`;
+    const subject = enqueteFinanceurEmailSubject(formationTitre, isReminder);
+    const reminderNumber = isReminder ? envoi.reminder_count + 1 : 0;
 
-    try {
-      await resend.emails.send({
-        from: EMAIL_FROM,
-        to: payer.email,
-        subject: enqueteFinanceurEmailSubject(formationTitre, isReminder),
-        html: enqueteFinanceurEmailHtml({
-          contactName: payer.full_name ?? null,
-          raisonSociale,
-          formationTitre,
-          formationDate: `le ${lastDateLabel}`,
-          enqueteUrl,
-          isReminder,
-          reminderNumber: isReminder ? envoi.reminder_count + 1 : 0,
-        }),
-      });
+    const sendRes = await sendAndLog({
+      kind: 'enquete_financeur',
+      to: payer.email,
+      toProfileId: ins.payer_profile_id ?? null,
+      subject,
+      html: enqueteFinanceurEmailHtml({
+        contactName: payer.full_name ?? null,
+        raisonSociale,
+        formationTitre,
+        formationDate: `le ${lastDateLabel}`,
+        enqueteUrl,
+        isReminder,
+        reminderNumber,
+      }),
+      refTable: 'enquete_financeur_envois',
+      refId: envoi.id,
+      isReminder,
+      reminderNumber,
+      metadata: { formationTitre, raisonSociale, inscriptionId: ins.id },
+    });
 
-      const patch: Record<string, unknown> = {};
-      if (!envoi.first_sent_at) {
-        patch.first_sent_at = new Date(now).toISOString();
-        summary.initialSent++;
-      } else {
-        patch.last_reminder_at = new Date(now).toISOString();
-        patch.reminder_count = envoi.reminder_count + 1;
-        summary.remindersSent++;
-      }
-      await admin.from('enquete_financeur_envois').update(patch).eq('id', envoi.id);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      summary.errors.push(`Send email ${payer.email}: ${msg}`);
-      console.error('[cron enquete-financeur] send failed', payer.email, err);
+    if (!sendRes.ok) {
+      summary.errors.push(`Send email ${payer.email}: ${sendRes.error}`);
+      console.error('[cron enquete-financeur] send failed', payer.email, sendRes.error);
+      continue;
     }
+
+    const patch: Record<string, unknown> = {};
+    if (!envoi.first_sent_at) {
+      patch.first_sent_at = new Date(now).toISOString();
+      summary.initialSent++;
+    } else {
+      patch.last_reminder_at = new Date(now).toISOString();
+      patch.reminder_count = envoi.reminder_count + 1;
+      summary.remindersSent++;
+    }
+    await admin.from('enquete_financeur_envois').update(patch).eq('id', envoi.id);
   }
 
   return NextResponse.json({ ok: true, ...summary });
