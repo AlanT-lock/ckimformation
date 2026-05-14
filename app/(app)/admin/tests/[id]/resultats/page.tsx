@@ -9,6 +9,7 @@ import {
   parseScaleValue,
   parseTextValue,
   parseQcmValue,
+  parseFollowupValue,
   type ScaleReponse,
 } from '@/lib/enquetes/analytics';
 
@@ -256,7 +257,7 @@ function QuestionResult({ ordre, libelle, type, options, echelleMax, responses, 
             ) : type === 'echelle' && echelleMax ? (
               <ScaleResult responses={responses} echelleMax={echelleMax} />
             ) : type === 'qcm_unique' || type === 'qcm_multiple' ? (
-              <QcmResult responses={responses} options={options} type={type} />
+              <QcmResult responses={responses} options={options} type={type} whoFor={whoFor} completedAt={completedAt} />
             ) : (
               // texte_libre / liste
               <TextList responses={responses} type={type} whoFor={whoFor} completedAt={completedAt} />
@@ -336,25 +337,33 @@ function ScaleResult({ responses, echelleMax }: { responses: Array<{ valeur: str
 }
 
 function QcmResult({
-  responses, options, type,
+  responses, options, type, whoFor, completedAt,
 }: {
-  responses: Array<{ valeur: string | null; valeur_json: unknown }>;
+  responses: Array<{ completion_id: string; valeur: string | null; valeur_json: unknown }>;
   options: string[];
   type: 'qcm_unique' | 'qcm_multiple';
+  whoFor: (cid: string) => { name: string; email: string };
+  completedAt: (cid: string) => string | null;
 }) {
-  // Compte les réponses par option (peut être > total pour multi)
+  // Compte les réponses par option + collecte les follow-ups
   const counts = new Map<string, number>();
   let totalResp = 0;
+  const followups: Array<{ completion_id: string; option: string; text: string }> = [];
   for (const r of responses) {
     const picks = parseQcmValue(type, r.valeur_json);
     if (picks.length === 0) continue;
     totalResp++;
     for (const p of picks) counts.set(p, (counts.get(p) ?? 0) + 1);
+    if (type === 'qcm_unique') {
+      const f = parseFollowupValue(r.valeur_json);
+      if (f) followups.push({ completion_id: r.completion_id, option: picks[0], text: f });
+    }
   }
   const max = Math.max(1, ...Array.from(counts.values()));
 
   return (
-    <div className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-2 items-center">
+    <div className="space-y-4">
+      <div className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-2 items-center">
       {options.map((opt) => {
         const c = counts.get(opt) ?? 0;
         const pct = totalResp > 0 ? Math.round((c / totalResp) * 100) : 0;
@@ -373,6 +382,33 @@ function QcmResult({
           </Fragment>
         );
       })}
+      </div>
+
+      {followups.length > 0 && (
+        <div className="pt-3 border-t border-dark/10">
+          <p className="text-xs uppercase tracking-[0.15em] text-teal mb-2">Précisions libres ({followups.length})</p>
+          <ul className="space-y-2">
+            {followups.map((f, i) => {
+              const who = whoFor(f.completion_id);
+              const at = completedAt(f.completion_id);
+              return (
+                <li key={`${f.completion_id}-${i}`} className="border border-dark/10 rounded p-3 bg-light/40">
+                  <div className="flex items-start justify-between gap-3 flex-wrap text-xs">
+                    <span className="font-medium text-dark/80">
+                      {who.name || <em className="text-dark/40">Sans nom</em>}
+                      {who.email && <span className="text-dark/50 font-normal ml-2">· {who.email}</span>}
+                    </span>
+                    <span className="text-dark/40 whitespace-nowrap">
+                      Choix : <strong className="text-dark/70">{f.option}</strong>{at && ` · ${FR_DATETIME.format(new Date(at))}`}
+                    </span>
+                  </div>
+                  <p className="mt-1.5 text-sm text-dark/80 whitespace-pre-wrap">{f.text}</p>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

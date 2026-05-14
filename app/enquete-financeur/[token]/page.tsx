@@ -112,7 +112,7 @@ async function EnqueteContent({ envoi, token }: { envoi: EnvoiData; token: strin
 
   const { data: questions } = await admin
     .from('questions')
-    .select('id, ordre, libelle, type_reponse, options, echelle_max, required')
+    .select('id, ordre, libelle, type_reponse, options, echelle_max, required, follow_up_options')
     .eq('test_id', envoi.test_id)
     .order('ordre');
 
@@ -142,6 +142,7 @@ async function EnqueteContent({ envoi, token }: { envoi: EnvoiData; token: strin
           options: Array.isArray(q.options) ? (q.options as string[]) : [],
           echelle_max: q.echelle_max,
           required: q.required,
+          follow_up_options: Array.isArray(q.follow_up_options) ? (q.follow_up_options as string[]) : [],
         }))}
       />
     </div>

@@ -105,6 +105,7 @@ export default async function AdminTestDetailPage({ params }: PageProps) {
               echelle_max: q.echelle_max,
               required: q.required,
               bonne_reponse: q.bonne_reponse,
+              follow_up_options: Array.isArray(q.follow_up_options) ? (q.follow_up_options as string[]) : [],
             }))}
           />
         </div>

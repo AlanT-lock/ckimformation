@@ -83,6 +83,7 @@ export default async function TestResponsePage({ params }: PageProps) {
           options: Array.isArray(q.options) ? (q.options as string[]) : [],
           echelle_max: q.echelle_max,
           required: q.required,
+          follow_up_options: Array.isArray(q.follow_up_options) ? (q.follow_up_options as string[]) : [],
         }))}
       />
     </div>

@@ -19,7 +19,7 @@ export default async function AdminEnqueteFinanceurPage() {
     supabase.from('tests').select('id, nom, description, actif').eq('id', testId).single(),
     supabase
       .from('questions')
-      .select('id, libelle, type_reponse, options, echelle_max, required, bonne_reponse')
+      .select('id, libelle, type_reponse, options, echelle_max, required, bonne_reponse, follow_up_options')
       .eq('test_id', testId)
       .order('ordre'),
   ]);
@@ -76,6 +76,7 @@ export default async function AdminEnqueteFinanceurPage() {
               echelle_max: q.echelle_max,
               required: q.required,
               bonne_reponse: q.bonne_reponse,
+              follow_up_options: Array.isArray(q.follow_up_options) ? (q.follow_up_options as string[]) : [],
             }))}
           />
         </div>

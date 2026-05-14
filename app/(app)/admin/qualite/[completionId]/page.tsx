@@ -3,7 +3,7 @@ import { PageHeader } from '@/components/app/PageHeader';
 import { ButtonLink } from '@/components/app/Button';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { completionScorePct, BAD_SCORE_THRESHOLD, type ScaleQ } from '@/lib/enquetes/alerts';
-import { normalizeScale, parseScaleValue, parseQcmValue, parseTextValue } from '@/lib/enquetes/analytics';
+import { normalizeScale, parseScaleValue, parseQcmValue, parseTextValue, parseFollowupValue } from '@/lib/enquetes/analytics';
 import { ActionCorrectiveForm } from './ActionCorrectiveForm';
 import type { QuestionType, EnqueteKind } from '@/lib/supabase/types';
 
@@ -260,16 +260,25 @@ function AnswerCell({
   if (type === 'qcm_unique' || type === 'qcm_multiple') {
     const picks = parseQcmValue(type, valeurJson);
     if (picks.length === 0) return <span className="text-dark/40 italic text-sm">Pas de réponse</span>;
+    const followup = type === 'qcm_unique' ? parseFollowupValue(valeurJson) : null;
     return (
-      <ul className="text-sm space-y-0.5">
-        {picks.map((p, i) => (
-          <li key={i}>
-            <span className="text-teal mr-1">✓</span>
-            <span>{p}</span>
-            {!options.includes(p) && <span className="text-xs text-dark/40 ml-1">(option absente)</span>}
-          </li>
-        ))}
-      </ul>
+      <div className="space-y-2">
+        <ul className="text-sm space-y-0.5">
+          {picks.map((p, i) => (
+            <li key={i}>
+              <span className="text-teal mr-1">✓</span>
+              <span>{p}</span>
+              {!options.includes(p) && <span className="text-xs text-dark/40 ml-1">(option absente)</span>}
+            </li>
+          ))}
+        </ul>
+        {followup && (
+          <div className="pl-4 border-l-2 border-teal/30">
+            <p className="text-xs uppercase tracking-[0.15em] text-teal">Précision</p>
+            <p className="text-sm text-dark/80 whitespace-pre-wrap mt-0.5">{followup}</p>
+          </div>
+        )}
+      </div>
     );
   }
   const txt = parseTextValue(type, valeur);

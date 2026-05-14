@@ -65,3 +65,10 @@ export function parseTextValue(type: QuestionType, valeur: string | null): strin
   const v = (valeur ?? '').trim();
   return v.length > 0 ? v : null;
 }
+
+/** Extrait la précision libre (followup) si présente sur un qcm_unique. */
+export function parseFollowupValue(valeurJson: unknown): string | null {
+  const v = valeurJson as { followup?: string | null } | null;
+  const f = (v?.followup ?? '').toString().trim();
+  return f.length > 0 ? f : null;
+}

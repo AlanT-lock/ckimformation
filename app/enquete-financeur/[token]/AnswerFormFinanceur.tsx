@@ -12,17 +12,18 @@ interface Question {
   options: string[];
   echelle_max: number | null;
   required: boolean;
+  follow_up_options: string[];
 }
 
 type AnswerState =
   | { kind: 'text'; value: string }
-  | { kind: 'single'; value: string | null }
+  | { kind: 'single'; value: string | null; followup: string }
   | { kind: 'multi'; values: string[] }
   | { kind: 'echelle'; value: number | null };
 
 function emptyAnswer(q: Question): AnswerState {
   switch (q.type_reponse) {
-    case 'qcm_unique': return { kind: 'single', value: null };
+    case 'qcm_unique': return { kind: 'single', value: null, followup: '' };
     case 'qcm_multiple': return { kind: 'multi', values: [] };
     case 'echelle': return { kind: 'echelle', value: null };
     default: return { kind: 'text', value: '' };
@@ -30,7 +31,11 @@ function emptyAnswer(q: Question): AnswerState {
 }
 
 function toResponse(q: Question, a: AnswerState): AnswerInput {
-  if (a.kind === 'single') return { question_id: q.id, valeur_json: { value: a.value } };
+  if (a.kind === 'single') {
+    const needs = a.value !== null && q.follow_up_options.includes(a.value);
+    const f = needs ? a.followup.trim() : '';
+    return { question_id: q.id, valeur_json: f ? { value: a.value, followup: f } : { value: a.value } };
+  }
   if (a.kind === 'multi') return { question_id: q.id, valeur_json: { values: a.values } };
   if (a.kind === 'echelle') return { question_id: q.id, valeur: a.value === null ? null : String(a.value) };
   return { question_id: q.id, valeur: a.value };
@@ -42,6 +47,12 @@ function isAnswered(a: AnswerState): boolean {
   if (a.kind === 'multi') return a.values.length > 0;
   if (a.kind === 'echelle') return a.value !== null;
   return false;
+}
+
+function followupMissing(q: Question, a: AnswerState): boolean {
+  if (a.kind !== 'single' || a.value === null) return false;
+  if (!q.follow_up_options.includes(a.value)) return false;
+  return a.followup.trim().length === 0;
 }
 
 export function AnswerFormFinanceur({ token, questions }: { token: string; questions: Question[] }) {
@@ -60,8 +71,13 @@ export function AnswerFormFinanceur({ token, questions }: { token: string; quest
     e.preventDefault();
     setError(null);
     for (const q of questions) {
-      if (q.required && !isAnswered(answers[q.id])) {
+      const a = answers[q.id];
+      if (q.required && !isAnswered(a)) {
         setError(`La question ${q.ordre} est obligatoire.`);
+        return;
+      }
+      if (q.required && followupMissing(q, a)) {
+        setError(`Question ${q.ordre} : précisez votre réponse dans le champ texte.`);
         return;
       }
     }
@@ -138,6 +154,7 @@ function QuestionInput({
 
   if (t === 'qcm_unique') {
     const a = answer as Extract<AnswerState, { kind: 'single' }>;
+    const needs = a.value !== null && question.follow_up_options.includes(a.value);
     return (
       <div className="space-y-2">
         {question.options.map((opt, i) => (
@@ -146,12 +163,26 @@ function QuestionInput({
               type="radio"
               name={question.id}
               checked={a.value === opt}
-              onChange={() => onChange({ kind: 'single', value: opt })}
+              onChange={() => onChange({ kind: 'single', value: opt, followup: a.value === opt ? a.followup : '' })}
               className="h-4 w-4 accent-teal"
             />
             <span className="text-sm">{opt}</span>
           </label>
         ))}
+        {needs && (
+          <div className="mt-3 pl-7 border-l-2 border-teal/30">
+            <label className="block">
+              <span className="text-xs uppercase tracking-[0.2em] text-teal">Précisez</span>
+              <textarea
+                value={a.followup}
+                onChange={(e) => onChange({ kind: 'single', value: a.value, followup: e.target.value })}
+                rows={2}
+                placeholder="Votre précision…"
+                className="mt-1 w-full bg-white border border-dark/15 rounded px-3 py-2 text-sm focus:outline-none focus:border-teal"
+              />
+            </label>
+          </div>
+        )}
       </div>
     );
   }

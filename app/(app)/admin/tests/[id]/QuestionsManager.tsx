@@ -14,6 +14,7 @@ interface QuestionRow {
   echelle_max: number | null;
   required: boolean;
   bonne_reponse: unknown;
+  follow_up_options: string[];
 }
 
 const TYPE_LABEL: Record<QuestionType, string> = {
@@ -31,6 +32,7 @@ const EMPTY: Omit<QuestionRow, 'id'> = {
   echelle_max: null,
   required: true,
   bonne_reponse: null,
+  follow_up_options: [],
 };
 
 function asArray(v: unknown): string[] {
@@ -69,6 +71,7 @@ export function QuestionsManager({
       echelle_max: q.echelle_max,
       required: q.required,
       bonne_reponse: q.bonne_reponse,
+      follow_up_options: q.follow_up_options ?? [],
     });
     setError(null);
   }
@@ -120,6 +123,11 @@ export function QuestionsManager({
       }
     }
 
+    // Follow-up options : uniquement valides pour qcm_unique, et doivent exister dans options
+    const follow_up_options = draft.type_reponse === 'qcm_unique'
+      ? (draft.follow_up_options ?? []).filter((o) => options.includes(o))
+      : [];
+
     const payload = {
       libelle: draft.libelle.trim(),
       type_reponse: draft.type_reponse,
@@ -127,6 +135,7 @@ export function QuestionsManager({
       echelle_max,
       required: draft.required,
       bonne_reponse,
+      follow_up_options,
     };
 
     startTransition(async () => {
@@ -161,7 +170,7 @@ export function QuestionsManager({
     setDraft((d) => {
       const oldVal = d.options[i];
       const newOptions = d.options.map((o, idx) => (idx === i ? v : o));
-      // Si la valeur d'une option change, on met à jour bonne_reponse si nécessaire
+      // Si la valeur d'une option change, on met à jour bonne_reponse et follow_up_options
       let bonne_reponse = d.bonne_reponse;
       if (d.type_reponse === 'qcm_unique' && bonne_reponse === oldVal) {
         bonne_reponse = v;
@@ -169,7 +178,8 @@ export function QuestionsManager({
         const arr = asArray(bonne_reponse);
         if (arr.includes(oldVal)) bonne_reponse = arr.map((x) => (x === oldVal ? v : x));
       }
-      return { ...d, options: newOptions, bonne_reponse };
+      const follow_up_options = (d.follow_up_options ?? []).map((x) => (x === oldVal ? v : x));
+      return { ...d, options: newOptions, bonne_reponse, follow_up_options };
     });
   }
   function addOption() {
@@ -185,7 +195,17 @@ export function QuestionsManager({
       } else if (d.type_reponse === 'qcm_multiple') {
         bonne_reponse = asArray(bonne_reponse).filter((x) => x !== removed);
       }
-      return { ...d, options: newOptions, bonne_reponse };
+      const follow_up_options = (d.follow_up_options ?? []).filter((x) => x !== removed);
+      return { ...d, options: newOptions, bonne_reponse, follow_up_options };
+    });
+  }
+
+  function toggleFollowUp(opt: string) {
+    setDraft((d) => {
+      const set = new Set(d.follow_up_options ?? []);
+      if (set.has(opt)) set.delete(opt);
+      else set.add(opt);
+      return { ...d, follow_up_options: Array.from(set) };
     });
   }
 
@@ -201,7 +221,7 @@ export function QuestionsManager({
   }
 
   function changeType(t: QuestionType) {
-    setDraft((d) => ({ ...d, type_reponse: t, bonne_reponse: null }));
+    setDraft((d) => ({ ...d, type_reponse: t, bonne_reponse: null, follow_up_options: [] }));
   }
 
   const showOptions = draft.type_reponse === 'qcm_unique' || draft.type_reponse === 'qcm_multiple' || draft.type_reponse === 'liste';
@@ -300,46 +320,65 @@ export function QuestionsManager({
                   </p>
                 )}
               </div>
-              {draft.options.map((o, i) => (
-                <div key={i} className="flex gap-2 items-center">
-                  {scoringEnabled && isQcm && (
-                    <input
-                      type={draft.type_reponse === 'qcm_unique' ? 'radio' : 'checkbox'}
-                      name={`bonne-rep-${editing}`}
-                      checked={
-                        draft.type_reponse === 'qcm_unique'
-                          ? draft.bonne_reponse === o
-                          : asArray(draft.bonne_reponse).includes(o)
-                      }
-                      onChange={() => {
-                        if (!o.trim()) return;
-                        if (draft.type_reponse === 'qcm_unique') setCorrectUnique(o);
-                        else toggleCorrectMulti(o);
-                      }}
-                      disabled={!o.trim()}
-                      className="h-4 w-4 accent-teal"
-                      aria-label="Bonne réponse"
-                    />
-                  )}
-                  <input
-                    type="text"
-                    value={o}
-                    onChange={(e) => setOption(i, e.target.value)}
-                    placeholder={`Option ${i + 1}`}
-                    className="flex-1 bg-white border border-dark/15 rounded px-3 py-2 text-dark focus:outline-none focus:border-teal"
-                  />
-                  {draft.options.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeOption(i)}
-                      className="text-orange/80 hover:text-orange px-2"
-                      aria-label="Supprimer l'option"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              ))}
+              {draft.options.map((o, i) => {
+                const isFollowUp = (draft.follow_up_options ?? []).includes(o);
+                return (
+                  <div key={i} className="space-y-1">
+                    <div className="flex gap-2 items-center">
+                      {scoringEnabled && isQcm && (
+                        <input
+                          type={draft.type_reponse === 'qcm_unique' ? 'radio' : 'checkbox'}
+                          name={`bonne-rep-${editing}`}
+                          checked={
+                            draft.type_reponse === 'qcm_unique'
+                              ? draft.bonne_reponse === o
+                              : asArray(draft.bonne_reponse).includes(o)
+                          }
+                          onChange={() => {
+                            if (!o.trim()) return;
+                            if (draft.type_reponse === 'qcm_unique') setCorrectUnique(o);
+                            else toggleCorrectMulti(o);
+                          }}
+                          disabled={!o.trim()}
+                          className="h-4 w-4 accent-teal"
+                          aria-label="Bonne réponse"
+                        />
+                      )}
+                      <input
+                        type="text"
+                        value={o}
+                        onChange={(e) => setOption(i, e.target.value)}
+                        placeholder={`Option ${i + 1}`}
+                        className="flex-1 bg-white border border-dark/15 rounded px-3 py-2 text-dark focus:outline-none focus:border-teal"
+                      />
+                      {draft.options.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeOption(i)}
+                          className="text-orange/80 hover:text-orange px-2"
+                          aria-label="Supprimer l'option"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                    {draft.type_reponse === 'qcm_unique' && o.trim() && (
+                      <label className="flex items-center gap-2 ml-7 text-xs text-dark/60 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isFollowUp}
+                          onChange={() => toggleFollowUp(o)}
+                          className="h-3.5 w-3.5 accent-orange"
+                        />
+                        <span>
+                          Demander une précision (champ texte libre) si cette option est choisie
+                          {isFollowUp && <span className="text-orange ml-1">· activé</span>}
+                        </span>
+                      </label>
+                    )}
+                  </div>
+                );
+              })}
               <button type="button" onClick={addOption} className="text-sm text-teal hover:underline">
                 + Ajouter une option
               </button>

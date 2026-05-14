@@ -134,8 +134,10 @@ function StatusBadge({ envoi }: { envoi: { first_sent_at: string | null; respond
 
 function formatAnswer(type: QuestionType, valeur: string | null, valeurJson: unknown): string {
   if (type === 'qcm_unique') {
-    const v = valeurJson as { value?: string | null } | null;
-    return v?.value ?? '';
+    const v = valeurJson as { value?: string | null; followup?: string | null } | null;
+    const base = v?.value ?? '';
+    const f = (v?.followup ?? '').toString().trim();
+    return f ? `${base} — Précision : ${f}` : base;
   }
   if (type === 'qcm_multiple') {
     const v = valeurJson as { values?: string[] } | null;

@@ -141,6 +141,8 @@ export interface QuestionInput {
   required: boolean;
   // QCM unique : string | null ; QCM multiple : string[] ; autres : null
   bonne_reponse: unknown;
+  /** Options qui déclenchent un champ texte libre supplémentaire (qcm_unique uniquement). */
+  follow_up_options?: string[];
 }
 
 export async function createQuestion(testId: string, input: QuestionInput) {
@@ -163,6 +165,7 @@ export async function createQuestion(testId: string, input: QuestionInput) {
     echelle_max: input.echelle_max,
     required: input.required,
     bonne_reponse: input.bonne_reponse ?? null,
+    follow_up_options: input.follow_up_options ?? [],
   });
   if (error) throw new Error(error.message);
   revalidatePath(`/admin/tests/${testId}`);
@@ -180,6 +183,7 @@ export async function updateQuestion(id: string, testId: string, input: Question
       echelle_max: input.echelle_max,
       required: input.required,
       bonne_reponse: input.bonne_reponse ?? null,
+      follow_up_options: input.follow_up_options ?? [],
     })
     .eq('id', id);
   if (error) throw new Error(error.message);
