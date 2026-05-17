@@ -28,10 +28,28 @@ interface CompletionRow {
 
 function renderAnswer(q: { type_reponse: QuestionType; options: string[] }, valeur: string | null, valeurJson: unknown): React.ReactNode {
   switch (q.type_reponse) {
-    case 'qcm_unique':
-      return <span>{(valeurJson as string) ?? valeur ?? '—'}</span>;
+    case 'qcm_unique': {
+      const json = (valeurJson ?? {}) as { value?: string | null; followup?: string };
+      const value = json.value ?? valeur ?? null;
+      if (!value) return <span>—</span>;
+      return (
+        <div>
+          <span>{value}</span>
+          {json.followup && (
+            <p className="mt-1 text-xs text-dark/60 italic whitespace-pre-wrap">
+              Précision : {json.followup}
+            </p>
+          )}
+        </div>
+      );
+    }
     case 'qcm_multiple': {
-      const arr = Array.isArray(valeurJson) ? (valeurJson as string[]) : [];
+      const json = (valeurJson ?? {}) as { values?: string[] };
+      const arr = Array.isArray(json.values)
+        ? json.values
+        : Array.isArray(valeurJson)
+          ? (valeurJson as string[])
+          : [];
       if (arr.length === 0) return <span>—</span>;
       return <ul className="list-disc list-inside">{arr.map((v, i) => <li key={i}>{v}</li>)}</ul>;
     }

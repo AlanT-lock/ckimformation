@@ -9,11 +9,9 @@
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
--- 1. Enum : ajouter la valeur
+-- 1. Enum : ajouter la valeur (DOIT être hors transaction, donc pas de do $$)
 -- -----------------------------------------------------------------------------
-do $$ begin
-  alter type test_kind add value if not exists 'evaluation_formateur';
-exception when others then null; end $$;
+alter type test_kind add value if not exists 'evaluation_formateur';
 
 -- -----------------------------------------------------------------------------
 -- 2. Colonne filled_by_formateur_id
