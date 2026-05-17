@@ -45,7 +45,7 @@ export function QuestionsManager({
   initial,
 }: {
   testId: string;
-  testKind: 'quiz' | 'enquete' | 'info';
+  testKind: 'quiz' | 'enquete' | 'info' | 'evaluation_formateur';
   initial: QuestionRow[];
 }) {
   const [rows, setRows] = useState<QuestionRow[]>(initial);

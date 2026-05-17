@@ -50,7 +50,7 @@ export function Footer() {
             <p className="text-xs uppercase tracking-[0.2em] text-teal-l mb-3">Contact</p>
             <ul className="space-y-2 text-sm">
               <li><a href="tel:0662515559" className="hover:text-teal-l">06 62 51 55 59</a></li>
-              <li><a href="mailto:ckimsecuriteformation@gmail.com" className="hover:text-teal-l break-all">ckimsecuriteformation@gmail.com</a></li>
+              <li><a href="mailto:contact@ckimformation.fr" className="hover:text-teal-l break-all">contact@ckimformation.fr</a></li>
               <li className="text-muted">Draguignan (83) — PACA</li>
             </ul>
           </div>

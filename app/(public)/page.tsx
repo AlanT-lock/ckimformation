@@ -171,7 +171,7 @@ export default async function Home() {
             addressRegion: 'Provence-Alpes-Côte d\'Azur',
             addressCountry: 'FR',
           },
-          email: 'ckimsecuriteformation@gmail.com',
+          email: 'contact@ckimformation.fr',
           telephone: '+33-6-62-51-55-59',
           areaServed: 'Provence-Alpes-Côte d\'Azur',
         }}

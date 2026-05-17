@@ -14,7 +14,7 @@ import {
   type InscriptionSessionInfo,
 } from '@/lib/email/templates/inscription';
 
-const ADMIN_EMAIL = 'ckimsecuriteformation@gmail.com';
+const ADMIN_EMAIL = 'contact@ckimformation.fr';
 
 async function requireStagiaire() {
   const profile = await getCurrentProfile();

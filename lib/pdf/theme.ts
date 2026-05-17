@@ -44,7 +44,7 @@ export function getParcoursColor(parcours: Parcours) {
 export const CKIM_CONTACT = {
   brand: 'C-KIM FORMATION',
   phone: '06 62 51 55 59',
-  email: 'contact@ckim-formation.fr',
+  email: 'contact@ckimformation.fr',
   siret: '991 764 580 00015',
   site: 'ckim-formation.fr',
 };

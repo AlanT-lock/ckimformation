@@ -123,7 +123,7 @@ export function buildRelanceHtml(params: Params): string {
                 <strong>C-KIM Formation</strong> — Centre de formation certifié Qualiopi<br />
                 391 avenue du Maréchal Koenig, 83300 Draguignan<br />
                 <a href="tel:0662515559" style="color:#1B8FA0;text-decoration:none;">06 62 51 55 59</a> ·
-                <a href="mailto:ckimsecuriteformation@gmail.com" style="color:#1B8FA0;text-decoration:none;">ckimsecuriteformation@gmail.com</a>
+                <a href="mailto:contact@ckimformation.fr" style="color:#1B8FA0;text-decoration:none;">contact@ckimformation.fr</a>
               </p>
               <p style="margin:8px 0 0;font-size:11px;color:#aaa;">
                 Vous recevez ce message car vous avez un compte sur ckimformation.fr.

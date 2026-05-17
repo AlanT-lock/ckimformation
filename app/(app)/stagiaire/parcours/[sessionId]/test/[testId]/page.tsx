@@ -57,6 +57,8 @@ export default async function TestResponsePage({ params }: PageProps) {
     supabase.from('questions').select('*').eq('test_id', testId).order('ordre'),
   ]);
   if (!test) notFound();
+  // Les évaluations formateur ne sont jamais accessibles au stagiaire
+  if (test.kind === 'evaluation_formateur') notFound();
 
   return (
     <div className="space-y-8">

@@ -41,7 +41,7 @@ export function invitationEmailHtml(d: InvitationEmailInput): string {
     vous pourrez ensuite vous connecter avec votre email et ce mot de passe.
   </p>
   <p style="margin:24px 0 0;color:#475569;font-size:12px;">
-    Une question ? Écrivez-nous à ckimsecuriteformation@gmail.com.
+    Une question ? Écrivez-nous à contact@ckimformation.fr.
   </p>
 </div>`;
 }

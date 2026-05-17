@@ -99,6 +99,7 @@ export function NewTestForm({
         <option value="quiz">Quiz / Test (avec bonnes réponses)</option>
         <option value="enquete">Enquête de satisfaction</option>
         <option value="info">Informatif (lecture seule)</option>
+        <option value="evaluation_formateur">Évaluation formateur (remplie par le formateur)</option>
       </Select>
 
       {kind === 'enquete' && (

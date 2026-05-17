@@ -72,7 +72,7 @@ export function enqueteFroidEmailHtml(d: EnqueteFroidEmailInput): string {
             <td style="background:#f3f6f7;padding:20px 32px;border-top:1px solid #e3e8ea;">
               <p style="margin:0;font-size:12px;color:#9ba3a7;text-align:center;">
                 C-KIM Formation — Organisme certifié Qualiopi<br />
-                <a href="mailto:ckimsecuriteformation@gmail.com" style="color:#1B8FA0;text-decoration:none;">ckimsecuriteformation@gmail.com</a>
+                <a href="mailto:contact@ckimformation.fr" style="color:#1B8FA0;text-decoration:none;">contact@ckimformation.fr</a>
               </p>
             </td>
           </tr>

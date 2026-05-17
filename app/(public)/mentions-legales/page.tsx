@@ -43,7 +43,7 @@ export default function MentionsLegalesPage() {
             <h2 className="font-display text-2xl">Contact</h2>
             <ul className="mt-3 space-y-1 text-sm">
               <li>Téléphone : <a href="tel:0662515559" className="text-teal hover:underline">06 62 51 55 59</a></li>
-              <li>Email : <a href="mailto:ckimsecuriteformation@gmail.com" className="text-teal hover:underline">ckimsecuriteformation@gmail.com</a></li>
+              <li>Email : <a href="mailto:contact@ckimformation.fr" className="text-teal hover:underline">contact@ckimformation.fr</a></li>
               <li>Adresse postale : 391 avenue du Maréchal Koenig, 83300 Draguignan</li>
             </ul>
           </section>
@@ -125,7 +125,7 @@ export default function MentionsLegalesPage() {
             <p className="mt-3">
               Pour toute question relative à ces mentions légales ou pour signaler un contenu
               illicite, contactez-nous à{' '}
-              <a href="mailto:ckimsecuriteformation@gmail.com" className="text-teal hover:underline">ckimsecuriteformation@gmail.com</a>.
+              <a href="mailto:contact@ckimformation.fr" className="text-teal hover:underline">contact@ckimformation.fr</a>.
             </p>
           </section>
         </div>

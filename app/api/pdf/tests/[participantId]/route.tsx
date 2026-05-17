@@ -20,6 +20,7 @@ function kindLabel(kind: string, enqueteKind: string | null): string {
     if (enqueteKind === 'a_chaud') return 'Enquête de satisfaction à chaud';
     return 'Enquête';
   }
+  if (kind === 'evaluation_formateur') return 'Évaluation formateur';
   return 'Informatif';
 }
 
@@ -121,6 +122,7 @@ export async function GET(
     return {
       nom: test?.nom ?? 'Test',
       kindLabel: kindLabel(test?.kind ?? 'info', test?.enquete_kind ?? null),
+      isEvaluationFormateur: test?.kind === 'evaluation_formateur',
       description: test?.description ?? null,
       completedAt: c.completed_at,
       scorePct: score?.scorePct ?? null,
@@ -129,6 +131,9 @@ export async function GET(
       questions,
     };
   });
+
+  // Évaluations formateur toujours en bas
+  pdfTests.sort((a, b) => Number(a.isEvaluationFormateur) - Number(b.isEvaluationFormateur));
 
   const data: TestsResponsesPdfData = {
     logoUrl: logoUrl(),

@@ -160,7 +160,7 @@ export function confirmationEmailHtml(d: ConfirmationEmailInput): string {
 
   ${docsBlock}
 
-  <p style="margin:24px 0 0;color:#475569;">Pour toute question, contactez-nous à ckimsecuriteformation@gmail.com.</p>
+  <p style="margin:24px 0 0;color:#475569;">Pour toute question, contactez-nous à contact@ckimformation.fr.</p>
 </div>`;
 }
 
@@ -198,7 +198,7 @@ export function refusEmailHtml(d: RefusEmailInput): string {
   ${docsBlock}
 
   <p style="margin:0 0 16px;">N'hésitez pas à nous contacter pour échanger sur les prochaines sessions ou trouver une alternative.</p>
-  <p style="margin:0;color:#475569;">ckimsecuriteformation@gmail.com</p>
+  <p style="margin:0;color:#475569;">contact@ckimformation.fr</p>
 </div>`;
 }
 

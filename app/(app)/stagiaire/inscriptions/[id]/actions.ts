@@ -10,7 +10,7 @@ import {
 } from '@/lib/email/templates/documents';
 import { BUCKET_PAYER, deleteDocument } from '@/lib/storage/documents';
 
-const ADMIN_EMAIL = 'ckimsecuriteformation@gmail.com';
+const ADMIN_EMAIL = 'contact@ckimformation.fr';
 
 function siteUrl(): string {
   return process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';

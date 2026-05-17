@@ -10,5 +10,5 @@ if (!apiKey) {
 
 export const resend = new Resend(apiKey || 're_missing_key_placeholder');
 
-export const EMAIL_TO = process.env.CONTACT_EMAIL_TO || 'ckimsecuriteformation@gmail.com';
+export const EMAIL_TO = process.env.CONTACT_EMAIL_TO || 'contact@ckimformation.fr';
 export const EMAIL_FROM = process.env.CONTACT_EMAIL_FROM || 'onboarding@resend.dev';

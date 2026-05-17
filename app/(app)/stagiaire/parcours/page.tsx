@@ -106,17 +106,20 @@ export default async function StagiaireParcoursPage() {
     openedAt: t.triggered_at,
   }));
 
-  const initialTests: ActiveTest[] = (testTrigs ?? []).map((t) => {
-    const test = Array.isArray(t.test) ? t.test[0] : t.test;
-    return {
-      triggerId: t.id,
-      testId: t.test_id,
-      testNom: test?.nom ?? 'Test',
-      testKind: test?.kind ?? 'quiz',
-      sessionId: t.session_id,
-      triggeredAt: t.triggered_at,
-    };
-  });
+  const initialTests: ActiveTest[] = (testTrigs ?? [])
+    .map((t) => {
+      const test = Array.isArray(t.test) ? t.test[0] : t.test;
+      return {
+        triggerId: t.id,
+        testId: t.test_id,
+        testNom: test?.nom ?? 'Test',
+        testKind: test?.kind ?? 'quiz',
+        sessionId: t.session_id,
+        triggeredAt: t.triggered_at,
+      };
+    })
+    // Les évaluations formateur ne sont jamais affichées côté stagiaire
+    .filter((t) => t.testKind !== 'evaluation_formateur');
 
   const signedCreneauIds = (signed ?? []).map((r) => r.creneau_id);
   const completedTestIds = (completions ?? []).map((c) => c.test_id);

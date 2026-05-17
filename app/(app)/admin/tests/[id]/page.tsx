@@ -13,6 +13,7 @@ const KIND_TONE: Record<string, string> = {
   quiz: 'bg-teal/10 text-teal',
   enquete: 'bg-orange/10 text-orange',
   info: 'bg-dark/10 text-dark/70',
+  evaluation_formateur: 'bg-dark/10 text-dark',
 };
 
 const ENQUETE_LABEL: Record<string, string> = {
@@ -37,7 +38,9 @@ export default async function AdminTestDetailPage({ params }: PageProps) {
 
   const kindLabel = test.kind === 'enquete'
     ? (test.enquete_kind ? ENQUETE_LABEL[test.enquete_kind] : 'Enquête')
-    : test.kind === 'quiz' ? 'Test' : 'Informatif';
+    : test.kind === 'quiz' ? 'Test'
+    : test.kind === 'evaluation_formateur' ? 'Évaluation formateur'
+    : 'Informatif';
 
   return (
     <div className="space-y-8">
@@ -96,7 +99,7 @@ export default async function AdminTestDetailPage({ params }: PageProps) {
         <div className="mt-4">
           <QuestionsManager
             testId={test.id}
-            testKind={test.kind as 'quiz' | 'enquete' | 'info'}
+            testKind={test.kind as 'quiz' | 'enquete' | 'info' | 'evaluation_formateur'}
             initial={(questions ?? []).map((q) => ({
               id: q.id,
               libelle: q.libelle,

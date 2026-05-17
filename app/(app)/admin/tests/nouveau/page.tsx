@@ -23,7 +23,7 @@ export default async function AdminNewTestPage({ searchParams }: PageProps) {
 
   // Pré-sélection si query params (vient de /admin/tests/formation/[id])
   const presetFormationId = sp.formation;
-  const presetKind = (sp.kind === 'quiz' || sp.kind === 'enquete' || sp.kind === 'info') ? sp.kind as TestKind : null;
+  const presetKind = (sp.kind === 'quiz' || sp.kind === 'enquete' || sp.kind === 'info' || sp.kind === 'evaluation_formateur') ? sp.kind as TestKind : null;
   const presetEnqueteKind = (sp.enquete_kind === 'a_chaud' || sp.enquete_kind === 'a_froid') ? sp.enquete_kind as EnqueteKind : null;
 
   let presetFormation: { id: string; titre: string } | null = null;
@@ -35,7 +35,9 @@ export default async function AdminNewTestPage({ searchParams }: PageProps) {
 
   const eyebrow = presetKind === 'enquete'
     ? presetEnqueteKind === 'a_froid' ? 'Nouvelle enquête à froid' : 'Nouvelle enquête à chaud'
-    : 'Nouveau test';
+    : presetKind === 'evaluation_formateur'
+      ? 'Nouvelle évaluation formateur'
+      : 'Nouveau test';
 
   return (
     <div className="space-y-6">

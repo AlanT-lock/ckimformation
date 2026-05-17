@@ -49,7 +49,8 @@ export default async function FormateurSessionDetail({ params }: PageProps) {
       .select('id, nom, kind, enquete_kind, actif')
       .eq('formation_id', formation?.id ?? '')
       .eq('actif', true)
-      // Exclure les enquêtes à froid : elles sont envoyées par email automatiquement
+      // Exclure les enquêtes à froid (envoyées par email auto) et les évaluations formateur (autre section)
+      .neq('kind', 'evaluation_formateur')
       .or('kind.neq.enquete,enquete_kind.eq.a_chaud')
       .order('ordre'),
     supabase
@@ -98,6 +99,27 @@ export default async function FormateurSessionDetail({ params }: PageProps) {
     return absCount < totalCreneaux; // au moins un créneau de présence
   });
   const expectedCompletions = activeParticipantsForTests.length;
+
+  // Évaluations formateur (autre section) — compteur des évaluations remplies
+  const { data: evalTests } = await supabase
+    .from('tests')
+    .select('id')
+    .eq('formation_id', formation?.id ?? '')
+    .eq('kind', 'evaluation_formateur')
+    .eq('actif', true);
+  const evalTestIds = (evalTests ?? []).map((t) => t.id);
+  let evalDone = 0;
+  let evalTotal = 0;
+  if (evalTestIds.length > 0 && allParticipantIds.length > 0) {
+    evalTotal = evalTestIds.length * allParticipantIds.length;
+    const { data: evalComps } = await supabase
+      .from('test_completions')
+      .select('id')
+      .in('test_id', evalTestIds)
+      .in('inscription_participant_id', allParticipantIds)
+      .not('completed_at', 'is', null);
+    evalDone = (evalComps ?? []).length;
+  }
 
   const adr = session.adresse as { rue?: string; ville?: string; code_postal?: string; complement?: string } | null;
   const ville = [adr?.ville, adr?.code_postal].filter(Boolean).join(' ');
@@ -154,6 +176,21 @@ export default async function FormateurSessionDetail({ params }: PageProps) {
           />
         </div>
       </section>
+
+      {evalTestIds.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+            <h2 className="font-display text-2xl tracking-wide">Évaluations formateur</h2>
+            <ButtonLink href={`/formateur/sessions/${id}/evaluations`} variant="secondary">
+              Remplir les évaluations →
+            </ButtonLink>
+          </div>
+          <p className="text-xs text-dark/60">
+            Évaluations à remplir par toi pour chaque stagiaire. Non visibles par le stagiaire.{' '}
+            <span className="text-dark/80">{evalDone} / {evalTotal} remplie{evalDone > 1 ? 's' : ''}</span>
+          </p>
+        </section>
+      )}
 
       <TerminateSessionPopup
         sessionId={id}

@@ -31,7 +31,7 @@ export default function ConfidentialitePage() {
               CKIM SECURITE FORMATION — SAS au capital de 100 € — SIREN 991 764 580.<br />
               Siège social : 391 avenue du Maréchal Koenig, 83300 Draguignan.<br />
               Représentée par son Président, Camel ATIL.<br />
-              Contact : <a href="mailto:ckimsecuriteformation@gmail.com" className="text-teal hover:underline">ckimsecuriteformation@gmail.com</a>{' '}
+              Contact : <a href="mailto:contact@ckimformation.fr" className="text-teal hover:underline">contact@ckimformation.fr</a>{' '}
               — <a href="tel:0662515559" className="text-teal hover:underline">06 62 51 55 59</a>.
             </p>
           </section>
@@ -172,7 +172,7 @@ export default function ConfidentialitePage() {
             </ul>
             <p className="mt-3">
               Pour exercer ces droits, écrivez à{' '}
-              <a href="mailto:ckimsecuriteformation@gmail.com" className="text-teal hover:underline">ckimsecuriteformation@gmail.com</a>.
+              <a href="mailto:contact@ckimformation.fr" className="text-teal hover:underline">contact@ckimformation.fr</a>.
               Nous vous répondrons dans le délai légal d&apos;un mois.
             </p>
             <p className="mt-3 text-sm">
@@ -227,7 +227,7 @@ export default function ConfidentialitePage() {
             <h2 className="font-display text-2xl">9. Contact</h2>
             <p className="mt-3">
               Pour toute question relative à la protection de vos données :{' '}
-              <a href="mailto:ckimsecuriteformation@gmail.com" className="text-teal hover:underline">ckimsecuriteformation@gmail.com</a>{' '}
+              <a href="mailto:contact@ckimformation.fr" className="text-teal hover:underline">contact@ckimformation.fr</a>{' '}
               — ou par courrier à : CKIM SECURITE FORMATION, 391 avenue du Maréchal Koenig,
               83300 Draguignan.
             </p>

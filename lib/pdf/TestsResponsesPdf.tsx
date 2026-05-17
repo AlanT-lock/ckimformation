@@ -18,7 +18,8 @@ export interface PdfQuestion {
 
 export interface PdfTest {
   nom: string;
-  kindLabel: string; // 'Test', 'Enquête à chaud', 'Enquête à froid', 'Informatif'
+  kindLabel: string; // 'Test', 'Enquête à chaud', 'Enquête à froid', 'Informatif', 'Évaluation formateur'
+  isEvaluationFormateur?: boolean;
   description: string | null;
   completedAt: string | null;
   scorePct: number | null;
@@ -103,8 +104,28 @@ export function TestsResponsesPdf({ data }: { data: TestsResponsesPdfData }) {
           </Text>
         )}
 
-        {data.tests.map((test, ti) => (
-          <View key={ti} style={{ marginTop: 18 }} wrap={false}>
+        {data.tests.map((test, ti) => {
+          const prev = ti > 0 ? data.tests[ti - 1] : null;
+          const isFirstEval = !!test.isEvaluationFormateur && !prev?.isEvaluationFormateur;
+          return (
+          <View key={ti}>
+            {isFirstEval && (
+              <View
+                style={{
+                  marginTop: 24,
+                  paddingTop: 12,
+                  borderTop: `2px solid ${colors.teal}`,
+                }}
+              >
+                <Text style={{ fontSize: 10, color: colors.teal, textTransform: 'uppercase', letterSpacing: 1, fontFamily: 'Helvetica-Bold' }}>
+                  Évaluations du formateur
+                </Text>
+                <Text style={{ fontSize: 9, color: colors.muted, marginTop: 2 }}>
+                  Évaluations remplies par le formateur — usage interne, non communiqué au stagiaire.
+                </Text>
+              </View>
+            )}
+            <View style={{ marginTop: 18 }} wrap={false}>
             <View
               style={{
                 flexDirection: 'row',
@@ -154,8 +175,10 @@ export function TestsResponsesPdf({ data }: { data: TestsResponsesPdfData }) {
                 </View>
               ))
             )}
+            </View>
           </View>
-        ))}
+          );
+        })}
 
         {/* Footer */}
         <View style={pdfStyles.footer} fixed>

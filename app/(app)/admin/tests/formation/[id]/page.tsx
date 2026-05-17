@@ -44,6 +44,7 @@ export default async function AdminTestsFormationPage({ params }: PageProps) {
   const enquetesFroid = rows.filter((t) => t.kind === 'enquete' && t.enquete_kind === 'a_froid');
   // Vieilles enquêtes sans enquete_kind (legacy) : on les met dans "à chaud" par défaut côté affichage
   const enquetesLegacy = rows.filter((t) => t.kind === 'enquete' && !t.enquete_kind);
+  const evalsFormateur = rows.filter((t) => t.kind === 'evaluation_formateur');
 
   return (
     <div className="space-y-8">
@@ -77,6 +78,15 @@ export default async function AdminTestsFormationPage({ params }: PageProps) {
         rows={enquetesFroid}
         createHref={`/admin/tests/nouveau?formation=${id}&kind=enquete&enquete_kind=a_froid`}
         createLabel="+ Nouvelle enquête à froid"
+        tone="dark"
+      />
+
+      <Section
+        title="Évaluations formateur"
+        description="Évaluations remplies par le formateur pour chaque stagiaire à l'issue de la formation. Non visibles par le stagiaire."
+        rows={evalsFormateur}
+        createHref={`/admin/tests/nouveau?formation=${id}&kind=evaluation_formateur`}
+        createLabel="+ Nouvelle évaluation formateur"
         tone="dark"
       />
     </div>

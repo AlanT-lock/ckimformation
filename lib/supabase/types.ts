@@ -12,7 +12,7 @@ export type InscriptionStatut =
   | 'paid'
   | 'cancelled'
   | 'refunded';
-export type TestKind = 'quiz' | 'enquete' | 'info';
+export type TestKind = 'quiz' | 'enquete' | 'info' | 'evaluation_formateur';
 export type EnqueteKind = 'a_chaud' | 'a_froid' | 'financeur';
 export type QuestionType =
   | 'qcm_unique'

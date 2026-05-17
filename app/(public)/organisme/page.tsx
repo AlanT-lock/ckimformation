@@ -560,7 +560,7 @@ export default async function OrganismePage() {
             'Centre de formation certifié Qualiopi spécialisé en sécurité au travail, prévention des risques professionnels et développement humain.',
           url: 'https://ckimformation.fr',
           telephone: '+33-6-62-51-55-59',
-          email: 'ckimsecuriteformation@gmail.com',
+          email: 'contact@ckimformation.fr',
           address: {
             '@type': 'PostalAddress',
             streetAddress: '391 avenue du Maréchal Koenig',

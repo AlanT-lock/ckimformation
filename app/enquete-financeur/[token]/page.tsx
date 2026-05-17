@@ -89,7 +89,7 @@ function EmptyState({ title, message }: { title: string; message: string }) {
       <h1 className="font-display text-3xl tracking-wide">{title}</h1>
       <p className="mt-3 text-sm text-dark/70">{message}</p>
       <p className="mt-6 text-xs text-dark/50">
-        Une question ? <a href="mailto:ckimsecuriteformation@gmail.com" className="text-teal hover:underline">ckimsecuriteformation@gmail.com</a>
+        Une question ? <a href="mailto:contact@ckimformation.fr" className="text-teal hover:underline">contact@ckimformation.fr</a>
       </p>
     </div>
   );
