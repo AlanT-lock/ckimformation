@@ -141,16 +141,59 @@ export async function updateSession(id: string, input: Omit<SessionInput, 'crene
     reserved_company_id: string | null;
   } | null;
 
+  // Detect reserved -> public transition; block if data exists, otherwise clear reserved fields
+  const willGoPublic =
+    input.visibility === 'public' && prev?.visibility === 'reserved';
+  const updatePayload: Record<string, unknown> = {
+    formation_id: input.formation_id,
+    formateur_id: input.formateur_id,
+    statut: input.statut,
+    adresse: input.adresse,
+    notes_internes: input.notes_internes,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (input.visibility !== undefined) {
+    updatePayload.visibility = input.visibility;
+  }
+  if (input.reserved_company_id !== undefined) {
+    updatePayload.reserved_company_id = input.reserved_company_id;
+  }
+
+  if (willGoPublic) {
+    const { count: inscCount, error: inscErr } = await supabase
+      .from('inscriptions')
+      .select('id', { count: 'exact', head: true })
+      .eq('session_id', id);
+    if (inscErr) throw new Error(inscErr.message);
+
+    const { data: claimedInvs, error: invErr } = await supabase
+      .from('session_invitations')
+      .select('id')
+      .eq('session_id', id)
+      .not('claimed_by', 'is', null)
+      .limit(1);
+    if (invErr) throw new Error(invErr.message);
+
+    if ((inscCount ?? 0) > 0 || (claimedInvs?.length ?? 0) > 0) {
+      throw new Error(
+        'Impossible de rendre publique : la session a déjà des inscriptions ou une invitation acceptée.',
+      );
+    }
+
+    updatePayload.reserved_company_id = null;
+
+    // Clean up unclaimed invitations
+    await supabase
+      .from('session_invitations')
+      .delete()
+      .eq('session_id', id)
+      .is('claimed_by', null);
+  }
+
   const { error } = await supabase
     .from('sessions')
-    .update({
-      formation_id: input.formation_id,
-      formateur_id: input.formateur_id,
-      statut: input.statut,
-      adresse: input.adresse,
-      notes_internes: input.notes_internes,
-      updated_at: new Date().toISOString(),
-    })
+    .update(updatePayload)
     .eq('id', id);
   if (error) throw new Error(error.message);
 

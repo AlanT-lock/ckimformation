@@ -15,11 +15,15 @@ export default async function SessionDedieePage({
   const profile = await getCurrentProfile();
   if (!profile) redirect(`/login?next=/stagiaire/session-dediee/${sessionId}`);
 
+  let invitationNotice: string | null = null;
   if (sp.invitation_token) {
     try {
-      await claimInvitationFromTokenAction(sp.invitation_token);
+      const res = await claimInvitationFromTokenAction(sp.invitation_token);
+      if (res && 'ok' in res && res.ok === false) {
+        invitationNotice = res.reason ?? 'Lien d\'invitation invalide.';
+      }
     } catch {
-      /* ignore */
+      invitationNotice = 'Lien d\'invitation invalide.';
     }
   }
 
@@ -111,10 +115,17 @@ export default async function SessionDedieePage({
   };
 
   return (
-    <SessionDedieeClient
-      session={sessionForClient}
-      employes={employes ?? []}
-      inscriptions={inscritEmployeeIds}
-    />
+    <>
+      {invitationNotice && (
+        <div className="mx-6 mt-4 text-sm border rounded p-3 text-orange bg-orange/10 border-orange/30">
+          {invitationNotice}
+        </div>
+      )}
+      <SessionDedieeClient
+        session={sessionForClient}
+        employes={employes ?? []}
+        inscriptions={inscritEmployeeIds}
+      />
+    </>
   );
 }
