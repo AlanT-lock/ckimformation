@@ -20,33 +20,65 @@ interface SessionRow {
   statut: string;
   created_at: string;
   formation_id: string;
+  visibility: string | null;
+  reserved_company_id: string | null;
   formation: { slug: string; titre: string } | { slug: string; titre: string }[] | null;
   formateur: { full_name: string; email: string } | { full_name: string; email: string }[] | null;
   creneaux: { date: string; ordre: number }[] | null;
 }
 
 interface PageProps {
-  searchParams: Promise<{ statut?: string; formation?: string }>;
+  searchParams: Promise<{ statut?: string; formation?: string; visibility?: string }>;
 }
 
 export default async function AdminSessionsPage({ searchParams }: PageProps) {
   const sp = await searchParams;
   const statutFilter = sp.statut ?? '';
   const formationFilter = sp.formation ?? '';
+  const visibilityFilter = sp.visibility ?? '';
 
   const supabase = await createClient();
 
+  let sessionsQuery = supabase
+    .from('sessions')
+    .select(`
+      id, statut, created_at, formation_id, visibility, reserved_company_id,
+      formation:formations(slug, titre),
+      formateur:profiles!sessions_formateur_id_fkey(full_name, email),
+      creneaux:session_creneaux(date, ordre)
+    `);
+  if (visibilityFilter === 'public' || visibilityFilter === 'reserved') {
+    sessionsQuery = sessionsQuery.eq('visibility', visibilityFilter);
+  }
+
   const [{ data: sessions }, { data: formationsList }] = await Promise.all([
-    supabase
-      .from('sessions')
-      .select(`
-        id, statut, created_at, formation_id,
-        formation:formations(slug, titre),
-        formateur:profiles!sessions_formateur_id_fkey(full_name, email),
-        creneaux:session_creneaux(date, ordre)
-      `),
+    sessionsQuery,
     supabase.from('formations').select('id, titre').order('titre'),
   ]);
+
+  // Fetch raison_sociale for reserved sessions
+  const reservedCompanyIds = Array.from(
+    new Set(
+      ((sessions ?? []) as SessionRow[])
+        .map((s) => s.reserved_company_id)
+        .filter((id): id is string => !!id),
+    ),
+  );
+  const companyMap = new Map<string, string>();
+  if (reservedCompanyIds.length > 0) {
+    const { data: companyRows } = await supabase
+      .from('profiles')
+      .select('id, company_details(raison_sociale)')
+      .in('id', reservedCompanyIds);
+    for (const row of (companyRows ?? []) as Array<{
+      id: string;
+      company_details: { raison_sociale: string } | { raison_sociale: string }[] | null;
+    }>) {
+      const cd = row.company_details;
+      const raison = Array.isArray(cd) ? cd[0]?.raison_sociale ?? '' : cd?.raison_sociale ?? '';
+      if (raison) companyMap.set(row.id, raison);
+    }
+  }
 
   const today = new Date().toISOString().slice(0, 10);
   const allRows = (sessions ?? []) as SessionRow[];
@@ -97,19 +129,20 @@ export default async function AdminSessionsPage({ searchParams }: PageProps) {
       <SessionsFilters
         statut={statutFilter}
         formationId={formationFilter}
+        visibility={visibilityFilter}
         formations={(formationsList ?? []) as { id: string; titre: string }[]}
       />
 
-      <SessionsSection title="Prochaines sessions" rows={upcoming} emptyText="Aucune session à venir pour le moment." />
-      <SessionsSection title="Sessions terminées" rows={past} emptyText="Aucune session terminée." muted />
+      <SessionsSection title="Prochaines sessions" rows={upcoming} companyMap={companyMap} emptyText="Aucune session à venir pour le moment." />
+      <SessionsSection title="Sessions terminées" rows={past} companyMap={companyMap} emptyText="Aucune session terminée." muted />
     </div>
   );
 }
 
 function SessionsSection({
-  title, rows, emptyText, muted = false,
+  title, rows, companyMap, emptyText, muted = false,
 }: {
-  title: string; rows: SessionRow[]; emptyText: string; muted?: boolean;
+  title: string; rows: SessionRow[]; companyMap: Map<string, string>; emptyText: string; muted?: boolean;
 }) {
   return (
     <section>
@@ -139,7 +172,14 @@ function SessionsSection({
                 >
                   <div className="flex items-start justify-between gap-3 flex-wrap">
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium">{f?.titre ?? '—'}</p>
+                      <p className="font-medium">
+                        {f?.titre ?? '—'}
+                        {s.visibility === 'reserved' && (
+                          <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded bg-emerald-100 text-emerald-700">
+                            🔒 Réservée{s.reserved_company_id && companyMap.get(s.reserved_company_id) ? ` — ${companyMap.get(s.reserved_company_id)}` : ''}
+                          </span>
+                        )}
+                      </p>
                       <p className="text-xs text-dark/60 mt-1">
                         {first ? (
                           <>

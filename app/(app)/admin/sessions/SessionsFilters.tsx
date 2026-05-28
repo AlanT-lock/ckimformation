@@ -6,6 +6,7 @@ import { useTransition } from 'react';
 interface Props {
   statut: string;
   formationId: string;
+  visibility: string;
   formations: { id: string; titre: string }[];
 }
 
@@ -17,7 +18,13 @@ const STATUTS: { value: string; label: string }[] = [
   { value: 'cancelled', label: 'Annulée' },
 ];
 
-export function SessionsFilters({ statut, formationId, formations }: Props) {
+const VISIBILITIES: { value: string; label: string }[] = [
+  { value: '', label: 'Toutes' },
+  { value: 'public', label: 'Publiques' },
+  { value: 'reserved', label: 'Réservées' },
+];
+
+export function SessionsFilters({ statut, formationId, visibility, formations }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
@@ -38,7 +45,7 @@ export function SessionsFilters({ statut, formationId, formations }: Props) {
     });
   }
 
-  const hasFilter = !!statut || !!formationId;
+  const hasFilter = !!statut || !!formationId || !!visibility;
 
   return (
     <div className="bg-white rounded-lg border border-dark/10 p-4 flex flex-wrap items-end gap-3">
@@ -73,6 +80,23 @@ export function SessionsFilters({ statut, formationId, formations }: Props) {
           <option value="">Toutes formations</option>
           {formations.map((f) => (
             <option key={f.id} value={f.id}>{f.titre}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="flex flex-col gap-1 min-w-[160px]">
+        <label htmlFor="filter-visibility" className="text-xs uppercase tracking-[0.2em] text-dark/50">
+          Visibilité
+        </label>
+        <select
+          id="filter-visibility"
+          value={visibility}
+          onChange={(e) => updateParam('visibility', e.target.value)}
+          disabled={pending}
+          className="bg-white border border-dark/15 rounded px-3 py-2 text-sm focus:outline-none focus:border-teal"
+        >
+          {VISIBILITIES.map((v) => (
+            <option key={v.value} value={v.value}>{v.label}</option>
           ))}
         </select>
       </div>
