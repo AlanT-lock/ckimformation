@@ -2,6 +2,9 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { sendAndLog } from '@/lib/email/log';
+import { renderSessionReservedCompleted } from '@/lib/email/templates/session-reservee';
 
 async function requireEtabOnSession(sessionId: string) {
   const profile = await getCurrentProfile();
@@ -167,6 +170,53 @@ export async function finaliserSession(sessionId: string) {
     .from('session_reserved_details')
     .update({ completed_at: new Date().toISOString() })
     .eq('session_id', sessionId);
-  // Admin notification handled in Task 12.
+
+  try {
+    const sbAdmin = createAdminClient();
+    const { data: sessRaw } = await sbAdmin
+      .from('sessions')
+      .select('id, reserved_company_id, formations(titre)')
+      .eq('id', sessionId)
+      .single();
+    const sess = sessRaw as {
+      id: string;
+      reserved_company_id: string | null;
+      formations: { titre: string } | { titre: string }[] | null;
+    } | null;
+    const reservedCompanyId = sess?.reserved_company_id ?? null;
+    let raisonSociale = '';
+    if (reservedCompanyId) {
+      const { data: cd } = await sbAdmin
+        .from('company_details')
+        .select('raison_sociale')
+        .eq('profile_id', reservedCompanyId)
+        .maybeSingle();
+      raisonSociale = (cd as { raison_sociale: string | null } | null)?.raison_sociale ?? '';
+    }
+    const f = sess?.formations ?? null;
+    const formationTitre = !f ? '' : Array.isArray(f) ? f[0]?.titre ?? '' : f.titre ?? '';
+    const baseUrl =
+      process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_BASE_URL ?? 'https://ckim-formation.fr';
+    const adminUrl = `${baseUrl}/admin/sessions/${sessionId}`;
+
+    const { data: admins } = await sbAdmin.from('profiles').select('email').eq('role', 'admin');
+    const emails = ((admins as { email: string | null }[] | null) ?? [])
+      .map((p) => p.email)
+      .filter((e): e is string => !!e);
+
+    for (const to of emails) {
+      await sendAndLog({
+        kind: 'session_reserved_completed',
+        to,
+        subject: `${raisonSociale} a finalisé sa session`,
+        html: renderSessionReservedCompleted({ raisonSociale, formationTitre, adminUrl }),
+        refTable: 'sessions',
+        refId: sessionId,
+      });
+    }
+  } catch (e) {
+    console.error('[finaliserSession] admin notification failed', e);
+  }
+
   revalidatePath(`/stagiaire/session-dediee/${sessionId}`);
 }

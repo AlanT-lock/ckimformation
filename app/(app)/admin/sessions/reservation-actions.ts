@@ -4,6 +4,11 @@ import { revalidatePath } from 'next/cache';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { generateInvitationToken } from '@/lib/supabase/session-invitations';
+import { sendAndLog } from '@/lib/email/log';
+import {
+  renderSessionReservedInvitation,
+  renderSessionReservedReminder,
+} from '@/lib/email/templates/session-reservee';
 
 export interface EtablissementSearchResult {
   profile_id: string;
@@ -103,11 +108,109 @@ export async function createInvitationForSession(
   return data!;
 }
 
-// The email-sending function (sendInvitationEmail) depends on the email template
-// added in Task 5. Stub for now; we'll wire it once Task 5 lands.
-export async function sendInvitationEmail(_sessionId: string, _invitationId: string): Promise<void> {
-  // Implemented in Task 5/12 — intentionally a no-op here so createSession can be wired now.
-  return;
+interface InvitationRow {
+  id: string;
+  session_id: string;
+  email: string;
+  raison_sociale: string;
+  contact_nom: string | null;
+  token: string;
+}
+
+interface SessionEmailRow {
+  adresse: { rue?: string; code_postal?: string; ville?: string; complement?: string } | null;
+  formations: { titre: string } | { titre: string }[] | null;
+  session_creneaux: { date: string; heure_debut: string; heure_fin: string }[] | null;
+  session_document_requests:
+    | { label: string; description: string | null; required: boolean }[]
+    | null;
+  session_admin_documents: { filename: string; label: string | null }[] | null;
+}
+
+function extractFormationTitre(f: SessionEmailRow['formations']): string {
+  if (!f) return '';
+  if (Array.isArray(f)) return f[0]?.titre ?? '';
+  return f.titre ?? '';
+}
+
+export async function sendInvitationEmail(
+  sessionId: string,
+  invitationId: string,
+  opts: { reminder?: boolean } = {},
+): Promise<void> {
+  await requireAdmin();
+  const sb = createAdminClient();
+  const { data: invRaw } = await sb
+    .from('session_invitations')
+    .select('id, session_id, email, raison_sociale, contact_nom, token')
+    .eq('id', invitationId)
+    .single();
+  if (!invRaw) throw new Error('Invitation introuvable');
+  const inv = invRaw as unknown as InvitationRow;
+
+  const { data: existing } = await sb
+    .from('profiles')
+    .select('id, account_type')
+    .ilike('email', inv.email)
+    .maybeSingle();
+  const existingTyped = existing as { id: string; account_type: string | null } | null;
+
+  const baseUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_BASE_URL ?? 'https://ckim-formation.fr';
+  const ctaUrl =
+    existingTyped && existingTyped.account_type === 'entreprise'
+      ? `${baseUrl}/stagiaire/session-dediee/${sessionId}?invitation_token=${inv.token}`
+      : `${baseUrl}/signup-entreprise?invitation_token=${inv.token}`;
+
+  const { data: sessRaw } = await sb
+    .from('sessions')
+    .select(`
+      id, adresse,
+      formations(titre),
+      session_creneaux(date, heure_debut, heure_fin),
+      session_document_requests(label, description, required),
+      session_admin_documents(filename, label)
+    `)
+    .eq('id', sessionId)
+    .single();
+  const sess = sessRaw as unknown as SessionEmailRow | null;
+
+  const adresse = sess?.adresse ?? {};
+  const formationTitre = extractFormationTitre(sess?.formations ?? null);
+  const creneaux = sess?.session_creneaux ?? [];
+  const docs = (sess?.session_document_requests ?? []).map((d) => ({
+    label: d.label,
+    description: d.description ?? null,
+    required: !!d.required,
+  }));
+  const adminDocsCount = (sess?.session_admin_documents ?? []).length;
+
+  const input = {
+    raisonSociale: inv.raison_sociale,
+    contactNom: inv.contact_nom,
+    formationTitre,
+    creneaux,
+    adresse,
+    documentsAFournir: docs,
+    documentsAdminCount: adminDocsCount,
+    ctaUrl,
+    ctaLabel: existingTyped ? 'Accéder à ma session' : 'Créer mon compte',
+  };
+
+  const html = opts.reminder
+    ? renderSessionReservedReminder(input)
+    : renderSessionReservedInvitation(input);
+  const kind = opts.reminder ? 'session_reserved_reminder' : 'session_reserved_invitation';
+  const subjectPrefix = opts.reminder ? 'Rappel — ' : '';
+
+  await sendAndLog({
+    kind,
+    to: inv.email,
+    subject: `${subjectPrefix}CKIM Formation — Une session est réservée pour ${inv.raison_sociale}`,
+    html,
+    refTable: 'session_invitations',
+    refId: inv.id,
+  });
 }
 
 export async function resendInvitation(invitationId: string): Promise<void> {
@@ -120,7 +223,7 @@ export async function resendInvitation(invitationId: string): Promise<void> {
     .single();
   if (!inv) throw new Error('Invitation introuvable');
   await sb.from('session_invitations').update({ invited_at: new Date().toISOString() }).eq('id', invitationId);
-  await sendInvitationEmail(inv.session_id, invitationId);
+  await sendInvitationEmail((inv as { session_id: string }).session_id, invitationId, { reminder: true });
   revalidatePath('/admin/sessions');
 }
 

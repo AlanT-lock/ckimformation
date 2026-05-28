@@ -3,6 +3,9 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { sendAndLog } from '@/lib/email/log';
+import { renderSessionReservedPublished } from '@/lib/email/templates/session-reservee';
 import type { SessionStatut, SessionAdresse } from '@/lib/supabase/types';
 
 export interface CreneauInput {
@@ -125,6 +128,19 @@ export async function createSession(input: SessionInput): Promise<{ id: string }
 export async function updateSession(id: string, input: Omit<SessionInput, 'creneaux'>) {
   await requireAdmin();
   const supabase = await createClient();
+
+  // Read previous state to detect draft -> published transition on reserved sessions
+  const { data: prevRaw } = await supabase
+    .from('sessions')
+    .select('statut, visibility, reserved_company_id')
+    .eq('id', id)
+    .single();
+  const prev = prevRaw as {
+    statut: string | null;
+    visibility: string | null;
+    reserved_company_id: string | null;
+  } | null;
+
   const { error } = await supabase
     .from('sessions')
     .update({
@@ -137,9 +153,127 @@ export async function updateSession(id: string, input: Omit<SessionInput, 'crene
     })
     .eq('id', id);
   if (error) throw new Error(error.message);
+
+  // Trigger emails on draft -> published for reserved sessions
+  const wasDraft = prev?.statut === 'draft';
+  const nowPublished = input.statut === 'published';
+  const isReserved = prev?.visibility === 'reserved';
+  if (wasDraft && nowPublished && isReserved) {
+    try {
+      const reservedCompanyId = prev?.reserved_company_id ?? null;
+      if (reservedCompanyId) {
+        await sendReservedPublishedEmail(id, reservedCompanyId);
+      } else {
+        const admin = createAdminClient();
+        const { data: invs } = await admin
+          .from('session_invitations')
+          .select('id')
+          .eq('session_id', id)
+          .is('claimed_by', null)
+          .limit(1);
+        const invId = (invs as { id: string }[] | null)?.[0]?.id;
+        if (invId) {
+          const { sendInvitationEmail } = await import('./reservation-actions');
+          await sendInvitationEmail(id, invId);
+        }
+      }
+    } catch (e) {
+      console.error('[updateSession] reserved email send failed', e);
+    }
+  }
+
   revalidatePath('/admin/sessions');
   revalidatePath(`/admin/sessions/${id}`);
   revalidatePath('/formations', 'layout');
+}
+
+interface SessionEmailRow {
+  adresse: { rue?: string; code_postal?: string; ville?: string; complement?: string } | null;
+  formations: { titre: string } | { titre: string }[] | null;
+  session_creneaux: { date: string; heure_debut: string; heure_fin: string }[] | null;
+  session_document_requests:
+    | { label: string; description: string | null; required: boolean }[]
+    | null;
+  session_admin_documents: { filename: string; label: string | null }[] | null;
+}
+
+function extractFormationTitre(f: SessionEmailRow['formations']): string {
+  if (!f) return '';
+  if (Array.isArray(f)) return f[0]?.titre ?? '';
+  return f.titre ?? '';
+}
+
+async function sendReservedPublishedEmail(sessionId: string, companyProfileId: string) {
+  const admin = createAdminClient();
+
+  const { data: profileRaw } = await admin
+    .from('profiles')
+    .select('id, email, full_name, account_type')
+    .eq('id', companyProfileId)
+    .single();
+  const profile = profileRaw as {
+    id: string;
+    email: string | null;
+    full_name: string | null;
+    account_type: string | null;
+  } | null;
+  if (!profile || !profile.email) return;
+
+  const { data: companyRaw } = await admin
+    .from('company_details')
+    .select('raison_sociale')
+    .eq('profile_id', companyProfileId)
+    .maybeSingle();
+  const company = companyRaw as { raison_sociale: string | null } | null;
+
+  const { data: sessRaw } = await admin
+    .from('sessions')
+    .select(`
+      id, adresse,
+      formations(titre),
+      session_creneaux(date, heure_debut, heure_fin),
+      session_document_requests(label, description, required),
+      session_admin_documents(filename, label)
+    `)
+    .eq('id', sessionId)
+    .single();
+  const sess = sessRaw as unknown as SessionEmailRow | null;
+
+  const adresse = sess?.adresse ?? {};
+  const formationTitre = extractFormationTitre(sess?.formations ?? null);
+  const creneaux = sess?.session_creneaux ?? [];
+  const docs = (sess?.session_document_requests ?? []).map((d) => ({
+    label: d.label,
+    description: d.description ?? null,
+    required: !!d.required,
+  }));
+  const adminDocsCount = (sess?.session_admin_documents ?? []).length;
+
+  const baseUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_BASE_URL ?? 'https://ckim-formation.fr';
+  const raisonSociale = company?.raison_sociale ?? profile.full_name ?? '';
+
+  const html = renderSessionReservedPublished({
+    raisonSociale,
+    contactNom: profile.full_name ?? null,
+    formationTitre,
+    creneaux,
+    adresse,
+    documentsAFournir: docs,
+    documentsAdminCount: adminDocsCount,
+    ctaUrl: `${baseUrl}/stagiaire/session-dediee/${sessionId}`,
+    ctaLabel: 'Accéder à ma session',
+  });
+
+  await sendAndLog({
+    kind: 'session_reserved_published',
+    to: profile.email,
+    toProfileId: companyProfileId,
+    subject: `CKIM Formation — Votre session est confirmée`,
+    html,
+    refTable: 'sessions',
+    refId: sessionId,
+  });
 }
 
 export type DeleteSessionResult = { ok: true } | { ok: false; error: string };

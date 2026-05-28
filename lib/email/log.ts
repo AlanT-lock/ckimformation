@@ -2,7 +2,13 @@ import 'server-only';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { resend, EMAIL_FROM } from './resend';
 
-export type EmailLogKind = 'enquete_froid' | 'enquete_financeur';
+export type EmailLogKind =
+  | 'enquete_froid'
+  | 'enquete_financeur'
+  | 'session_reserved_invitation'
+  | 'session_reserved_published'
+  | 'session_reserved_completed'
+  | 'session_reserved_reminder';
 
 export interface SendAndLogInput {
   kind: EmailLogKind;
