@@ -16,7 +16,8 @@ export default async function StagiaireFormationsCatalogue() {
   const { data: sessions } = await supabase
     .from('sessions')
     .select('id, formation:formations(slug), creneaux:session_creneaux(date)')
-    .eq('statut', 'published');
+    .eq('statut', 'published')
+    .eq('visibility', 'public');
 
   const upcomingCount = new Map<string, number>();
   (sessions ?? []).forEach((s) => {

@@ -41,7 +41,8 @@ export default async function StagiaireFormationDetail({ params }: PageProps) {
       .from('sessions')
       .select('id, adresse, creneaux:session_creneaux(date, heure_debut, heure_fin, ordre)')
       .eq('formation_id', dbForm.id)
-      .eq('statut', 'published');
+      .eq('statut', 'published')
+      .eq('visibility', 'public');
 
     upcoming = (sessions ?? [])
       .map((s) => ({

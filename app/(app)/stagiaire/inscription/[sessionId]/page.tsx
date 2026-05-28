@@ -30,6 +30,7 @@ export default async function InscriptionPage({ params }: PageProps) {
       creneaux:session_creneaux(date, heure_debut, heure_fin, ordre)
     `)
     .eq('id', sessionId)
+    .eq('visibility', 'public')
     .single();
   if (!session || session.statut !== 'published') notFound();
 
