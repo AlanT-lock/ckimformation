@@ -103,14 +103,14 @@ alter table public.session_admin_documents     enable row level security;
 drop policy if exists "invitations admin all" on public.session_invitations;
 create policy "invitations admin all" on public.session_invitations
   for all to authenticated
-  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'))
-  with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
+  using (public.is_admin())
+  with check (public.is_admin());
 
 drop policy if exists "srd read" on public.session_reserved_details;
 create policy "srd read" on public.session_reserved_details
   for select to authenticated
   using (
-    exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
+    public.is_admin()
     or exists (
       select 1 from public.sessions s
       where s.id = session_reserved_details.session_id
@@ -122,7 +122,7 @@ drop policy if exists "srd write" on public.session_reserved_details;
 create policy "srd write" on public.session_reserved_details
   for all to authenticated
   using (
-    exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
+    public.is_admin()
     or exists (
       select 1 from public.sessions s
       where s.id = session_reserved_details.session_id
@@ -130,7 +130,7 @@ create policy "srd write" on public.session_reserved_details
     )
   )
   with check (
-    exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
+    public.is_admin()
     or exists (
       select 1 from public.sessions s
       where s.id = session_reserved_details.session_id
@@ -142,7 +142,7 @@ drop policy if exists "sdr read" on public.session_document_requests;
 create policy "sdr read" on public.session_document_requests
   for select to authenticated
   using (
-    exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
+    public.is_admin()
     or exists (
       select 1 from public.sessions s
       where s.id = session_document_requests.session_id
@@ -153,14 +153,14 @@ create policy "sdr read" on public.session_document_requests
 drop policy if exists "sdr write admin" on public.session_document_requests;
 create policy "sdr write admin" on public.session_document_requests
   for all to authenticated
-  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'))
-  with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
+  using (public.is_admin())
+  with check (public.is_admin());
 
 drop policy if exists "sdu read" on public.session_document_uploads;
 create policy "sdu read" on public.session_document_uploads
   for select to authenticated
   using (
-    exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
+    public.is_admin()
     or exists (
       select 1 from public.sessions s
       where s.id = session_document_uploads.session_id
@@ -183,13 +183,13 @@ create policy "sdu insert etab" on public.session_document_uploads
 drop policy if exists "sdu delete admin" on public.session_document_uploads;
 create policy "sdu delete admin" on public.session_document_uploads
   for delete to authenticated
-  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
+  using (public.is_admin());
 
 drop policy if exists "sad read" on public.session_admin_documents;
 create policy "sad read" on public.session_admin_documents
   for select to authenticated
   using (
-    exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
+    public.is_admin()
     or exists (
       select 1 from public.sessions s
       where s.id = session_admin_documents.session_id
@@ -200,8 +200,8 @@ create policy "sad read" on public.session_admin_documents
 drop policy if exists "sad write admin" on public.session_admin_documents;
 create policy "sad write admin" on public.session_admin_documents
   for all to authenticated
-  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'))
-  with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
+  using (public.is_admin())
+  with check (public.is_admin());
 
 -- 9. RLS storage.objects
 drop policy if exists "sad bucket read" on storage.objects;
@@ -210,7 +210,7 @@ create policy "sad bucket read" on storage.objects
   using (
     bucket_id = 'session-admin-docs'
     and (
-      exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
+      public.is_admin()
       or exists (
         select 1 from public.sessions s
         where s.id::text = (storage.foldername(name))[1]
@@ -224,11 +224,11 @@ create policy "sad bucket write admin" on storage.objects
   for all to authenticated
   using (
     bucket_id = 'session-admin-docs'
-    and exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
+    and public.is_admin()
   )
   with check (
     bucket_id = 'session-admin-docs'
-    and exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
+    and public.is_admin()
   );
 
 drop policy if exists "seu bucket read" on storage.objects;
@@ -237,7 +237,7 @@ create policy "seu bucket read" on storage.objects
   using (
     bucket_id = 'session-etab-uploads'
     and (
-      exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
+      public.is_admin()
       or exists (
         select 1 from public.sessions s
         where s.id::text = (storage.foldername(name))[1]
