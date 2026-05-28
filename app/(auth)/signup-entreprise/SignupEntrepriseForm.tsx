@@ -5,6 +5,16 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { RgpdCheckbox } from '@/components/forms/RgpdCheckbox';
 import type { Secteur } from '@/lib/db/secteurs';
+import { claimInvitationFromTokenAction } from '@/app/actions/claim-session-invitation';
+
+export interface SignupEntreprisePrefill {
+  email?: string;
+  raison_sociale?: string;
+  siret?: string;
+  contact_nom?: string;
+  contact_fonction?: string;
+  contact_phone?: string;
+}
 
 interface FormState {
   // Société
@@ -78,10 +88,28 @@ function validateRgpd(rgpd: boolean): string | null {
   return rgpd ? null : "Vous devez accepter la politique de confidentialité pour créer un compte.";
 }
 
-export function SignupEntrepriseForm({ secteurs }: { secteurs: Secteur[] }) {
+export function SignupEntrepriseForm({
+  secteurs,
+  invitationToken,
+  invitationSessionId,
+  prefill,
+}: {
+  secteurs: Secteur[];
+  invitationToken?: string;
+  invitationSessionId?: string;
+  prefill?: SignupEntreprisePrefill;
+}) {
   const router = useRouter();
   const supabase = createClient();
-  const [form, setForm] = useState<FormState>(INITIAL);
+  const [form, setForm] = useState<FormState>({
+    ...INITIAL,
+    email: prefill?.email ?? '',
+    raison_sociale: prefill?.raison_sociale ?? '',
+    siret: prefill?.siret ?? '',
+    full_name: prefill?.contact_nom ?? '',
+    contact_fonction: prefill?.contact_fonction ?? '',
+    phone: prefill?.contact_phone ?? '',
+  });
   const [step, setStep] = useState<Step>(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -115,11 +143,14 @@ export function SignupEntrepriseForm({ secteurs }: { secteurs: Secteur[] }) {
       ville: form.addr_ville.trim(),
       pays: 'France',
     };
+    const postConfirmPath = invitationToken && invitationSessionId
+      ? `/stagiaire/session-dediee/${invitationSessionId}?invitation_token=${encodeURIComponent(invitationToken)}`
+      : '/stagiaire';
     const { error: signErr } = await supabase.auth.signUp({
       email: form.email.trim(),
       password: form.password,
       options: {
-        emailRedirectTo: `${window.location.origin}/callback?redirect=/stagiaire`,
+        emailRedirectTo: `${window.location.origin}/callback?redirect=${encodeURIComponent(postConfirmPath)}`,
         data: {
           role: 'stagiaire',
           account_type: 'entreprise',
@@ -136,7 +167,25 @@ export function SignupEntrepriseForm({ secteurs }: { secteurs: Secteur[] }) {
     });
     setLoading(false);
     if (signErr) { setError(signErr.message); return; }
-    setMessage('Compte entreprise créé. Vérifiez votre boîte mail et cliquez sur le lien de confirmation.');
+
+    // If a session is already established (e.g. email confirmation désactivée),
+    // on tente de réclamer l'invitation immédiatement.
+    if (invitationToken) {
+      const { data: sessData } = await supabase.auth.getSession();
+      if (sessData.session) {
+        const res = await claimInvitationFromTokenAction(invitationToken);
+        if (res.ok) {
+          router.push(`/stagiaire/session-dediee/${res.sessionId}`);
+          return;
+        }
+      }
+    }
+
+    setMessage(
+      invitationToken
+        ? 'Compte entreprise créé. Vérifiez votre boîte mail et cliquez sur le lien de confirmation — vous serez ensuite redirigé vers votre session dédiée.'
+        : 'Compte entreprise créé. Vérifiez votre boîte mail et cliquez sur le lien de confirmation.'
+    );
     setTimeout(() => router.push('/login?message=Confirmez%20votre%20email%20pour%20vous%20connecter'), 4000);
   }
 
