@@ -18,6 +18,17 @@ export interface SessionInput {
   adresse: SessionAdresse;
   notes_internes: string | null;
   creneaux: CreneauInput[];
+  visibility?: 'public' | 'reserved';
+  reserved_company_id?: string | null;
+  invitation?: {
+    email: string;
+    raison_sociale: string;
+    siret?: string | null;
+    contact_nom?: string | null;
+    contact_fonction?: string | null;
+    contact_phone?: string | null;
+  } | null;
+  document_requests?: Array<{ label: string; description?: string; required: boolean }>;
 }
 
 async function requireAdmin() {
@@ -28,7 +39,7 @@ async function requireAdmin() {
   return profile;
 }
 
-export async function createSession(input: SessionInput) {
+export async function createSession(input: SessionInput): Promise<{ id: string }> {
   const profile = await requireAdmin();
   const supabase = await createClient();
 
@@ -66,10 +77,49 @@ export async function createSession(input: SessionInput) {
     throw new Error('Erreur sur les créneaux : ' + errCre.message);
   }
 
+  if (input.visibility === 'reserved') {
+    if (!input.reserved_company_id && !input.invitation) {
+      throw new Error('Une session réservée nécessite un établissement existant ou une invitation.');
+    }
+    if (input.reserved_company_id && input.invitation) {
+      throw new Error('Choisir soit un établissement existant, soit une invitation, pas les deux.');
+    }
+
+    await supabase
+      .from('sessions')
+      .update({
+        visibility: 'reserved',
+        reserved_company_id: input.reserved_company_id ?? null,
+      })
+      .eq('id', session.id);
+
+    await supabase.from('session_reserved_details').insert({ session_id: session.id });
+
+    if (input.document_requests?.length) {
+      await supabase.from('session_document_requests').insert(
+        input.document_requests.map((d, i) => ({
+          session_id: session.id,
+          ordre: i,
+          label: d.label,
+          description: d.description ?? null,
+          required: d.required,
+        })),
+      );
+    }
+
+    if (input.invitation) {
+      const { createInvitationForSession, sendInvitationEmail } = await import('./reservation-actions');
+      const inv = await createInvitationForSession(session.id, input.invitation);
+      if (input.statut === 'published') {
+        await sendInvitationEmail(session.id, inv.id);
+      }
+    }
+  }
+
   revalidatePath('/admin/sessions');
   // Site vitrine : la page de la formation pourrait afficher la session
   revalidatePath('/formations', 'layout');
-  redirect(`/admin/sessions/${session.id}`);
+  return { id: session.id };
 }
 
 export async function updateSession(id: string, input: Omit<SessionInput, 'creneaux'>) {

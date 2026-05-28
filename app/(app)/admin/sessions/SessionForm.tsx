@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { Field, Select, Textarea } from '@/components/app/Field';
 import { Button } from '@/components/app/Button';
 import { createSession, updateSession, type CreneauInput } from './actions';
@@ -29,6 +30,7 @@ export function SessionForm({
   initial?: Initial;
 }) {
   const isEdit = !!initial?.id;
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -74,8 +76,10 @@ export function SessionForm({
       try {
         if (isEdit && initial?.id) {
           await updateSession(initial.id, payload);
+          router.push(`/admin/sessions/${initial.id}`);
         } else {
-          await createSession({ ...payload, creneaux });
+          const res = await createSession({ ...payload, creneaux });
+          router.push(`/admin/sessions/${res.id}`);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erreur inconnue');
