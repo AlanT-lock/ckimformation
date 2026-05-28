@@ -6,6 +6,7 @@ import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { SessionForm } from '../SessionForm';
 import { CreneauxManager } from './CreneauxManager';
 import { DeleteSessionButton } from './DeleteSessionButton';
+import { resendInvitationFormAction, cancelInvitationFormAction } from '../reservation-actions';
 import type { SessionStatut, SessionAdresse } from '@/lib/supabase/types';
 
 interface PageProps {
@@ -45,6 +46,91 @@ export default async function AdminSessionDetailPage({ params }: PageProps) {
   ]);
 
   if (!session) notFound();
+
+  // Reserved-session related data
+  let claimedCompany: { raison_sociale: string; email: string } | null = null;
+  let pendingInvitation:
+    | { id: string; raison_sociale: string; email: string; expires_at: string }
+    | null = null;
+  let reservedDetails:
+    | { analyse_besoins: string | null; completed_at: string | null }
+    | null = null;
+  let docRequests: Array<{
+    id: string;
+    label: string;
+    required: boolean;
+    uploadsCount: number;
+  }> = [];
+  let adminDocs: Array<{ id: string; label: string | null; filename: string }> = [];
+
+  if (session.visibility === 'reserved') {
+    const [
+      { data: claimedRaw },
+      { data: pendingRaw },
+      { data: detailsRaw },
+      { data: requestsRaw },
+      { data: adminDocsRaw },
+    ] = await Promise.all([
+      session.reserved_company_id
+        ? supabase
+            .from('profiles')
+            .select('email, company_details(raison_sociale)')
+            .eq('id', session.reserved_company_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      supabase
+        .from('session_invitations')
+        .select('id, raison_sociale, email, expires_at, claimed_by')
+        .eq('session_id', id)
+        .is('claimed_by', null)
+        .maybeSingle(),
+      supabase
+        .from('session_reserved_details')
+        .select('analyse_besoins, completed_at')
+        .eq('session_id', id)
+        .maybeSingle(),
+      supabase
+        .from('session_document_requests')
+        .select('id, label, required, session_document_uploads(id)')
+        .eq('session_id', id)
+        .order('ordre'),
+      supabase
+        .from('session_admin_documents')
+        .select('id, label, filename')
+        .eq('session_id', id)
+        .order('created_at'),
+    ]);
+
+    if (claimedRaw) {
+      const cd = (claimedRaw as { email: string; company_details: { raison_sociale: string } | { raison_sociale: string }[] | null }).company_details;
+      const raison = Array.isArray(cd) ? cd[0]?.raison_sociale ?? '' : cd?.raison_sociale ?? '';
+      claimedCompany = {
+        raison_sociale: raison,
+        email: (claimedRaw as { email: string }).email,
+      };
+    }
+    if (pendingRaw) {
+      pendingInvitation = pendingRaw as {
+        id: string;
+        raison_sociale: string;
+        email: string;
+        expires_at: string;
+      };
+    }
+    if (detailsRaw) {
+      reservedDetails = detailsRaw as {
+        analyse_besoins: string | null;
+        completed_at: string | null;
+      };
+    }
+    docRequests = (requestsRaw ?? []).map((r: { id: string; label: string; required: boolean; session_document_uploads: unknown[] | null }) => ({
+      id: r.id,
+      label: r.label,
+      required: r.required,
+      uploadsCount: (r.session_document_uploads ?? []).length,
+    }));
+    adminDocs = (adminDocsRaw ?? []) as Array<{ id: string; label: string | null; filename: string }>;
+  }
 
   return (
     <div className="space-y-8">
@@ -145,6 +231,88 @@ export default async function AdminSessionDetailPage({ params }: PageProps) {
           )}
         </div>
       </div>
+
+      {session.visibility === 'reserved' && (
+        <section className="border-2 border-emerald-200 rounded p-4 mt-6 space-y-4">
+          <h2 className="text-lg font-semibold">Établissement réservé</h2>
+
+          {claimedCompany && (
+            <div>
+              <div className="font-medium">{claimedCompany.raison_sociale}</div>
+              <div className="text-sm text-gray-600">{claimedCompany.email}</div>
+            </div>
+          )}
+
+          {pendingInvitation && (
+            <div className="bg-amber-50 border border-amber-200 rounded p-3">
+              <div className="font-medium">Invitation en attente</div>
+              <div className="text-sm">
+                {pendingInvitation.raison_sociale} — {pendingInvitation.email}
+                <br />
+                Expire le{' '}
+                {new Date(pendingInvitation.expires_at).toLocaleDateString('fr-FR')}
+              </div>
+              <div className="mt-2 flex gap-2">
+                <form action={resendInvitationFormAction}>
+                  <input type="hidden" name="id" value={pendingInvitation.id} />
+                  <button className="px-3 py-1 border rounded">Relancer</button>
+                </form>
+                <form action={cancelInvitationFormAction}>
+                  <input type="hidden" name="id" value={pendingInvitation.id} />
+                  <button className="px-3 py-1 border rounded text-red-600">
+                    Annuler
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          <div>
+            <h3 className="font-medium">Analyse des besoins</h3>
+            {reservedDetails?.analyse_besoins ? (
+              <p className="whitespace-pre-wrap">{reservedDetails.analyse_besoins}</p>
+            ) : (
+              <p className="text-gray-500 italic">Non renseignée</p>
+            )}
+            {reservedDetails?.completed_at && (
+              <p className="text-emerald-700 text-sm mt-2">
+                ✓ Finalisée le{' '}
+                {new Date(reservedDetails.completed_at).toLocaleDateString('fr-FR')}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <h3 className="font-medium">Documents demandés</h3>
+            {docRequests.length === 0 ? (
+              <p className="text-gray-500 italic">Aucune demande</p>
+            ) : (
+              <ul className="space-y-1">
+                {docRequests.map((r) => (
+                  <li key={r.id}>
+                    {r.label}
+                    {r.required && <span className="text-red-600"> *</span>}{' '}
+                    — {r.uploadsCount > 0 ? `${r.uploadsCount} fourni(s)` : 'en attente'}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div>
+            <h3 className="font-medium">Documents transmis</h3>
+            {adminDocs.length === 0 ? (
+              <p className="text-gray-500 italic">Aucun document</p>
+            ) : (
+              <ul className="space-y-1">
+                {adminDocs.map((d) => (
+                  <li key={d.id}>{d.label ?? d.filename}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

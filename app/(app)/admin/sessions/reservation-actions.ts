@@ -227,6 +227,18 @@ export async function resendInvitation(invitationId: string): Promise<void> {
   revalidatePath('/admin/sessions');
 }
 
+export async function resendInvitationFormAction(formData: FormData): Promise<void> {
+  const id = String(formData.get('id') ?? '');
+  if (!id) throw new Error('id manquant');
+  await resendInvitation(id);
+}
+
+export async function cancelInvitationFormAction(formData: FormData): Promise<void> {
+  const id = String(formData.get('id') ?? '');
+  if (!id) throw new Error('id manquant');
+  await cancelInvitation(id);
+}
+
 export async function cancelInvitation(invitationId: string): Promise<void> {
   await requireAdmin();
   const sb = createAdminClient();
