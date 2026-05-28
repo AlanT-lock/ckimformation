@@ -49,15 +49,28 @@ export default async function SessionDedieePage({
   }
 
   const { data: employes } = await sb
-    .from('profiles')
-    .select('id, full_name, email')
+    .from('employees')
+    .select('id, prenom, nom, email')
     .eq('employer_profile_id', profile.id)
-    .order('full_name');
+    .order('nom');
 
-  const { data: inscriptions } = await sb
-    .from('inscriptions')
-    .select('id, participant_profile_id')
-    .eq('session_id', sessionId);
+  // Récupère les employee_id déjà inscrits (via inscription_participants)
+  // sur une inscription liée à cette session avec un statut actif.
+  const { data: inscParts } = await sb
+    .from('inscription_participants')
+    .select('employee_id, inscription:inscriptions!inner(session_id, statut)')
+    .eq('inscription.session_id', sessionId)
+    .not('employee_id', 'is', null);
+
+  const inscritEmployeeIds = (inscParts ?? [])
+    .filter((row) => {
+      const rel = (row as unknown as { inscription: unknown }).inscription;
+      const insc = Array.isArray(rel)
+        ? (rel[0] as { statut: string } | undefined)
+        : (rel as { statut: string } | null);
+      return insc != null && insc.statut !== 'refusee';
+    })
+    .map((row) => (row as unknown as { employee_id: string }).employee_id);
 
   const raw = session as Record<string, unknown>;
   const formationRel = raw.formations as
@@ -101,9 +114,7 @@ export default async function SessionDedieePage({
     <SessionDedieeClient
       session={sessionForClient}
       employes={employes ?? []}
-      inscriptions={(inscriptions ?? []).map(
-        (i: { participant_profile_id: string }) => i.participant_profile_id,
-      )}
+      inscriptions={inscritEmployeeIds}
     />
   );
 }

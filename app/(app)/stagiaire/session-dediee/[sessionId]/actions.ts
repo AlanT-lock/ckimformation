@@ -30,42 +30,112 @@ export async function saveAnalyseBesoins(sessionId: string, analyse: string) {
   revalidatePath(`/stagiaire/session-dediee/${sessionId}`);
 }
 
-export async function inscrireStagiaire(sessionId: string, profileId: string) {
+/**
+ * Inscrit un employee (fiche salarié) à la session réservée.
+ * - Vérifie que l'employee appartient bien au compte étab connecté.
+ * - Anti-doublon : si déjà inscrit (via inscription_participants.employee_id
+ *   sur cette session), on no-op.
+ * - Crée une inscription `confirmee` (pas de validation admin sur session réservée)
+ *   + une ligne inscription_participants.
+ */
+export async function inscrireStagiaire(sessionId: string, employeeId: string) {
   const { profile, sb } = await requireEtabOnSession(sessionId);
-  await sb.from('inscriptions').insert({
-    session_id: sessionId,
-    payer_profile_id: profile.id,
-    participant_profile_id: profileId,
-    statut: 'confirmee',
-  });
-  revalidatePath(`/stagiaire/session-dediee/${sessionId}`);
-}
 
-export async function creerEtInscrireStagiaire(
-  sessionId: string,
-  payload: { full_name: string; email: string },
-) {
-  const { profile, sb } = await requireEtabOnSession(sessionId);
-  const { data: newP, error } = await sb
-    .from('profiles')
+  // 1) Sécurité : l'employee doit appartenir à ce compte étab
+  const { data: emp, error: empErr } = await sb
+    .from('employees')
+    .select('id')
+    .eq('id', employeeId)
+    .eq('employer_profile_id', profile.id)
+    .maybeSingle();
+  if (empErr) throw new Error(empErr.message);
+  if (!emp) throw new Error('Salarié introuvable ou non rattaché à votre compte.');
+
+  // 2) Anti-doublon : déjà inscrit sur cette session ?
+  const { data: existingParts } = await sb
+    .from('inscription_participants')
+    .select('id, inscription:inscriptions!inner(session_id, statut)')
+    .eq('employee_id', employeeId);
+  const alreadyInscrit = (existingParts ?? []).some((row) => {
+    const rel = (row as unknown as { inscription: unknown }).inscription;
+    const insc = Array.isArray(rel)
+      ? (rel[0] as { session_id: string; statut: string } | undefined)
+      : (rel as { session_id: string; statut: string } | null);
+    return insc != null && insc.session_id === sessionId && insc.statut !== 'refusee';
+  });
+  if (alreadyInscrit) {
+    revalidatePath(`/stagiaire/session-dediee/${sessionId}`);
+    return;
+  }
+
+  // 3) Crée l'inscription (confirmee = inscription directe sur session réservée)
+  const { data: insc, error: inscErr } = await sb
+    .from('inscriptions')
     .insert({
-      role: 'stagiaire',
-      account_type: 'particulier',
-      full_name: payload.full_name,
-      email: payload.email,
-      employer_profile_id: profile.id,
+      session_id: sessionId,
+      payer_profile_id: profile.id,
+      participant_profile_id: null,
+      statut: 'confirmee',
+      confirmed_at: new Date().toISOString(),
     })
     .select('id')
     .single();
-  if (error) throw new Error(error.message);
-  const newProfileId = (newP as { id: string }).id;
-  await sb.from('inscriptions').insert({
-    session_id: sessionId,
-    payer_profile_id: profile.id,
-    participant_profile_id: newProfileId,
-    statut: 'confirmee',
+  if (inscErr || !insc) throw new Error(inscErr?.message ?? 'Création inscription impossible');
+
+  // 4) Lie le salarié
+  const { error: partErr } = await sb.from('inscription_participants').insert({
+    inscription_id: (insc as { id: string }).id,
+    employee_id: employeeId,
   });
+  if (partErr) throw new Error(partErr.message);
+
   revalidatePath(`/stagiaire/session-dediee/${sessionId}`);
+}
+
+/**
+ * Crée une fiche salarié dans `employees` puis inscrit ce salarié à la session.
+ * Si un salarié avec le même email existe déjà sous ce compte, on le réutilise.
+ */
+export async function creerEtInscrireStagiaire(
+  sessionId: string,
+  payload: { prenom: string; nom: string; email: string },
+) {
+  const { profile, sb } = await requireEtabOnSession(sessionId);
+
+  const prenom = payload.prenom.trim();
+  const nom = payload.nom.trim();
+  const email = payload.email.trim().toLowerCase();
+  if (!prenom || !nom || !email) throw new Error('Prénom, nom et email sont requis.');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Email invalide.');
+
+  // 1) Récupère ou crée la fiche employee
+  const { data: existing } = await sb
+    .from('employees')
+    .select('id')
+    .eq('employer_profile_id', profile.id)
+    .eq('email', email)
+    .maybeSingle();
+
+  let employeeId: string;
+  if (existing) {
+    employeeId = (existing as { id: string }).id;
+  } else {
+    const { data: inserted, error: insErr } = await sb
+      .from('employees')
+      .insert({
+        employer_profile_id: profile.id,
+        prenom,
+        nom,
+        email,
+      })
+      .select('id')
+      .single();
+    if (insErr || !inserted) throw new Error(insErr?.message ?? 'Création employé impossible');
+    employeeId = (inserted as { id: string }).id;
+  }
+
+  // 2) Inscrit (réutilise la logique)
+  await inscrireStagiaire(sessionId, employeeId);
 }
 
 export async function uploadDocumentRequest(

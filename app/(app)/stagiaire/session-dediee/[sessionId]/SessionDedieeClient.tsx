@@ -48,7 +48,7 @@ interface SessionData {
 
 interface Props {
   session: SessionData;
-  employes: Array<{ id: string; full_name: string; email: string }>;
+  employes: Array<{ id: string; prenom: string; nom: string; email: string }>;
   inscriptions: string[];
 }
 
@@ -57,7 +57,7 @@ export function SessionDedieeClient({ session, employes, inscriptions }: Props) 
     session.session_reserved_details?.analyse_besoins ?? '',
   );
   const [, startTransition] = useTransition();
-  const [newEmp, setNewEmp] = useState({ full_name: '', email: '' });
+  const [newEmp, setNewEmp] = useState({ prenom: '', nom: '', email: '' });
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8">
@@ -90,7 +90,7 @@ export function SessionDedieeClient({ session, employes, inscriptions }: Props) 
             return (
               <li key={e.id} className="flex items-center gap-3">
                 <span className="flex-1">
-                  {e.full_name} ({e.email})
+                  {e.prenom} {e.nom} ({e.email})
                 </span>
                 {inscrit ? (
                   <span className="text-emerald-700">✓ Inscrit</span>
@@ -112,10 +112,16 @@ export function SessionDedieeClient({ session, employes, inscriptions }: Props) 
           <div className="font-medium mb-2">Ajouter un nouvel employé</div>
           <div className="flex gap-2">
             <input
-              placeholder="Nom complet"
+              placeholder="Prénom"
               className="border rounded px-2 py-1"
-              value={newEmp.full_name}
-              onChange={(e) => setNewEmp({ ...newEmp, full_name: e.target.value })}
+              value={newEmp.prenom}
+              onChange={(e) => setNewEmp({ ...newEmp, prenom: e.target.value })}
+            />
+            <input
+              placeholder="Nom"
+              className="border rounded px-2 py-1"
+              value={newEmp.nom}
+              onChange={(e) => setNewEmp({ ...newEmp, nom: e.target.value })}
             />
             <input
               placeholder="Email"
@@ -126,10 +132,10 @@ export function SessionDedieeClient({ session, employes, inscriptions }: Props) 
             <button
               className="px-3 py-1 border rounded"
               onClick={() => {
-                if (!newEmp.full_name || !newEmp.email) return;
+                if (!newEmp.prenom || !newEmp.nom || !newEmp.email) return;
                 startTransition(async () => {
                   await creerEtInscrireStagiaire(session.id, newEmp);
-                  setNewEmp({ full_name: '', email: '' });
+                  setNewEmp({ prenom: '', nom: '', email: '' });
                 });
               }}
             >
