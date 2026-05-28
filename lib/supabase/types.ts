@@ -1,6 +1,7 @@
 export type UserRole = 'admin' | 'formateur' | 'stagiaire';
 export type AccountType = 'particulier' | 'entreprise';
 export type SessionStatut = 'draft' | 'published' | 'cancelled' | 'completed';
+export type SessionVisibility = 'public' | 'reserved';
 export type InscriptionStatut =
   | 'en_attente'
   | 'documents_demandes'
@@ -75,9 +76,65 @@ export interface Session {
   statut: SessionStatut;
   adresse: SessionAdresse;
   notes_internes: string | null;
+  visibility: SessionVisibility;
+  reserved_company_id: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface SessionInvitation {
+  id: string;
+  session_id: string;
+  email: string;
+  raison_sociale: string;
+  siret: string | null;
+  contact_nom: string | null;
+  contact_fonction: string | null;
+  contact_phone: string | null;
+  token: string;
+  invited_by: string | null;
+  invited_at: string;
+  expires_at: string;
+  claimed_by: string | null;
+  claimed_at: string | null;
+}
+
+export interface SessionReservedDetails {
+  session_id: string;
+  analyse_besoins: string | null;
+  completed_at: string | null;
+  updated_at: string;
+}
+
+export interface SessionDocumentRequest {
+  id: string;
+  session_id: string;
+  ordre: number;
+  label: string;
+  description: string | null;
+  required: boolean;
+  created_at: string;
+}
+
+export interface SessionDocumentUpload {
+  id: string;
+  request_id: string;
+  session_id: string;
+  storage_path: string;
+  filename: string;
+  uploaded_by: string | null;
+  uploaded_at: string;
+}
+
+export interface SessionAdminDocument {
+  id: string;
+  session_id: string;
+  storage_path: string;
+  filename: string;
+  label: string | null;
+  uploaded_by: string | null;
+  uploaded_at: string;
 }
 
 export interface SessionCreneau {
