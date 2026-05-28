@@ -71,6 +71,56 @@ async function loadInscriptions(payerId: string): Promise<
   }
 }
 
+interface ReservedSessionItem {
+  id: string;
+  formationTitre: string;
+  firstDate: string | null;
+  completedAt: string | null;
+}
+
+async function loadReservedSessions(companyId: string): Promise<ReservedSessionItem[]> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('sessions')
+      .select(`
+        id,
+        formations(titre, slug),
+        session_creneaux(date),
+        session_reserved_details(completed_at)
+      `)
+      .eq('reserved_company_id', companyId)
+      .eq('statut', 'published');
+    if (error) {
+      console.error('[stagiaire/inscriptions] reserved sessions query failed', error);
+      return [];
+    }
+    type RawRow = {
+      id: string;
+      formations: { titre: string; slug: string } | { titre: string; slug: string }[] | null;
+      session_creneaux: { date: string }[] | null;
+      session_reserved_details: { completed_at: string | null } | { completed_at: string | null }[] | null;
+    };
+    return ((data ?? []) as RawRow[]).map((row) => {
+      const formation = Array.isArray(row.formations) ? row.formations[0] : row.formations;
+      const creneaux = row.session_creneaux ?? [];
+      const sortedDates = [...creneaux].map((c) => c.date).filter(Boolean).sort();
+      const details = Array.isArray(row.session_reserved_details)
+        ? row.session_reserved_details[0]
+        : row.session_reserved_details;
+      return {
+        id: row.id,
+        formationTitre: formation?.titre ?? '—',
+        firstDate: sortedDates[0] ?? null,
+        completedAt: details?.completed_at ?? null,
+      };
+    });
+  } catch (err) {
+    console.error('[stagiaire/inscriptions] reserved sessions unexpected', err);
+    return [];
+  }
+}
+
 export default async function StagiaireDemandesPage({ searchParams }: PageProps) {
   const sp = await searchParams;
   const profile = await getCurrentProfile();
@@ -78,6 +128,9 @@ export default async function StagiaireDemandesPage({ searchParams }: PageProps)
   redirectEmployeeStagiaire(profile);
 
   const result = await loadInscriptions(profile.id);
+  const reservedSessions = profile.account_type === 'entreprise'
+    ? await loadReservedSessions(profile.id)
+    : [];
 
   return (
     <div className="space-y-6">
@@ -101,6 +154,32 @@ export default async function StagiaireDemandesPage({ searchParams }: PageProps)
         <div className="bg-orange/10 border border-orange/30 rounded-lg p-4 text-sm text-orange whitespace-pre-line">
           {sp.warn}
         </div>
+      )}
+
+      {reservedSessions.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-xl font-semibold mb-3">Sessions dédiées à mon établissement</h2>
+          <ul className="grid gap-3 md:grid-cols-2">
+            {reservedSessions.map((s) => {
+              const completed = !!s.completedAt;
+              const firstDate = s.firstDate ? new Date(s.firstDate).toLocaleDateString('fr-FR') : null;
+              return (
+                <li key={s.id}>
+                  <a href={`/stagiaire/session-dediee/${s.id}`}
+                     className="block border rounded p-3 hover:bg-gray-50">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="font-medium">{s.formationTitre}</div>
+                      {!completed && (
+                        <span className="text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-800">à compléter</span>
+                      )}
+                    </div>
+                    {firstDate && <div className="text-sm text-gray-600 mt-1">À partir du {firstDate}</div>}
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
       )}
 
       {!result.ok && (
