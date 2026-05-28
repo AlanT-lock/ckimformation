@@ -6,6 +6,7 @@ import { Field, Select, Textarea } from '@/components/app/Field';
 import { Button } from '@/components/app/Button';
 import { createSession, updateSession, type CreneauInput } from './actions';
 import type { SessionStatut } from '@/lib/supabase/types';
+import { ReservationBlock, EMPTY_RESERVATION, type ReservationData } from './ReservationBlock';
 
 interface FormationOpt { id: string; slug: string; titre: string }
 interface FormateurOpt { id: string; full_name: string; email: string }
@@ -45,6 +46,7 @@ export function SessionForm({
   const [creneaux, setCreneaux] = useState<CreneauInput[]>(
     initial?.creneaux?.length ? initial.creneaux : [{ date: '', heure_debut: '09:00', heure_fin: '12:30' }]
   );
+  const [reservation, setReservation] = useState<ReservationData>(EMPTY_RESERVATION);
 
   function updateCreneau(i: number, patch: Partial<CreneauInput>) {
     setCreneaux((arr) => arr.map((c, idx) => (idx === i ? { ...c, ...patch } : c)));
@@ -64,6 +66,16 @@ export function SessionForm({
       setError('Tous les créneaux doivent avoir date + heures.');
       return;
     }
+    if (!isEdit && reservation.mode === 'reserved') {
+      if (!reservation.selectedEtab && !reservation.invitation.enabled) {
+        setError('Sélectionnez un établissement ou activez le formulaire d\'invitation.');
+        return;
+      }
+      if (reservation.invitation.enabled && (!reservation.invitation.email || !reservation.invitation.raison_sociale)) {
+        setError('Email et raison sociale sont requis pour inviter un établissement.');
+        return;
+      }
+    }
     const payload = {
       formation_id,
       formateur_id: formateur_id || null,
@@ -78,7 +90,31 @@ export function SessionForm({
           await updateSession(initial.id, payload);
           router.push(`/admin/sessions/${initial.id}`);
         } else {
-          const res = await createSession({ ...payload, creneaux });
+          const res = await createSession({
+            ...payload,
+            creneaux,
+            visibility: reservation.mode,
+            reserved_company_id: reservation.selectedEtab?.profile_id ?? null,
+            invitation: reservation.invitation.enabled ? {
+              email: reservation.invitation.email,
+              raison_sociale: reservation.invitation.raison_sociale,
+              siret: reservation.invitation.siret || null,
+              contact_nom: reservation.invitation.contact_nom || null,
+              contact_fonction: reservation.invitation.contact_fonction || null,
+              contact_phone: reservation.invitation.contact_phone || null,
+            } : null,
+            document_requests: reservation.docRequests
+              .filter((d) => d.label.trim())
+              .map((d) => ({ label: d.label, description: d.description, required: d.required })),
+          });
+          if (reservation.adminDocs.length > 0) {
+            const fd = new FormData();
+            for (const d of reservation.adminDocs) {
+              fd.append('files', d.file);
+              if (d.label) fd.append(`label__${d.file.name}`, d.label);
+            }
+            await fetch(`/api/admin/sessions/${res.id}/admin-docs`, { method: 'POST', body: fd });
+          }
           router.push(`/admin/sessions/${res.id}`);
         }
       } catch (err) {
@@ -94,6 +130,8 @@ export function SessionForm({
           {error}
         </div>
       )}
+
+      {!isEdit && <ReservationBlock value={reservation} onChange={setReservation} />}
 
       <Card title="Formation">
         <Select
