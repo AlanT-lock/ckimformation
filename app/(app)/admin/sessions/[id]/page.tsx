@@ -98,7 +98,7 @@ export default async function AdminSessionDetailPage({ params }: PageProps) {
         .from('session_admin_documents')
         .select('id, label, filename')
         .eq('session_id', id)
-        .order('created_at'),
+        .order('uploaded_at'),
     ]);
 
     if (claimedRaw) {

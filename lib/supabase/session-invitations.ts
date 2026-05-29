@@ -43,12 +43,15 @@ export async function claimInvitation(
   if (!inv) return { ok: false, reason: 'Invitation introuvable.' };
   if (!isInvitationUsable(inv)) return { ok: false, reason: 'Invitation expirée ou déjà utilisée.' };
 
-  const { error: invErr } = await sb
+  const { data: claimed, error: invErr } = await sb
     .from('session_invitations')
     .update({ claimed_by: profileId, claimed_at: new Date().toISOString() })
     .eq('id', inv.id)
-    .is('claimed_by', null);
+    .is('claimed_by', null)
+    .select('id')
+    .maybeSingle();
   if (invErr) return { ok: false, reason: invErr.message };
+  if (!claimed) return { ok: false, reason: 'Invitation déjà utilisée par un autre compte.' };
 
   const { error: sessErr } = await sb
     .from('sessions')

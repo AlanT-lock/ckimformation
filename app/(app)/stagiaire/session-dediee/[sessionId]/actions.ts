@@ -166,10 +166,11 @@ export async function uploadDocumentRequest(
 
 export async function finaliserSession(sessionId: string) {
   const { sb } = await requireEtabOnSession(sessionId);
-  await sb
-    .from('session_reserved_details')
-    .update({ completed_at: new Date().toISOString() })
-    .eq('session_id', sessionId);
+  await sb.from('session_reserved_details').upsert({
+    session_id: sessionId,
+    completed_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'session_id' });
 
   try {
     const sbAdmin = createAdminClient();

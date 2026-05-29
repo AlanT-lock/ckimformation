@@ -197,6 +197,20 @@ export async function updateSession(id: string, input: Omit<SessionInput, 'crene
     .eq('id', id);
   if (error) throw new Error(error.message);
 
+  // Detect public -> reserved transition; ensure session_reserved_details row exists
+  const willGoReserved =
+    input.visibility === 'reserved' && prev?.visibility !== 'reserved';
+  if (willGoReserved) {
+    const { data: existingSrd } = await supabase
+      .from('session_reserved_details')
+      .select('session_id')
+      .eq('session_id', id)
+      .maybeSingle();
+    if (!existingSrd) {
+      await supabase.from('session_reserved_details').insert({ session_id: id });
+    }
+  }
+
   // Trigger emails on draft -> published for reserved sessions
   const wasDraft = prev?.statut === 'draft';
   const nowPublished = input.statut === 'published';
