@@ -3,9 +3,16 @@ import { PageHeader } from '@/components/app/PageHeader';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { SessionForm } from '../SessionForm';
 
-export default async function AdminNewSessionPage() {
+interface PageProps {
+  searchParams?: Promise<{ mode?: string }>;
+}
+
+export default async function AdminNewSessionPage({ searchParams }: PageProps) {
   const profile = await getCurrentProfile();
   if (!profile || profile.role !== 'admin') redirect('/login');
+
+  const sp = (await searchParams) ?? {};
+  const mode: 'public' | 'reserved' = sp.mode === 'reserved' ? 'reserved' : 'public';
 
   const supabase = await createClient();
   const [{ data: formations }, { data: formateurs }] = await Promise.all([
@@ -17,12 +24,17 @@ export default async function AdminNewSessionPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Sessions"
-        title="Nouvelle session"
-        description="Choisis une formation, ajoute un ou plusieurs créneaux, renseigne l'adresse."
+        title={mode === 'reserved' ? 'Nouvelle session réservée' : 'Nouvelle session publique'}
+        description={
+          mode === 'reserved'
+            ? 'Session réservée à un établissement : sélection ou invitation, documents demandés et transmis.'
+            : "Choisis une formation, ajoute un ou plusieurs créneaux, renseigne l'adresse."
+        }
       />
       <SessionForm
         formations={formations ?? []}
         formateurs={formateurs ?? []}
+        mode={mode}
       />
     </div>
   );

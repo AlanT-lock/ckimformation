@@ -32,30 +32,33 @@ export const EMPTY_RESERVATION: ReservationData = {
 interface Props {
   value: ReservationData;
   onChange: (v: ReservationData) => void;
+  hideMode?: boolean;
 }
 
-export function ReservationBlock({ value, onChange }: Props) {
+export function ReservationBlock({ value, onChange, hideMode = false }: Props) {
   function patch<K extends keyof ReservationData>(k: K, v: ReservationData[K]) {
     onChange({ ...value, [k]: v });
   }
 
   return (
     <div className="space-y-6 border-2 border-emerald-200 rounded-lg p-4 bg-emerald-50/30">
-      <div>
-        <div className="font-semibold mb-2">Visibilité de la session</div>
-        <div className="flex gap-2">
-          <button type="button"
-            className={`px-4 py-2 rounded border ${value.mode === 'public' ? 'bg-emerald-600 text-white' : 'bg-white'}`}
-            onClick={() => onChange({ ...EMPTY_RESERVATION })}>
-            Publique
-          </button>
-          <button type="button"
-            className={`px-4 py-2 rounded border ${value.mode === 'reserved' ? 'bg-emerald-600 text-white' : 'bg-white'}`}
-            onClick={() => patch('mode', 'reserved')}>
-            Réservée à un établissement
-          </button>
+      {!hideMode && (
+        <div>
+          <div className="font-semibold mb-2">Visibilité de la session</div>
+          <div className="flex gap-2">
+            <button type="button"
+              className={`px-4 py-2 rounded border ${value.mode === 'public' ? 'bg-emerald-600 text-white' : 'bg-white'}`}
+              onClick={() => onChange({ ...EMPTY_RESERVATION })}>
+              Publique
+            </button>
+            <button type="button"
+              className={`px-4 py-2 rounded border ${value.mode === 'reserved' ? 'bg-emerald-600 text-white' : 'bg-white'}`}
+              onClick={() => patch('mode', 'reserved')}>
+              Réservée à un établissement
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {value.mode === 'reserved' && (
         <>

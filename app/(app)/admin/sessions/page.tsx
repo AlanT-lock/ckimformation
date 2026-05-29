@@ -123,7 +123,12 @@ export default async function AdminSessionsPage({ searchParams }: PageProps) {
         eyebrow="Administration"
         title="Sessions"
         description="Toutes les sessions de formation. Créez, éditez et publiez."
-        actions={<ButtonLink href="/admin/sessions/nouvelle">+ Nouvelle session</ButtonLink>}
+        actions={
+          <div className="flex gap-2 flex-wrap">
+            <ButtonLink href="/admin/sessions/nouvelle">+ Nouvelle session publique</ButtonLink>
+            <ButtonLink href="/admin/sessions/nouvelle?mode=reserved" variant="secondary">+ Réservée à un établissement</ButtonLink>
+          </div>
+        }
       />
 
       <SessionsFilters

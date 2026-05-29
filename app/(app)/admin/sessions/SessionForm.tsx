@@ -25,10 +25,12 @@ export function SessionForm({
   formations,
   formateurs,
   initial,
+  mode = 'public',
 }: {
   formations: FormationOpt[];
   formateurs: FormateurOpt[];
   initial?: Initial;
+  mode?: 'public' | 'reserved';
 }) {
   const isEdit = !!initial?.id;
   const router = useRouter();
@@ -46,7 +48,9 @@ export function SessionForm({
   const [creneaux, setCreneaux] = useState<CreneauInput[]>(
     initial?.creneaux?.length ? initial.creneaux : [{ date: '', heure_debut: '09:00', heure_fin: '12:30' }]
   );
-  const [reservation, setReservation] = useState<ReservationData>(EMPTY_RESERVATION);
+  const [reservation, setReservation] = useState<ReservationData>(
+    mode === 'reserved' ? { ...EMPTY_RESERVATION, mode: 'reserved' } : EMPTY_RESERVATION
+  );
 
   function updateCreneau(i: number, patch: Partial<CreneauInput>) {
     setCreneaux((arr) => arr.map((c, idx) => (idx === i ? { ...c, ...patch } : c)));
@@ -66,7 +70,7 @@ export function SessionForm({
       setError('Tous les créneaux doivent avoir date + heures.');
       return;
     }
-    if (!isEdit && reservation.mode === 'reserved') {
+    if (!isEdit && mode === 'reserved' && reservation.mode === 'reserved') {
       if (!reservation.selectedEtab && !reservation.invitation.enabled) {
         setError('Sélectionnez un établissement ou activez le formulaire d\'invitation.');
         return;
@@ -131,7 +135,9 @@ export function SessionForm({
         </div>
       )}
 
-      {!isEdit && <ReservationBlock value={reservation} onChange={setReservation} />}
+      {!isEdit && mode === 'reserved' && (
+        <ReservationBlock value={reservation} onChange={setReservation} hideMode />
+      )}
 
       <Card title="Formation">
         <Select
