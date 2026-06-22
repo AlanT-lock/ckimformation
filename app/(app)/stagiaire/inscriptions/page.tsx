@@ -3,6 +3,7 @@ import { PageHeader } from '@/components/app/PageHeader';
 import { ButtonLink } from '@/components/app/Button';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { redirectEmployeeStagiaire } from '@/lib/auth/employee-guard';
+import { formatDate } from '@/lib/date';
 import type { InscriptionStatut } from '@/lib/supabase/types';
 
 const STATUT_LABEL: Record<string, { label: string; className: string }> = {
@@ -16,8 +17,6 @@ const STATUT_LABEL: Record<string, { label: string; className: string }> = {
   cancelled:           { label: 'Annulée',             className: 'bg-dark/10 text-dark/50' },
   refunded:            { label: 'Remboursée',          className: 'bg-dark/5 text-dark/40' },
 };
-
-const FR_DATE = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 
 interface PageProps { searchParams: Promise<{ demande?: string; warn?: string }> }
 
@@ -162,7 +161,7 @@ export default async function StagiaireDemandesPage({ searchParams }: PageProps)
           <ul className="grid gap-3 md:grid-cols-2">
             {reservedSessions.map((s) => {
               const completed = !!s.completedAt;
-              const firstDate = s.firstDate ? new Date(s.firstDate).toLocaleDateString('fr-FR') : null;
+              const firstDate = s.firstDate ? formatDate(s.firstDate) : null;
               return (
                 <li key={s.id}>
                   <a href={`/stagiaire/session-dediee/${s.id}`}
@@ -220,8 +219,8 @@ export default async function StagiaireDemandesPage({ searchParams }: PageProps)
                         <div className="min-w-0 flex-1">
                           <div className="font-medium">{form?.titre ?? '—'}</div>
                           <div className="text-xs text-dark/60 mt-1">
-                            {first ? FR_DATE.format(new Date(first)) : '—'}
-                            {last && last !== first && <> → {FR_DATE.format(new Date(last))}</>}
+                            {first ? formatDate(first) : '—'}
+                            {last && last !== first && <> → {formatDate(last)}</>}
                           </div>
                         </div>
                         <span className={`text-xs px-2 py-1 rounded-full uppercase tracking-wider font-medium whitespace-nowrap ${statut.className}`}>

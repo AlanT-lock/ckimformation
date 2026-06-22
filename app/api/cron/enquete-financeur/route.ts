@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { isAuthorizedCron } from '@/lib/recommendations/cron-auth';
 import { enqueteFinanceurEmailHtml, enqueteFinanceurEmailSubject } from '@/lib/email/templates/enquete-financeur';
 import { sendAndLog } from '@/lib/email/log';
+import { formatDate } from '@/lib/date';
 
 /**
  * Cron quotidien — enquête financeur.
@@ -21,7 +22,6 @@ import { sendAndLog } from '@/lib/email/log';
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_REMINDERS = 2;
-const FR_DATE = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 
 function siteUrl(): string {
   return process.env.NEXT_PUBLIC_SITE_URL ?? 'https://ckimformation.fr';
@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
       summary.skipped++;
       continue;
     }
-    const lastDateLabel = FR_DATE.format(new Date(lastDate));
+    const lastDateLabel = formatDate(lastDate);
 
     // Société (raison_sociale)
     const { data: company } = await admin

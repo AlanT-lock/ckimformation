@@ -6,13 +6,11 @@ import { Accordion } from '@/components/ui/Accordion';
 import { getFormationBySlug } from '@/lib/db/formations';
 import { getParcoursMeta } from '@/lib/parcours';
 import { createClient } from '@/lib/supabase/server';
+import { formatDateLong } from '@/lib/date';
 import type { TarifTier } from '@/lib/types/formation';
 
 interface PageProps { params: Promise<{ slug: string }> }
 
-const FR_DATE = new Intl.DateTimeFormat('fr-FR', {
-  weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-});
 const FR_TIME = (h: string) => h.slice(0, 5);
 const FR_NUMBER = new Intl.NumberFormat('fr-FR');
 
@@ -152,9 +150,9 @@ export default async function StagiaireFormationDetail({ params }: PageProps) {
                   <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div className="min-w-0 flex-1">
                       <p className="text-xs uppercase tracking-[0.2em]" style={{ color: meta.couleur }}>
-                        {first && FR_DATE.format(new Date(first.date))}
+                        {first && formatDateLong(first.date)}
                         {last && first && last.date !== first.date && (
-                          <> → {FR_DATE.format(new Date(last.date))}</>
+                          <> → {formatDateLong(last.date)}</>
                         )}
                       </p>
                       <p className="mt-1 text-sm text-dark/70">

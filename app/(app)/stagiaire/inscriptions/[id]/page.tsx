@@ -6,14 +6,10 @@ import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { redirectEmployeeStagiaire } from '@/lib/auth/employee-guard';
 import { DocumentRequestItem, type DocumentRequestData } from './DocumentRequestItem';
 import { SubmitDocumentsButton } from './SubmitDocumentsButton';
+import { formatDate, formatDateTime } from '@/lib/date';
 import type { InscriptionStatut } from '@/lib/supabase/types';
 
 interface PageProps { params: Promise<{ id: string }> }
-
-const FR_DATE = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
-const FR_DATETIME = new Intl.DateTimeFormat('fr-FR', {
-  day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-});
 
 const STATUT_LABEL: Record<string, { label: string; className: string }> = {
   en_attente:          { label: 'En attente',          className: 'bg-orange/10 text-orange' },
@@ -95,7 +91,7 @@ export default async function StagiaireDemandeDetailPage({ params }: PageProps) 
       <PageHeader
         eyebrow="Ma demande"
         title={form?.titre ?? 'Demande d\'inscription'}
-        description={`Envoyée le ${new Date(ins.created_at).toLocaleDateString('fr-FR')}`}
+        description={`Envoyée le ${formatDate(ins.created_at)}`}
         actions={
           <div className="flex items-center gap-3 flex-wrap">
             <span className={`text-xs px-2 py-1 rounded-full uppercase tracking-wider font-medium ${statut.className}`}>
@@ -115,8 +111,8 @@ export default async function StagiaireDemandeDetailPage({ params }: PageProps) 
             <div>
               <dt className="inline text-dark/60">Dates : </dt>
               <dd className="inline">
-                {FR_DATE.format(new Date(first))}
-                {last && last !== first && <> → {FR_DATE.format(new Date(last))}</>}
+                {formatDate(first)}
+                {last && last !== first && <> → {formatDate(last)}</>}
               </dd>
             </div>
           )}
@@ -194,7 +190,7 @@ export default async function StagiaireDemandeDetailPage({ params }: PageProps) 
                 <div className="min-w-0 flex-1">
                   <p className="font-medium break-all">{doc.file_name}</p>
                   <p className="text-xs text-dark/60 mt-0.5">
-                    {fmtSize(doc.file_size)} · transmis le {FR_DATETIME.format(new Date(doc.created_at))}
+                    {fmtSize(doc.file_size)} · transmis le {formatDateTime(doc.created_at)}
                   </p>
                 </div>
                 <a

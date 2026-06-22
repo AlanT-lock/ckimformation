@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/app/Button';
 import { SignaturePad } from '@/components/app/SignaturePad';
 import { createClient } from '@/lib/supabase/client';
+import { formatDate, formatDateLong } from '@/lib/date';
 import { signCreneauForCurrentUser } from './actions';
 
 export interface ParticipantSession {
@@ -44,7 +45,6 @@ interface Props {
   fullyAbsentSessionIds: string[];
 }
 
-const FR_DATE = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 const FR_TIME = (h: string) => h.slice(0, 5);
 
 export function ParcoursClient({
@@ -208,8 +208,8 @@ export function ParcoursClient({
                 <div>
                   <p className="font-medium">{s.formationTitre}</p>
                   <p className="text-xs text-dark/60 mt-0.5">
-                    {first && new Date(first).toLocaleDateString('fr-FR')}
-                    {last && first && last !== first && <> → {new Date(last).toLocaleDateString('fr-FR')}</>}
+                    {first && formatDate(first)}
+                    {last && first && last !== first && <> → {formatDate(last)}</>}
                   </p>
                 </div>
                 <span className="text-xs uppercase tracking-[0.2em] text-dark/40">
@@ -237,7 +237,7 @@ export function ParcoursClient({
         <Modal onClose={() => setPopup(null)} closeable={false}>
           <h3 className="font-display text-2xl">Émargement</h3>
           <p className="text-sm text-dark/70 mt-1">
-            <strong>{popup.session.formationTitre}</strong> — <span className="capitalize">{FR_DATE.format(new Date(popup.creneau.date))}</span>
+            <strong>{popup.session.formationTitre}</strong> — <span className="capitalize">{formatDateLong(popup.creneau.date)}</span>
             {' '}({FR_TIME(popup.creneau.heure_debut)}–{FR_TIME(popup.creneau.heure_fin)})
           </p>
           <div className="mt-4">

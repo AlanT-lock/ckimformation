@@ -1,13 +1,11 @@
+import { formatDateLong } from '@/lib/date';
+
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 }
 
 function fmtDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
-  } catch {
-    return iso;
-  }
+  return formatDateLong(iso) || iso;
 }
 
 export interface InscriptionCreneauInfo {

@@ -8,6 +8,7 @@ import {
   uploadDocumentRequest,
   finaliserSession,
 } from './actions';
+import { formatDate } from '@/lib/date';
 
 interface AdminDoc {
   id: string;
@@ -191,9 +192,7 @@ export function SessionDedieeClient({ session, employes, inscriptions }: Props) 
                 {req.session_document_uploads.length > 0 && (
                   <span className="text-sm text-emerald-700">
                     ✓ Fourni le{' '}
-                    {new Date(
-                      req.session_document_uploads[0].uploaded_at,
-                    ).toLocaleDateString('fr-FR')}
+                    {formatDate(req.session_document_uploads[0].uploaded_at)}
                   </span>
                 )}
               </div>
@@ -206,9 +205,7 @@ export function SessionDedieeClient({ session, employes, inscriptions }: Props) 
         {session.session_reserved_details?.completed_at ? (
           <p className="text-emerald-700">
             ✓ Session finalisée le{' '}
-            {new Date(
-              session.session_reserved_details.completed_at,
-            ).toLocaleDateString('fr-FR')}
+            {formatDate(session.session_reserved_details.completed_at)}
           </p>
         ) : (
           <button

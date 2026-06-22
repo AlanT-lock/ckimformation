@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { isAuthorizedCron } from '@/lib/recommendations/cron-auth';
 import { enqueteFroidEmailHtml, enqueteFroidEmailSubject } from '@/lib/email/templates/enquete-froid';
 import { sendAndLog } from '@/lib/email/log';
+import { formatDate } from '@/lib/date';
 
 /**
  * Cron quotidien :
@@ -20,7 +21,6 @@ import { sendAndLog } from '@/lib/email/log';
  */
 
 const FIFTEEN_DAYS_MS = 15 * 24 * 60 * 60 * 1000;
-const FR_DATE = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 
 function siteUrl(): string {
   return process.env.NEXT_PUBLIC_SITE_URL ?? 'https://ckimformation.fr';
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
       const lastDate = dates[dates.length - 1];
       if (!lastDate || lastDate > fifteenDaysAgoIso) continue; // pas encore J+15
 
-      const lastDateLabel = FR_DATE.format(new Date(lastDate));
+      const lastDateLabel = formatDate(lastDate);
 
       // 3. Pour chaque participant
       for (const ins of (s.inscriptions ?? []) as Array<{

@@ -5,13 +5,11 @@ import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { redirectEmployeeStagiaire } from '@/lib/auth/employee-guard';
 import { InscriptionParticulierForm } from './InscriptionParticulierForm';
 import { InscriptionEntrepriseForm } from './InscriptionEntrepriseForm';
+import { formatDateLong } from '@/lib/date';
 import type { Employee } from '@/lib/supabase/types';
 
 interface PageProps { params: Promise<{ sessionId: string }> }
 
-const FR_DATE = new Intl.DateTimeFormat('fr-FR', {
-  weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-});
 const FR_TIME = (h: string) => h.slice(0, 5);
 
 export default async function InscriptionPage({ params }: PageProps) {
@@ -85,7 +83,7 @@ export default async function InscriptionPage({ params }: PageProps) {
           <ul className="mt-2 space-y-1 text-sm">
             {creneaux.map((c: { date: string; heure_debut: string; heure_fin: string; ordre: number }) => (
               <li key={c.ordre} className="text-dark/80">
-                <span className="capitalize">{FR_DATE.format(new Date(c.date))}</span>
+                <span className="capitalize">{formatDateLong(c.date)}</span>
                 <span className="ml-2 text-dark/60">· {FR_TIME(c.heure_debut)}–{FR_TIME(c.heure_fin)}</span>
               </li>
             ))}
