@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { PageHeader } from '@/components/app/PageHeader';
 import { createClient } from '@/lib/supabase/server';
 import type { InscriptionStatut } from '@/lib/supabase/types';
+import { formatDate } from '@/lib/date';
 
 const STATUTS: { value: InscriptionStatut | 'all'; label: string }[] = [
   { value: 'en_attente', label: 'En attente' },
@@ -19,8 +20,6 @@ const STATUT_LABEL: Record<string, { label: string; className: string }> = {
   confirmee:           { label: 'Confirmée',           className: 'bg-teal/10 text-teal' },
   refusee:             { label: 'Refusée',             className: 'bg-dark/10 text-dark/60' },
 };
-
-const FR_DATE = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 
 interface PageProps {
   searchParams: Promise<{ statut?: string }>;
@@ -103,7 +102,7 @@ export default async function AdminDemandesPage({ searchParams }: PageProps) {
                 return (
                   <tr key={r.id} className="hover:bg-light/50">
                     <td className="py-3 px-4 font-mono text-xs text-dark/50">
-                      {FR_DATE.format(new Date(r.created_at))}
+                      {formatDate(r.created_at)}
                     </td>
                     <td className="py-3 px-4 font-medium">{form?.titre ?? '—'}</td>
                     <td className="py-3 px-4 text-dark/70">
@@ -114,7 +113,7 @@ export default async function AdminDemandesPage({ searchParams }: PageProps) {
                     </td>
                     <td className="py-3 px-4 text-dark/70">{participantsCount}</td>
                     <td className="py-3 px-4 text-dark/70">
-                      {firstDate ? FR_DATE.format(new Date(firstDate)) : '—'}
+                      {firstDate ? formatDate(firstDate) : '—'}
                     </td>
                     <td className="py-3 px-4">
                       <span className={`text-xs px-2 py-1 rounded-full uppercase tracking-wider font-medium ${statut.className}`}>

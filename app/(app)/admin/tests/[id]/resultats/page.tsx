@@ -12,14 +12,11 @@ import {
   parseFollowupValue,
   type ScaleReponse,
 } from '@/lib/enquetes/analytics';
+import { formatDateTime } from '@/lib/date';
 
 export const dynamic = 'force-dynamic';
 
 interface PageProps { params: Promise<{ id: string }> }
-
-const FR_DATETIME = new Intl.DateTimeFormat('fr-FR', {
-  day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-});
 
 const ENQUETE_LABEL: Record<EnqueteKind, string> = {
   a_chaud: 'Enquête à chaud',
@@ -184,7 +181,7 @@ export default async function TestResultatsPage({ params }: PageProps) {
         />
         <Stat
           label="Dernière réponse"
-          value={comp[0]?.completed_at ? FR_DATETIME.format(new Date(comp[0].completed_at)) : '—'}
+          value={comp[0]?.completed_at ? formatDateTime(comp[0].completed_at) : '—'}
           compact
         />
       </div>
@@ -399,7 +396,7 @@ function QcmResult({
                       {who.email && <span className="text-dark/50 font-normal ml-2">· {who.email}</span>}
                     </span>
                     <span className="text-dark/40 whitespace-nowrap">
-                      Choix : <strong className="text-dark/70">{f.option}</strong>{at && ` · ${FR_DATETIME.format(new Date(at))}`}
+                      Choix : <strong className="text-dark/70">{f.option}</strong>{at && ` · ${formatDateTime(at)}`}
                     </span>
                   </div>
                   <p className="mt-1.5 text-sm text-dark/80 whitespace-pre-wrap">{f.text}</p>
@@ -448,7 +445,7 @@ function TextList({
               {it.who.email && <span className="text-dark/50 font-normal ml-2">· {it.who.email}</span>}
             </p>
             <span className="text-xs text-dark/40 whitespace-nowrap">
-              {it.at && FR_DATETIME.format(new Date(it.at))}
+              {it.at && formatDateTime(it.at)}
             </span>
           </div>
           <p className="mt-2 text-sm text-dark/80 whitespace-pre-wrap">{it.text}</p>

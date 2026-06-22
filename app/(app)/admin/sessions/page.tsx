@@ -3,6 +3,7 @@ import { ButtonLink } from '@/components/app/Button';
 import { PageHeader } from '@/components/app/PageHeader';
 import { createClient } from '@/lib/supabase/server';
 import { SessionsFilters } from './SessionsFilters';
+import { formatDate } from '@/lib/date';
 
 const STATUT_LABEL: Record<string, { label: string; className: string }> = {
   draft:     { label: 'Brouillon',  className: 'bg-dark/10 text-dark/70' },
@@ -10,8 +11,6 @@ const STATUT_LABEL: Record<string, { label: string; className: string }> = {
   cancelled: { label: 'Annulée',    className: 'bg-orange/10 text-orange' },
   completed: { label: 'Terminée',   className: 'bg-dark/5 text-dark/50' },
 };
-
-const FR_DATE = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 
 export const dynamic = 'force-dynamic';
 
@@ -188,8 +187,8 @@ function SessionsSection({
                       <p className="text-xs text-dark/60 mt-1">
                         {first ? (
                           <>
-                            {FR_DATE.format(new Date(first))}
-                            {last && last !== first && <> → {FR_DATE.format(new Date(last))}</>}
+                            {formatDate(first)}
+                            {last && last !== first && <> → {formatDate(last)}</>}
                           </>
                         ) : 'Dates à définir'}
                       </p>

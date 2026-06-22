@@ -6,11 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { DemandeActions } from './DemandeActions';
 import { EnqueteFinanceurSection } from './EnqueteFinanceurSection';
 import type { InscriptionDocumentDemande, InscriptionAdminDocument } from '@/lib/supabase/types';
-
-const FR_DATE = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
-const FR_DATETIME = new Intl.DateTimeFormat('fr-FR', {
-  day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-});
+import { formatDateLong, formatDateTime } from '@/lib/date';
 const FR_TIME = (h: string) => h.slice(0, 5);
 
 function fmtSize(bytes: number | null): string {
@@ -102,7 +98,7 @@ export default async function AdminDemandeDetailPage({ params, searchParams }: P
       <PageHeader
         eyebrow={`Demande #${ins.id.slice(0, 8)}`}
         title={form?.titre ?? 'Demande d\'inscription'}
-        description={`Reçue le ${new Date(ins.created_at).toLocaleString('fr-FR')}`}
+        description={`Reçue le ${formatDateTime(ins.created_at)}`}
         actions={
           <div className="flex items-center gap-3 flex-wrap">
             <span className={`text-xs px-2 py-1 rounded-full uppercase tracking-wider font-medium ${statut.className}`}>
@@ -182,7 +178,7 @@ export default async function AdminDemandeDetailPage({ params, searchParams }: P
                 <ul className="space-y-0.5 mt-1">
                   {creneaux.map((c, i) => (
                     <li key={i}>
-                      <span className="capitalize">{FR_DATE.format(new Date(c.date))}</span>{' '}
+                      <span className="capitalize">{formatDateLong(c.date)}</span>{' '}
                       <span className="text-dark/60">· {FR_TIME(c.heure_debut)}–{FR_TIME(c.heure_fin)}</span>
                     </li>
                   ))}
@@ -256,7 +252,7 @@ export default async function AdminDemandeDetailPage({ params, searchParams }: P
                       {hasFile && (
                         <p className="text-xs text-dark/60 mt-1 break-all">
                           {d.file_name} ({fmtSize(d.file_size)})
-                          {d.uploaded_at && <> · reçu le {FR_DATETIME.format(new Date(d.uploaded_at))}</>}
+                          {d.uploaded_at && <> · reçu le {formatDateTime(d.uploaded_at)}</>}
                         </p>
                       )}
                       {isDeclined && (
@@ -295,14 +291,14 @@ export default async function AdminDemandeDetailPage({ params, searchParams }: P
             {ins.refus_motif}
           </div>
           {ins.refused_at && (
-            <p className="mt-2 text-xs text-dark/50">Refusée le {new Date(ins.refused_at).toLocaleString('fr-FR')}</p>
+            <p className="mt-2 text-xs text-dark/50">Refusée le {formatDateTime(ins.refused_at)}</p>
           )}
         </section>
       )}
 
       {ins.statut === 'confirmee' && ins.confirmed_at && (
         <section className="bg-teal/5 rounded-lg border border-teal/30 p-6 text-sm">
-          Confirmée le {new Date(ins.confirmed_at).toLocaleString('fr-FR')}.
+          Confirmée le {formatDateTime(ins.confirmed_at)}.
         </section>
       )}
 

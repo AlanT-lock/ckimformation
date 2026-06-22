@@ -5,14 +5,11 @@ import { ButtonLink } from '@/components/app/Button';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { completionScorePct, isBadScore, BAD_SCORE_THRESHOLD, type ScaleQ } from '@/lib/enquetes/alerts';
 import type { QuestionType, EnqueteKind } from '@/lib/supabase/types';
+import { formatDateTime } from '@/lib/date';
 
 export const dynamic = 'force-dynamic';
 
 interface PageProps { searchParams: Promise<{ filter?: 'open' | 'resolved' | 'all' }> }
-
-const FR_DATETIME = new Intl.DateTimeFormat('fr-FR', {
-  day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-});
 
 const FILTERS: { value: 'open' | 'resolved' | 'all'; label: string }[] = [
   { value: 'open',     label: 'Non résolues' },
@@ -270,7 +267,7 @@ export default async function AdminQualitePage({ searchParams }: PageProps) {
                     <StatusBadge resolved={r.resolved} hasAction={r.hasAction} />
                   </td>
                   <td className="py-3 px-4 text-right text-xs text-dark/60 whitespace-nowrap">
-                    {FR_DATETIME.format(new Date(r.completedAt))}
+                    {formatDateTime(r.completedAt)}
                   </td>
                   <td className="py-3 px-4 text-right">
                     <Link

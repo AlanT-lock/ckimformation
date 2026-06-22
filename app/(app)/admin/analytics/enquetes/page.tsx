@@ -11,6 +11,7 @@ import {
   parseTextValue,
   type ScaleReponse,
 } from '@/lib/enquetes/analytics';
+import { formatDateTime } from '@/lib/date';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,10 +32,6 @@ const KIND_TABS: { value: string; label: string; filter: EnqueteKind | 'all' }[]
   { value: 'a_froid', label: 'À froid', filter: 'a_froid' },
   { value: 'financeur', label: 'Financeur', filter: 'financeur' },
 ];
-
-const FR_DATETIME = new Intl.DateTimeFormat('fr-FR', {
-  day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-});
 
 export default async function AnalyticsEnquetesPage({ searchParams }: PageProps) {
   const sp = await searchParams;
@@ -436,7 +433,7 @@ export default async function AnalyticsEnquetesPage({ searchParams }: PageProps)
                   <p className="text-xs text-dark/50 mt-0.5">{tr.question.libelle}</p>
                 </div>
                 <span className="text-xs text-dark/40 whitespace-nowrap">
-                  {tr.completedAt && FR_DATETIME.format(new Date(tr.completedAt))}
+                  {tr.completedAt && formatDateTime(tr.completedAt)}
                 </span>
               </div>
               <p className="mt-3 text-sm text-dark/80 whitespace-pre-wrap">{tr.text}</p>

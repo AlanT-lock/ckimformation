@@ -5,6 +5,7 @@ import { ButtonLink } from '@/components/app/Button';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import type { QuestionType } from '@/lib/supabase/types';
 import { completionScorePct, type ScaleQ } from '@/lib/enquetes/alerts';
+import { formatDate, formatDateTime } from '@/lib/date';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,11 +13,6 @@ interface PageProps {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ tab?: string }>;
 }
-
-const FR_DATE = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
-const FR_DATETIME = new Intl.DateTimeFormat('fr-FR', {
-  day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-});
 
 type Tab = 'infos' | 'inscriptions' | 'tests' | 'enquetes' | 'mails';
 
@@ -264,7 +260,7 @@ function InfosSection({
           <Row k="Téléphone" v={prof.phone || '—'} />
           <Row k="Rôle" v={prof.role} />
           <Row k="Type de compte" v={prof.account_type === 'entreprise' ? 'Entreprise' : prof.account_type === 'particulier' ? 'Particulier' : '—'} />
-          <Row k="Compte créé le" v={prof.created_at ? FR_DATE.format(new Date(prof.created_at)) : '—'} />
+          <Row k="Compte créé le" v={prof.created_at ? formatDate(prof.created_at) : '—'} />
         </dl>
       </div>
 
@@ -379,7 +375,7 @@ function InscriptionsSection({ asParticipant, asPayer }: { asParticipant: Partic
                   <div className="flex items-start justify-between gap-3 flex-wrap">
                     <div className="min-w-0">
                       <p className="font-medium">{form?.titre ?? 'Formation'}</p>
-                      {last && <p className="text-xs text-dark/60 mt-0.5">Dernière séance : {FR_DATE.format(new Date(last))}</p>}
+                      {last && <p className="text-xs text-dark/60 mt-0.5">Dernière séance : {formatDate(last)}</p>}
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={`text-xs px-2 py-0.5 rounded-full uppercase tracking-wider font-medium ${tone}`}>{ins?.statut ?? '—'}</span>
@@ -410,7 +406,7 @@ function InscriptionsSection({ asParticipant, asPayer }: { asParticipant: Partic
                   <div className="flex items-start justify-between gap-3 flex-wrap">
                     <div className="min-w-0">
                       <p className="font-medium">{form?.titre ?? 'Formation'}</p>
-                      <p className="text-xs text-dark/60 mt-0.5">Demande créée le {FR_DATE.format(new Date(p.created_at))}</p>
+                      <p className="text-xs text-dark/60 mt-0.5">Demande créée le {formatDate(p.created_at)}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={`text-xs px-2 py-0.5 rounded-full uppercase tracking-wider font-medium ${tone}`}>{p.statut}</span>
@@ -456,7 +452,7 @@ function TestsSection({
               <div className="min-w-0">
                 <p className="font-medium">{test?.nom ?? 'Test'}</p>
                 {form?.titre && <p className="text-xs text-dark/60 mt-0.5">{form.titre}</p>}
-                {c.completed_at && <p className="text-xs text-dark/50 mt-1">Complété le {FR_DATETIME.format(new Date(c.completed_at))}</p>}
+                {c.completed_at && <p className="text-xs text-dark/50 mt-1">Complété le {formatDateTime(c.completed_at)}</p>}
               </div>
               <div className="text-right">
                 {score !== null ? (
@@ -533,7 +529,7 @@ function EnquetesSection({
                 <p className="text-xs text-dark/60 mt-0.5">
                   {kindLabel}{form?.titre ? ` · ${form.titre}` : ''}
                 </p>
-                {c.completed_at && <p className="text-xs text-dark/50 mt-1">Répondue le {FR_DATETIME.format(new Date(c.completed_at))}</p>}
+                {c.completed_at && <p className="text-xs text-dark/50 mt-1">Répondue le {formatDateTime(c.completed_at)}</p>}
               </div>
               <div className="text-right">
                 <p className={`font-display text-2xl ${isBad ? 'text-orange' : 'text-teal'}`}>
@@ -605,7 +601,7 @@ function MailsSection({ logs }: { logs: EmailLogRow[] }) {
                 )}
               </div>
               <span className="text-xs text-dark/40 whitespace-nowrap">
-                {FR_DATETIME.format(new Date(l.sent_at))}
+                {formatDateTime(l.sent_at)}
               </span>
             </div>
             {l.metadata && Object.keys(l.metadata).length > 0 && (

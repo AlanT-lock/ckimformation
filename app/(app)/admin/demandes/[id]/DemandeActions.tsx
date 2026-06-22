@@ -10,6 +10,7 @@ import {
   requestDocuments,
   deleteAdminDocument,
 } from '../actions';
+import { formatDateTime } from '@/lib/date';
 
 interface AdminDoc {
   id: string;
@@ -179,7 +180,7 @@ export function DemandeActions({ inscriptionId, statut, hasDocRequests, adminDoc
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium break-all">{d.fileName}</p>
                   <p className="text-xs text-dark/50">
-                    {fmtSize(d.fileSize)} · ajouté le {new Date(d.createdAt).toLocaleString('fr-FR')}
+                    {fmtSize(d.fileSize)} · ajouté le {formatDateTime(d.createdAt)}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">

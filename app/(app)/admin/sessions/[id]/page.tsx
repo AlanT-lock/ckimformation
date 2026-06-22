@@ -8,6 +8,7 @@ import { CreneauxManager } from './CreneauxManager';
 import { DeleteSessionButton } from './DeleteSessionButton';
 import { resendInvitationFormAction, cancelInvitationFormAction } from '../reservation-actions';
 import type { SessionStatut, SessionAdresse } from '@/lib/supabase/types';
+import { formatDate } from '@/lib/date';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -250,7 +251,7 @@ export default async function AdminSessionDetailPage({ params }: PageProps) {
                 {pendingInvitation.raison_sociale} — {pendingInvitation.email}
                 <br />
                 Expire le{' '}
-                {new Date(pendingInvitation.expires_at).toLocaleDateString('fr-FR')}
+                {formatDate(pendingInvitation.expires_at)}
               </div>
               <div className="mt-2 flex gap-2">
                 <form action={resendInvitationFormAction}>
@@ -277,7 +278,7 @@ export default async function AdminSessionDetailPage({ params }: PageProps) {
             {reservedDetails?.completed_at && (
               <p className="text-emerald-700 text-sm mt-2">
                 ✓ Finalisée le{' '}
-                {new Date(reservedDetails.completed_at).toLocaleDateString('fr-FR')}
+                {formatDate(reservedDetails.completed_at)}
               </p>
             )}
           </div>

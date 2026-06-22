@@ -1,14 +1,11 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { QuestionType } from '@/lib/supabase/types';
+import { formatDateTime } from '@/lib/date';
 
 interface Props {
   inscriptionId: string;
   payerIsEntreprise: boolean;
 }
-
-const FR_DATETIME = new Intl.DateTimeFormat('fr-FR', {
-  day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-});
 
 export async function EnqueteFinanceurSection({ inscriptionId, payerIsEntreprise }: Props) {
   if (!payerIsEntreprise) {
@@ -95,21 +92,21 @@ export async function EnqueteFinanceurSection({ inscriptionId, payerIsEntreprise
       <dl className="text-sm space-y-1">
         <div>
           <dt className="inline text-dark/60">Mail initial : </dt>
-          <dd className="inline">{envoi.first_sent_at ? FR_DATETIME.format(new Date(envoi.first_sent_at)) : <span className="text-dark/40">non envoyé</span>}</dd>
+          <dd className="inline">{envoi.first_sent_at ? formatDateTime(envoi.first_sent_at) : <span className="text-dark/40">non envoyé</span>}</dd>
         </div>
         <div>
           <dt className="inline text-dark/60">Relances : </dt>
           <dd className="inline">
             {envoi.reminder_count} / 2
             {envoi.last_reminder_at && (
-              <> · dernière : {FR_DATETIME.format(new Date(envoi.last_reminder_at))}</>
+              <> · dernière : {formatDateTime(envoi.last_reminder_at)}</>
             )}
           </dd>
         </div>
         {envoi.responded_at && (
           <div>
             <dt className="inline text-dark/60">Répondu le : </dt>
-            <dd className="inline">{FR_DATETIME.format(new Date(envoi.responded_at))}</dd>
+            <dd className="inline">{formatDateTime(envoi.responded_at)}</dd>
           </div>
         )}
       </dl>

@@ -3,10 +3,9 @@ import { PageHeader } from '@/components/app/PageHeader';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { InviteFormateurForm } from '../utilisateurs/InviteFormateurForm';
 import { DeleteUserButton } from '../utilisateurs/DeleteUserButton';
+import { formatDate } from '@/lib/date';
 
 export const dynamic = 'force-dynamic';
-
-const FR_DATE = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 
 export default async function AdminFormateursPage() {
   const profile = await getCurrentProfile();
@@ -61,7 +60,7 @@ export default async function AdminFormateursPage() {
                       <td className="py-3 px-4 text-dark/70">{u.email}</td>
                       <td className="py-3 px-4 text-dark/70">{u.phone || <span className="text-dark/40">—</span>}</td>
                       <td className="py-3 px-4 text-xs text-dark/60">
-                        {u.created_at ? FR_DATE.format(new Date(u.created_at)) : '—'}
+                        {u.created_at ? formatDate(u.created_at) : '—'}
                       </td>
                       <td className="py-3 px-4 text-right">
                         {u.id !== profile.id && (

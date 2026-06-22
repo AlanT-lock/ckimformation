@@ -2,10 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { completionScorePct, isBadScore, BAD_SCORE_THRESHOLD, type ScaleQ } from '@/lib/enquetes/alerts';
 import type { QuestionType, EnqueteKind } from '@/lib/supabase/types';
-
-const FR_DATETIME = new Intl.DateTimeFormat('fr-FR', {
-  day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
-});
+import { formatDateTime } from '@/lib/date';
 
 const KIND_LABEL: Record<EnqueteKind, string> = {
   a_chaud: 'À chaud',
@@ -191,7 +188,7 @@ export async function QualiopiAlertsBanner() {
                   <p className="text-xs text-dark/60 mt-1 truncate">
                     {t?.enquete_kind && KIND_LABEL[t.enquete_kind]} · {form?.titre ?? '—'}
                   </p>
-                  <p className="text-xs text-dark/40 mt-2">{FR_DATETIME.format(new Date(a.c.completed_at))}</p>
+                  <p className="text-xs text-dark/40 mt-2">{formatDateTime(a.c.completed_at)}</p>
                 </Link>
               </li>
             );

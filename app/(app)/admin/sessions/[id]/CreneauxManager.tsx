@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { Field } from '@/components/app/Field';
 import { Button } from '@/components/app/Button';
 import { addCreneau, deleteCreneau } from '../actions';
+import { formatDateLong } from '@/lib/date';
 
 interface CreneauRow {
   id: string;
@@ -12,13 +13,6 @@ interface CreneauRow {
   heure_debut: string;
   heure_fin: string;
 }
-
-const FR_DATE = new Intl.DateTimeFormat('fr-FR', {
-  weekday: 'long',
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-});
 
 export function CreneauxManager({
   sessionId,
@@ -87,7 +81,7 @@ export function CreneauxManager({
                 <tr key={c.id}>
                   <td className="py-2 px-4 text-dark/50">{c.ordre}</td>
                   <td className="py-2 px-4 capitalize">
-                    {FR_DATE.format(new Date(c.date))}
+                    {formatDateLong(c.date)}
                   </td>
                   <td className="py-2 px-4 text-dark/70">{c.heure_debut.slice(0, 5)} – {c.heure_fin.slice(0, 5)}</td>
                   <td className="py-2 px-4 text-right">

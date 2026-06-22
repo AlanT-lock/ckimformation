@@ -4,12 +4,9 @@ import { ButtonLink } from '@/components/app/Button';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { computeScore, type ScoringQuestion, type ScoringResponse } from '@/lib/scoring';
 import type { QuestionType } from '@/lib/supabase/types';
+import { formatDate, formatDateTime } from '@/lib/date';
 
 interface PageProps { params: Promise<{ id: string; participantId: string }> }
-
-const FR_DATETIME = new Intl.DateTimeFormat('fr-FR', {
-  day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-});
 
 function renderAnswer(
   q: { type_reponse: QuestionType; options: string[] },
@@ -95,7 +92,6 @@ export default async function AdminSessionParticipantPage({ params }: PageProps)
     supabase.from('emargements').select('creneau_id, signed_at').eq('inscription_participant_id', participantId),
   ]);
   const signedSet = new Set((emargements ?? []).map((e) => e.creneau_id));
-  const FR_DATE_SHORT = new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: '2-digit', month: 'short' });
   const totalCreneaux = creneaux?.length ?? 0;
   const signedCount = (creneaux ?? []).filter((c) => signedSet.has(c.id)).length;
 
@@ -192,7 +188,7 @@ export default async function AdminSessionParticipantPage({ params }: PageProps)
                   const signed = signedSet.has(c.id);
                   return (
                     <tr key={c.id}>
-                      <td className="py-2 px-3 capitalize">{FR_DATE_SHORT.format(new Date(c.date))}</td>
+                      <td className="py-2 px-3 capitalize">{formatDate(c.date)}</td>
                       <td className="py-2 px-3 text-dark/70">{c.heure_debut.slice(0, 5)} – {c.heure_fin.slice(0, 5)}</td>
                       <td className="py-2 px-3">
                         <span className={`text-xs px-2 py-0.5 rounded-full uppercase tracking-wider font-medium ${
@@ -257,7 +253,7 @@ export default async function AdminSessionParticipantPage({ params }: PageProps)
                       <p className="font-medium">{test?.nom ?? 'Test'}</p>
                       <p className="text-xs text-dark/60 mt-0.5">
                         {kindLabel}
-                        {c.completed_at && <> · complété le {FR_DATETIME.format(new Date(c.completed_at))}</>}
+                        {c.completed_at && <> · complété le {formatDateTime(c.completed_at)}</>}
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-1">

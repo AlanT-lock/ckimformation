@@ -2,15 +2,12 @@ import { notFound, redirect } from 'next/navigation';
 import { PageHeader } from '@/components/app/PageHeader';
 import { ButtonLink } from '@/components/app/Button';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
+import { formatDateTime } from '@/lib/date';
 
 interface PageProps {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ days?: string }>;
 }
-
-const FR_DATETIME = new Intl.DateTimeFormat('fr-FR', {
-  day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-});
 
 function fmtDuration(ms: number): string {
   if (!ms || ms < 1000) return '< 1s';
@@ -126,7 +123,7 @@ export default async function AnalyticsUserPage({ params, searchParams }: PagePr
                   <summary className="px-4 py-3 cursor-pointer flex items-start justify-between gap-3 flex-wrap hover:bg-light/50">
                     <div className="min-w-0 flex-1">
                       <p className="font-medium">
-                        Session du {FR_DATETIME.format(new Date(s.started_at))}
+                        Session du {formatDateTime(s.started_at)}
                       </p>
                       <p className="text-xs text-dark/60 mt-0.5">
                         {pvs.length} page{pvs.length > 1 ? 's' : ''} · {evts.length} clic{evts.length > 1 ? 's' : ''}
@@ -149,7 +146,7 @@ export default async function AnalyticsUserPage({ params, searchParams }: PagePr
                               <p className="font-medium truncate">{p.page_title || p.url_path}</p>
                               <p className="text-xs text-dark/60 font-mono truncate">{p.url_path}</p>
                               <p className="text-xs text-dark/50 mt-0.5">
-                                {FR_DATETIME.format(new Date(p.started_at))} · {fmtDuration(p.duration_ms ?? 0)} · scroll {p.max_scroll_pct ?? 0}%
+                                {formatDateTime(p.started_at)} · {fmtDuration(p.duration_ms ?? 0)} · scroll {p.max_scroll_pct ?? 0}%
                               </p>
                             </div>
                           </li>
@@ -162,7 +159,7 @@ export default async function AnalyticsUserPage({ params, searchParams }: PagePr
                         <ul className="space-y-0.5 text-xs">
                           {evts.slice().reverse().map((e) => (
                             <li key={e.id} className="font-mono text-dark/70">
-                              {FR_DATETIME.format(new Date(e.occurred_at)).slice(-5)} · {e.name}
+                              {formatDateTime(e.occurred_at).slice(-5)} · {e.name}
                             </li>
                           ))}
                         </ul>

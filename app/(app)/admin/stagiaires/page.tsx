@@ -3,14 +3,13 @@ import { redirect } from 'next/navigation';
 import { PageHeader } from '@/components/app/PageHeader';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { SearchInput } from './SearchInput';
+import { formatDate } from '@/lib/date';
 
 export const dynamic = 'force-dynamic';
 
 interface PageProps {
   searchParams: Promise<{ q?: string }>;
 }
-
-const FR_DATE = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 
 interface Row {
   kind: 'profile' | 'employee';
@@ -187,7 +186,7 @@ export default async function AdminStagiairesPage({ searchParams }: PageProps) {
                         </Link>
                       ) : (
                         <span className="text-xs text-dark/40 whitespace-nowrap">
-                          {r.createdAt && FR_DATE.format(new Date(r.createdAt))}
+                          {r.createdAt && formatDate(r.createdAt)}
                         </span>
                       )}
                     </td>

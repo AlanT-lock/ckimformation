@@ -6,14 +6,11 @@ import { completionScorePct, BAD_SCORE_THRESHOLD, type ScaleQ } from '@/lib/enqu
 import { normalizeScale, parseScaleValue, parseQcmValue, parseTextValue, parseFollowupValue } from '@/lib/enquetes/analytics';
 import { ActionCorrectiveForm } from './ActionCorrectiveForm';
 import type { QuestionType, EnqueteKind } from '@/lib/supabase/types';
+import { formatDateTime } from '@/lib/date';
 
 export const dynamic = 'force-dynamic';
 
 interface PageProps { params: Promise<{ completionId: string }> }
-
-const FR_DATETIME = new Intl.DateTimeFormat('fr-FR', {
-  day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
-});
 
 const KIND_LABEL: Record<EnqueteKind, string> = {
   a_chaud: 'Enquête à chaud',
@@ -170,7 +167,7 @@ export default async function QualiteRapportPage({ params }: PageProps) {
             <div><dt className="inline text-dark/60">Titre : </dt><dd className="inline font-medium">{test?.nom}</dd></div>
             {enqueteKind && <div><dt className="inline text-dark/60">Type : </dt><dd className="inline">{KIND_LABEL[enqueteKind]}</dd></div>}
             {formation?.titre && <div><dt className="inline text-dark/60">Formation : </dt><dd className="inline">{formation.titre}</dd></div>}
-            <div><dt className="inline text-dark/60">Répondue le : </dt><dd className="inline">{FR_DATETIME.format(new Date(completion.completed_at))}</dd></div>
+            <div><dt className="inline text-dark/60">Répondue le : </dt><dd className="inline">{formatDateTime(completion.completed_at)}</dd></div>
           </dl>
           <div className="mt-4 flex items-baseline gap-3">
             <span className="text-xs uppercase tracking-[0.2em] text-dark/50">Score moyen</span>
@@ -215,7 +212,7 @@ export default async function QualiteRapportPage({ params }: PageProps) {
           <h2 className="font-display text-2xl tracking-wide">Action corrective</h2>
           {action?.resolved && (
             <p className="text-xs text-teal">
-              Résolue {action.resolved_at && `le ${FR_DATETIME.format(new Date(action.resolved_at))}`}
+              Résolue {action.resolved_at && `le ${formatDateTime(action.resolved_at)}`}
               {resolvedByName && ` par ${resolvedByName}`}
             </p>
           )}
