@@ -4,14 +4,11 @@ import { ButtonLink } from '@/components/app/Button';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { computeScore, type ScoringQuestion, type ScoringResponse } from '@/lib/scoring';
 import type { QuestionType } from '@/lib/supabase/types';
+import { formatDateTime } from '@/lib/date';
 
 interface PageProps { params: Promise<{ id: string; testId: string }> }
 
 export const dynamic = 'force-dynamic';
-
-const FR_DATETIME = new Intl.DateTimeFormat('fr-FR', {
-  day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-});
 
 interface ParticipantRow {
   id: string;
@@ -181,7 +178,7 @@ export default async function ResponsesPage({ params }: PageProps) {
                       </span>
                     )}
                     <span className={`text-xs px-2 py-1 rounded-full uppercase tracking-wider font-medium ${c?.completed_at ? 'bg-teal/10 text-teal' : 'bg-dark/10 text-dark/50'}`}>
-                      {c?.completed_at ? `Complété — ${FR_DATETIME.format(new Date(c.completed_at))}` : 'En attente'}
+                      {c?.completed_at ? `Complété — ${formatDateTime(c.completed_at)}` : 'En attente'}
                     </span>
                   </div>
                 </summary>

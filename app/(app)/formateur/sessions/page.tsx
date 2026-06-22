@@ -2,8 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { PageHeader } from '@/components/app/PageHeader';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
-
-const FR_DATE = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+import { formatDate } from '@/lib/date';
 
 const STATUT_LABEL: Record<string, { label: string; className: string }> = {
   draft:     { label: 'Brouillon',  className: 'bg-dark/10 text-dark/60' },
@@ -55,8 +54,8 @@ export default async function FormateurSessionsPage() {
                     <div className="min-w-0 flex-1">
                       <p className="font-medium">{f?.titre ?? '—'}</p>
                       <p className="text-xs text-dark/60 mt-1">
-                        {first ? FR_DATE.format(new Date(first)) : 'Dates à définir'}
-                        {last && first && last !== first && <> → {FR_DATE.format(new Date(last))}</>}
+                        {first ? formatDate(first) : 'Dates à définir'}
+                        {last && first && last !== first && <> → {formatDate(last)}</>}
                       </p>
                       <p className="text-xs text-dark/60 mt-1">
                         {inscCount} demande{inscCount > 1 ? 's' : ''} d&apos;inscription

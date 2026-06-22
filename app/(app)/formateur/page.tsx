@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
+import { formatDate } from '@/lib/date';
 
 const STATUT_LABEL: Record<string, { label: string; className: string }> = {
   draft:     { label: 'Brouillon',  className: 'bg-dark/10 text-dark/60' },
@@ -7,8 +8,6 @@ const STATUT_LABEL: Record<string, { label: string; className: string }> = {
   cancelled: { label: 'Annulée',    className: 'bg-orange/10 text-orange' },
   completed: { label: 'Terminée',   className: 'bg-dark/5 text-dark/40' },
 };
-
-const FR_DATE = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 
 export default async function FormateurHome() {
   const profile = await getCurrentProfile();
@@ -57,8 +56,8 @@ export default async function FormateurHome() {
                   <div className="min-w-0 flex-1">
                     <p className="font-medium">{f?.titre ?? '—'}</p>
                     <p className="text-xs text-dark/60 mt-1">
-                      {first ? FR_DATE.format(new Date(first)) : 'Date à définir'}
-                      {last && first && last !== first && <> → {FR_DATE.format(new Date(last))}</>}
+                      {first ? formatDate(first) : 'Date à définir'}
+                      {last && first && last !== first && <> → {formatDate(last)}</>}
                     </p>
                   </div>
                   <span className={`text-xs px-2 py-1 rounded-full uppercase tracking-wider font-medium whitespace-nowrap ${statut.className}`}>

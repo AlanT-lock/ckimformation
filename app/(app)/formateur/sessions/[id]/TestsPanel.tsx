@@ -6,6 +6,7 @@ import { Button } from '@/components/app/Button';
 import { createClient } from '@/lib/supabase/client';
 import { triggerTest, untriggerTest } from './actions';
 import { loadAckedTriggers, markTriggerAcked } from '@/lib/ui/acked-store';
+import { formatDateTime } from '@/lib/date';
 
 const KIND_LABEL: Record<string, string> = {
   quiz: 'Quiz',
@@ -135,7 +136,7 @@ export function TestsPanel({
                   {triggered && trig && (
                     <>
                       {' · '}
-                      <span className="text-teal">déclenché le {new Date(trig.triggered_at).toLocaleString('fr-FR')}</span>
+                      <span className="text-teal">déclenché le {formatDateTime(trig.triggered_at)}</span>
                       {expectedCompletions > 0 && (
                         <>{' · '}<span>{done} / {expectedCompletions} complété{done > 1 ? 's' : ''}</span></>
                       )}

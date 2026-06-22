@@ -4,6 +4,7 @@ import { ButtonLink } from '@/components/app/Button';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import type { QuestionType } from '@/lib/supabase/types';
 import { EvaluationForm } from './EvaluationForm';
+import { formatDateTime } from '@/lib/date';
 
 interface PageProps {
   params: Promise<{ id: string; testId: string; participantId: string }>;
@@ -100,7 +101,7 @@ export default async function FormateurEvaluationFormPage({ params }: PageProps)
         {stagiaireEmail && <p className="text-xs text-dark/60">{stagiaireEmail}</p>}
         {existing?.completed_at && (
           <p className="text-xs text-teal mt-2">
-            ✅ Déjà rempli le {new Date(existing.completed_at).toLocaleString('fr-FR')} — vous pouvez modifier.
+            ✅ Déjà rempli le {formatDateTime(existing.completed_at)} — vous pouvez modifier.
           </p>
         )}
       </div>

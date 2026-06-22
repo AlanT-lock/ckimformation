@@ -5,8 +5,8 @@ import { Button } from '@/components/app/Button';
 import { createClient } from '@/lib/supabase/client';
 import { triggerEmargement, closeEmargement, reopenEmargement } from './actions';
 import { loadAckedTriggers, markTriggerAcked } from '@/lib/ui/acked-store';
+import { formatDateLong } from '@/lib/date';
 
-const FR_DATE = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 const FR_TIME = (h: string) => h.slice(0, 5);
 
 export interface CreneauInfo {
@@ -157,7 +157,7 @@ export function CreneauxPanel({
             <div key={c.id} className="p-4 flex items-center justify-between gap-4 flex-wrap">
               <div>
                 <p className="font-medium capitalize">
-                  {FR_DATE.format(new Date(c.date))}
+                  {formatDateLong(c.date)}
                   <span className="ml-2 text-dark/60 text-sm">{FR_TIME(c.heure_debut)}–{FR_TIME(c.heure_fin)}</span>
                 </p>
                 <p className="text-xs text-dark/60 mt-0.5">

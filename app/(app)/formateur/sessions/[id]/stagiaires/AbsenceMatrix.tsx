@@ -2,8 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { toggleCreneauAbsence } from './actions';
-
-const FR_SHORT = new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit' });
+import { formatDate } from '@/lib/date';
 
 export interface MatrixCreneau {
   id: string;
@@ -81,7 +80,7 @@ export function AbsenceMatrix({ sessionId, creneaux, participants, initialAbsenc
               </th>
               {creneaux.map((c) => (
                 <th key={c.id} className="px-2 py-2 text-xs uppercase tracking-[0.1em] text-dark/60 whitespace-nowrap text-center">
-                  <div className="font-medium capitalize">{FR_SHORT.format(new Date(c.date))}</div>
+                  <div className="font-medium capitalize">{formatDate(c.date)}</div>
                   <div className="font-mono text-[10px] text-dark/50 normal-case tracking-normal">
                     {c.heure_debut.slice(0, 5)}–{c.heure_fin.slice(0, 5)}
                   </div>
