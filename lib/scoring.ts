@@ -39,6 +39,26 @@ function asScalar(v: unknown): string | null {
   return null;
 }
 
+export type QuestionVerdict = 'correct' | 'incorrect' | null; // null = non évaluable
+
+/** Verdict d'une question pour une réponse donnée. null si la question n'est pas notable. */
+export function evaluateQuestion(q: ScoringQuestion, r: ScoringResponse | undefined): QuestionVerdict {
+  if (q.type_reponse !== 'qcm_unique' && q.type_reponse !== 'qcm_multiple') return null;
+  if (q.bonne_reponse === null || q.bonne_reponse === undefined) return null;
+  if (!r) return 'incorrect';
+
+  if (q.type_reponse === 'qcm_unique') {
+    const userAnswer = asScalar(r.valeur_json) ?? r.valeur ?? null;
+    const correctAnswer = typeof q.bonne_reponse === 'string' ? q.bonne_reponse : null;
+    return userAnswer && correctAnswer && userAnswer === correctAnswer ? 'correct' : 'incorrect';
+  }
+
+  const userAnswers = asSet(r.valeur_json);
+  const correctAnswers = asSet(q.bonne_reponse);
+  const ok = userAnswers.size === correctAnswers.size && [...userAnswers].every((a) => correctAnswers.has(a));
+  return ok ? 'correct' : 'incorrect';
+}
+
 /**
  * Score = % de QCM bien répondus.
  * Seules les questions de type qcm_unique / qcm_multiple comptent, ET
@@ -53,29 +73,10 @@ export function computeScore(
   let correct = 0;
 
   for (const q of questions) {
-    if (q.type_reponse !== 'qcm_unique' && q.type_reponse !== 'qcm_multiple') continue;
-    if (q.bonne_reponse === null || q.bonne_reponse === undefined) continue;
+    const verdict = evaluateQuestion(q, byQ.get(q.id));
+    if (verdict === null) continue;
     totalEvaluable++;
-    const r = byQ.get(q.id);
-    if (!r) continue;
-
-    if (q.type_reponse === 'qcm_unique') {
-      const userAnswer = asScalar(r.valeur_json) ?? r.valeur ?? null;
-      const correctAnswer = typeof q.bonne_reponse === 'string' ? q.bonne_reponse : null;
-      if (userAnswer && correctAnswer && userAnswer === correctAnswer) {
-        correct++;
-      }
-    } else {
-      // qcm_multiple : exact match (ni plus ni moins)
-      const userAnswers = asSet(r.valeur_json);
-      const correctAnswers = asSet(q.bonne_reponse);
-      if (
-        userAnswers.size === correctAnswers.size
-        && [...userAnswers].every((a) => correctAnswers.has(a))
-      ) {
-        correct++;
-      }
-    }
+    if (verdict === 'correct') correct++;
   }
 
   const scorePct = totalEvaluable === 0 ? null : Math.round((correct / totalEvaluable) * 100);
