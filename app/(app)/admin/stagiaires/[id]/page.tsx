@@ -6,6 +6,7 @@ import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import type { QuestionType } from '@/lib/supabase/types';
 import { completionScorePct, type ScaleQ } from '@/lib/enquetes/alerts';
 import { formatDate, formatDateTime } from '@/lib/date';
+import { TestAnswerList, type AnswerListQuestion } from '@/components/app/TestAnswerList';
 
 export const dynamic = 'force-dynamic';
 
@@ -123,8 +124,9 @@ export default async function AdminStagiaireDetailPage({ params, searchParams }:
   const [{ data: questions }, { data: responses }] = await Promise.all([
     testIds.length === 0 ? Promise.resolve({ data: [] }) : supabase
       .from('questions')
-      .select('id, test_id, type_reponse, echelle_max, bonne_reponse, options')
-      .in('test_id', testIds),
+      .select('id, test_id, libelle, ordre, type_reponse, echelle_max, bonne_reponse, options')
+      .in('test_id', testIds)
+      .order('ordre', { ascending: true }),
     completionIds.length === 0 ? Promise.resolve({ data: [] }) : supabase
       .from('responses')
       .select('completion_id, question_id, valeur, valeur_json')
@@ -150,6 +152,22 @@ export default async function AdminStagiaireDetailPage({ params, searchParams }:
     const arr = respsByCompletion.get(r.completion_id) ?? [];
     arr.push({ question_id: r.question_id, valeur: r.valeur, valeur_json: r.valeur_json });
     respsByCompletion.set(r.completion_id, arr);
+  }
+
+  const questionsByTest = new Map<string, AnswerListQuestion[]>();
+  for (const q of (questions ?? []) as Array<{
+    id: string; test_id: string; libelle: string; type_reponse: QuestionType;
+    options: unknown; bonne_reponse: unknown;
+  }>) {
+    const arr = questionsByTest.get(q.test_id) ?? [];
+    arr.push({
+      id: q.id,
+      libelle: q.libelle,
+      type_reponse: q.type_reponse,
+      options: Array.isArray(q.options) ? (q.options as string[]) : [],
+      bonne_reponse: q.bonne_reponse,
+    });
+    questionsByTest.set(q.test_id, arr);
   }
 
   // 7. Logs emails — uniquement quand le stagiaire est destinataire
@@ -218,6 +236,7 @@ export default async function AdminStagiaireDetailPage({ params, searchParams }:
           completions={completions.filter((c) => testKind(c) === 'quiz' && c.completed_at !== null)}
           qById={qById}
           respsByCompletion={respsByCompletion}
+          questionsByTest={questionsByTest}
         />
       )}
 
@@ -226,6 +245,7 @@ export default async function AdminStagiaireDetailPage({ params, searchParams }:
           completions={completions.filter((c) => testKind(c) === 'enquete' && c.completed_at !== null)}
           qById={qById}
           respsByCompletion={respsByCompletion}
+          questionsByTest={questionsByTest}
         />
       )}
 
@@ -429,11 +449,12 @@ type CompletionLite = {
 };
 
 function TestsSection({
-  completions, qById, respsByCompletion,
+  completions, qById, respsByCompletion, questionsByTest,
 }: {
   completions: CompletionLite[];
   qById: Map<string, ScaleQ & { test_id: string; bonne_reponse: unknown; options: unknown }>;
   respsByCompletion: Map<string, Array<{ question_id: string; valeur: string | null; valeur_json: unknown }>>;
+  questionsByTest: Map<string, AnswerListQuestion[]>;
 }) {
   if (completions.length === 0) {
     return <div className="bg-white rounded-lg border border-dark/10 p-6 text-sm text-dark/60">Aucun test (quiz) complété.</div>;
@@ -462,6 +483,18 @@ function TestsSection({
                 )}
               </div>
             </div>
+            {(() => {
+              const qs = questionsByTest.get(c.test_id) ?? [];
+              if (qs.length === 0) return null;
+              return (
+                <details className="mt-3">
+                  <summary className="cursor-pointer text-xs uppercase tracking-[0.15em] text-teal hover:underline">
+                    Voir les réponses
+                  </summary>
+                  <TestAnswerList questions={qs} responses={resps} showCorrectness />
+                </details>
+              );
+            })()}
           </li>
         );
       })}
@@ -497,11 +530,12 @@ function quizScore(
 }
 
 function EnquetesSection({
-  completions, qById, respsByCompletion,
+  completions, qById, respsByCompletion, questionsByTest,
 }: {
   completions: CompletionLite[];
   qById: Map<string, ScaleQ & { test_id: string; bonne_reponse: unknown; options: unknown }>;
   respsByCompletion: Map<string, Array<{ question_id: string; valeur: string | null; valeur_json: unknown }>>;
+  questionsByTest: Map<string, AnswerListQuestion[]>;
 }) {
   if (completions.length === 0) {
     return <div className="bg-white rounded-lg border border-dark/10 p-6 text-sm text-dark/60">Aucune enquête de satisfaction complétée.</div>;
@@ -547,6 +581,18 @@ function EnquetesSection({
                 )}
               </div>
             </div>
+            {(() => {
+              const qs = questionsByTest.get(c.test_id) ?? [];
+              if (qs.length === 0) return null;
+              return (
+                <details className="mt-3">
+                  <summary className="cursor-pointer text-xs uppercase tracking-[0.15em] text-teal hover:underline">
+                    Voir les réponses
+                  </summary>
+                  <TestAnswerList questions={qs} responses={resps} />
+                </details>
+              );
+            })()}
           </li>
         );
       })}
