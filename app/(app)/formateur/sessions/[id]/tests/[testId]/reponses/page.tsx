@@ -4,6 +4,7 @@ import { ButtonLink } from '@/components/app/Button';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { computeScore, type ScoringQuestion, type ScoringResponse } from '@/lib/scoring';
 import type { QuestionType } from '@/lib/supabase/types';
+import { renderAnswer } from '@/components/app/TestAnswerList';
 import { formatDateTime } from '@/lib/date';
 
 interface PageProps { params: Promise<{ id: string; testId: string }> }
@@ -21,42 +22,6 @@ interface CompletionRow {
   completed_at: string | null;
   inscription_participant_id: string | null;
   responses: { question_id: string; valeur: string | null; valeur_json: unknown }[] | null;
-}
-
-function renderAnswer(q: { type_reponse: QuestionType; options: string[] }, valeur: string | null, valeurJson: unknown): React.ReactNode {
-  switch (q.type_reponse) {
-    case 'qcm_unique': {
-      const json = (valeurJson ?? {}) as { value?: string | null; followup?: string };
-      const value = json.value ?? valeur ?? null;
-      if (!value) return <span>—</span>;
-      return (
-        <div>
-          <span>{value}</span>
-          {json.followup && (
-            <p className="mt-1 text-xs text-dark/60 italic whitespace-pre-wrap">
-              Précision : {json.followup}
-            </p>
-          )}
-        </div>
-      );
-    }
-    case 'qcm_multiple': {
-      const json = (valeurJson ?? {}) as { values?: string[] };
-      const arr = Array.isArray(json.values)
-        ? json.values
-        : Array.isArray(valeurJson)
-          ? (valeurJson as string[])
-          : [];
-      if (arr.length === 0) return <span>—</span>;
-      return <ul className="list-disc list-inside">{arr.map((v, i) => <li key={i}>{v}</li>)}</ul>;
-    }
-    case 'echelle':
-      return <span>{valeur ?? '—'}</span>;
-    case 'texte_libre':
-    case 'liste':
-    default:
-      return <span className="whitespace-pre-wrap">{valeur || '—'}</span>;
-  }
 }
 
 export default async function ResponsesPage({ params }: PageProps) {
