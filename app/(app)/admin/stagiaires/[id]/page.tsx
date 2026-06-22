@@ -7,6 +7,7 @@ import type { QuestionType } from '@/lib/supabase/types';
 import { completionScorePct, type ScaleQ } from '@/lib/enquetes/alerts';
 import { formatDate, formatDateTime } from '@/lib/date';
 import { TestAnswerList, type AnswerListQuestion } from '@/components/app/TestAnswerList';
+import { computeScore } from '@/lib/scoring';
 
 export const dynamic = 'force-dynamic';
 
@@ -234,7 +235,6 @@ export default async function AdminStagiaireDetailPage({ params, searchParams }:
       {tab === 'tests' && (
         <TestsSection
           completions={completions.filter((c) => testKind(c) === 'quiz' && c.completed_at !== null)}
-          qById={qById}
           respsByCompletion={respsByCompletion}
           questionsByTest={questionsByTest}
         />
@@ -449,10 +449,9 @@ type CompletionLite = {
 };
 
 function TestsSection({
-  completions, qById, respsByCompletion, questionsByTest,
+  completions, respsByCompletion, questionsByTest,
 }: {
   completions: CompletionLite[];
-  qById: Map<string, ScaleQ & { test_id: string; bonne_reponse: unknown; options: unknown }>;
   respsByCompletion: Map<string, Array<{ question_id: string; valeur: string | null; valeur_json: unknown }>>;
   questionsByTest: Map<string, AnswerListQuestion[]>;
 }) {
@@ -466,7 +465,8 @@ function TestsSection({
         const test = t as { id: string; nom: string; formation: { titre: string } | { titre: string }[] | null } | null;
         const form = test && (Array.isArray(test.formation) ? test.formation[0] : test.formation);
         const resps = respsByCompletion.get(c.id) ?? [];
-        const score = quizScore(resps, qById, c.test_id);
+        const qs = questionsByTest.get(c.test_id) ?? [];
+        const score = computeScore(qs, resps);
         return (
           <li key={c.id} className="bg-white rounded-lg border border-dark/10 p-4">
             <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -476,25 +476,21 @@ function TestsSection({
                 {c.completed_at && <p className="text-xs text-dark/50 mt-1">Complété le {formatDateTime(c.completed_at)}</p>}
               </div>
               <div className="text-right">
-                {score !== null ? (
-                  <p className="font-display text-2xl text-teal">{score.correct} / {score.total}</p>
+                {score.totalEvaluable > 0 ? (
+                  <p className="font-display text-2xl text-teal">{score.correct} / {score.totalEvaluable}</p>
                 ) : (
                   <p className="text-xs text-dark/40">Score non calculable</p>
                 )}
               </div>
             </div>
-            {(() => {
-              const qs = questionsByTest.get(c.test_id) ?? [];
-              if (qs.length === 0) return null;
-              return (
-                <details className="mt-3">
-                  <summary className="cursor-pointer text-xs uppercase tracking-[0.15em] text-teal hover:underline">
-                    Voir les réponses
-                  </summary>
-                  <TestAnswerList questions={qs} responses={resps} showCorrectness />
-                </details>
-              );
-            })()}
+            {qs.length > 0 && (
+              <details className="mt-3">
+                <summary className="cursor-pointer text-xs uppercase tracking-[0.15em] text-teal hover:underline">
+                  Voir les réponses
+                </summary>
+                <TestAnswerList questions={qs} responses={resps} showCorrectness />
+              </details>
+            )}
           </li>
         );
       })}
@@ -502,32 +498,6 @@ function TestsSection({
   );
 }
 
-function quizScore(
-  responses: Array<{ question_id: string; valeur: string | null; valeur_json: unknown }>,
-  qById: Map<string, ScaleQ & { bonne_reponse: unknown; test_id: string }>,
-  testId: string,
-): { correct: number; total: number } | null {
-  let total = 0;
-  let correct = 0;
-  for (const r of responses) {
-    const q = qById.get(r.question_id);
-    if (!q || q.test_id !== testId) continue;
-    if (q.type_reponse !== 'qcm_unique' && q.type_reponse !== 'qcm_multiple') continue;
-    total++;
-    if (q.type_reponse === 'qcm_unique') {
-      const expected = typeof q.bonne_reponse === 'string' ? q.bonne_reponse : null;
-      const got = (r.valeur_json as { value?: string | null } | null)?.value ?? null;
-      if (expected && got === expected) correct++;
-    } else {
-      const exp = Array.isArray(q.bonne_reponse) ? (q.bonne_reponse as string[]) : [];
-      const got = (r.valeur_json as { values?: string[] } | null)?.values ?? [];
-      const allOk = exp.length === got.length && exp.every((v) => got.includes(v));
-      if (allOk && exp.length > 0) correct++;
-    }
-  }
-  if (total === 0) return null;
-  return { correct, total };
-}
 
 function EnquetesSection({
   completions, qById, respsByCompletion, questionsByTest,
