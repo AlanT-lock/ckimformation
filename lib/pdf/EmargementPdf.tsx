@@ -1,12 +1,7 @@
 import { Document, Page, View, Text, Image } from '@react-pdf/renderer';
 import { pdfStyles, colors } from './styles';
+import { formatDateLong, formatDateTime } from '@/lib/date';
 
-const FR_DATE = new Intl.DateTimeFormat('fr-FR', {
-  weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-});
-const FR_DATETIME = new Intl.DateTimeFormat('fr-FR', {
-  day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
-});
 const trimTime = (s: string) => s.slice(0, 5);
 
 export interface EmargementPdfCreneau {
@@ -71,9 +66,9 @@ export function EmargementPdf({ data }: { data: EmargementPdfData }) {
             <View style={pdfStyles.infoRow}>
               <Text style={pdfStyles.infoLabel}>Période :</Text>
               <Text style={pdfStyles.infoValue}>
-                Du {FR_DATE.format(new Date(data.session.dateDebut))}
+                Du {formatDateLong(data.session.dateDebut)}
                 {data.session.dateFin && data.session.dateFin !== data.session.dateDebut
-                  ? ` au ${FR_DATE.format(new Date(data.session.dateFin))}`
+                  ? ` au ${formatDateLong(data.session.dateFin)}`
                   : ''}
               </Text>
             </View>
@@ -133,7 +128,7 @@ export function EmargementPdf({ data }: { data: EmargementPdfData }) {
           </View>
           {data.creneaux.map((c, i) => {
             const isLast = i === data.creneaux.length - 1;
-            const dateLabel = FR_DATE.format(new Date(c.date));
+            const dateLabel = formatDateLong(c.date);
             return (
               <View key={i} style={isLast ? pdfStyles.tableRowLast : pdfStyles.tableRow} wrap={false}>
                 <Text style={{ width: 170, fontSize: 9, textTransform: 'capitalize' }}>{dateLabel}</Text>
@@ -141,7 +136,7 @@ export function EmargementPdf({ data }: { data: EmargementPdfData }) {
                   {trimTime(c.heureDebut)} – {trimTime(c.heureFin)}
                 </Text>
                 <Text style={{ flex: 1, fontSize: 9, color: colors.muted }}>
-                  {c.signedAt ? FR_DATETIME.format(new Date(c.signedAt)) : '—'}
+                  {c.signedAt ? formatDateTime(c.signedAt) : '—'}
                 </Text>
                 <View style={pdfStyles.signatureBox}>
                   {c.signatureDataUrl ? (
@@ -158,7 +153,7 @@ export function EmargementPdf({ data }: { data: EmargementPdfData }) {
         {/* Footer */}
         <View style={pdfStyles.footer} fixed>
           <Text>{data.organisme.nomComplet} — {data.organisme.adresse}</Text>
-          <Text render={({ pageNumber, totalPages }) => `Page ${pageNumber} / ${totalPages} · Édité le ${FR_DATETIME.format(new Date(data.generatedAt))}`} />
+          <Text render={({ pageNumber, totalPages }) => `Page ${pageNumber} / ${totalPages} · Édité le ${formatDateTime(data.generatedAt)}`} />
         </View>
       </Page>
     </Document>

@@ -1,12 +1,6 @@
 import { Document, Page, View, Text, Image } from '@react-pdf/renderer';
 import { pdfStyles, colors } from './styles';
-
-const FR_DATE = new Intl.DateTimeFormat('fr-FR', {
-  weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-});
-const FR_DATETIME = new Intl.DateTimeFormat('fr-FR', {
-  day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
-});
+import { formatDateLong, formatDateTime } from '@/lib/date';
 
 export interface PdfQuestion {
   ordre: number;
@@ -89,9 +83,9 @@ export function TestsResponsesPdf({ data }: { data: TestsResponsesPdfData }) {
             <View style={pdfStyles.infoRow}>
               <Text style={pdfStyles.infoLabel}>Session :</Text>
               <Text style={pdfStyles.infoValue}>
-                Du {FR_DATE.format(new Date(data.session.dateDebut))}
+                Du {formatDateLong(data.session.dateDebut)}
                 {data.session.dateFin && data.session.dateFin !== data.session.dateDebut
-                  ? ` au ${FR_DATE.format(new Date(data.session.dateFin))}`
+                  ? ` au ${formatDateLong(data.session.dateFin)}`
                   : ''}
               </Text>
             </View>
@@ -143,7 +137,7 @@ export function TestsResponsesPdf({ data }: { data: TestsResponsesPdfData }) {
                 <Text style={{ fontSize: 14, fontFamily: 'Helvetica-Bold', marginTop: 2 }}>{test.nom}</Text>
                 {test.completedAt && (
                   <Text style={{ fontSize: 9, color: colors.muted, marginTop: 2 }}>
-                    Complété le {FR_DATETIME.format(new Date(test.completedAt))}
+                    Complété le {formatDateTime(test.completedAt)}
                   </Text>
                 )}
               </View>
@@ -183,7 +177,7 @@ export function TestsResponsesPdf({ data }: { data: TestsResponsesPdfData }) {
         {/* Footer */}
         <View style={pdfStyles.footer} fixed>
           <Text>{data.organisme.nomComplet} — {data.organisme.adresse}</Text>
-          <Text render={({ pageNumber, totalPages }) => `Page ${pageNumber} / ${totalPages} · Édité le ${FR_DATETIME.format(new Date(data.generatedAt))}`} />
+          <Text render={({ pageNumber, totalPages }) => `Page ${pageNumber} / ${totalPages} · Édité le ${formatDateTime(data.generatedAt)}`} />
         </View>
       </Page>
     </Document>
