@@ -22,6 +22,10 @@ const dateLongFmt = new Intl.DateTimeFormat(LOCALE, {
   timeZone: TZ,
   weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
 });
+const dateLetterFmt = new Intl.DateTimeFormat(LOCALE, {
+  timeZone: TZ,
+  day: 'numeric', month: 'long', year: 'numeric',
+});
 
 type DateInput = Date | string | number | null | undefined;
 
@@ -49,4 +53,10 @@ export function formatTime(value: DateInput): string {
 export function formatDateLong(value: DateInput): string {
   const d = toDate(value);
   return d ? dateLongFmt.format(d) : '';
+}
+
+/** Date longue sans jour de semaine — ex. « 19 août 2026 » (en-tête de lettre). */
+export function formatDateLetter(value: DateInput): string {
+  const d = toDate(value);
+  return d ? dateLetterFmt.format(d) : '';
 }

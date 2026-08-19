@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatDateTime, formatDate, formatTime, formatDateLong } from '@/lib/date';
+import { formatDateTime, formatDate, formatTime, formatDateLong, formatDateLetter } from '@/lib/date';
 
 describe('lib/date — fuseau Europe/Paris figé', () => {
   it('formatDateTime applique CEST (UTC+2) en été', () => {
@@ -28,10 +28,18 @@ describe('lib/date — fuseau Europe/Paris figé', () => {
     expect(out).toContain('2026');
   });
 
+  it('formatDateLetter sans jour de semaine', () => {
+    const out = formatDateLetter('2026-08-19T10:00:00Z');
+    expect(out).toContain('août');
+    expect(out).toContain('2026');
+    expect(out.toLowerCase()).not.toMatch(/lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche/);
+  });
+
   it('entrée vide → chaîne vide', () => {
     expect(formatDateTime(null)).toBe('');
     expect(formatDate(undefined)).toBe('');
     expect(formatTime('')).toBe('');
+    expect(formatDateLetter(null)).toBe('');
     expect(formatDateTime('pas-une-date')).toBe('');
   });
 });

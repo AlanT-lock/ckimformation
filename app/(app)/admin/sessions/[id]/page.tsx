@@ -9,10 +9,14 @@ import { DeleteSessionButton } from './DeleteSessionButton';
 import { resendInvitationFormAction, cancelInvitationFormAction } from '../reservation-actions';
 import type { SessionStatut, SessionAdresse } from '@/lib/supabase/types';
 import { formatDate } from '@/lib/date';
+import { loadSessionConvocationData } from '@/lib/pdf/data';
+import { ConvocationsPanel } from './ConvocationsPanel';
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
+
+export const maxDuration = 60;
 
 export default async function AdminSessionDetailPage({ params }: PageProps) {
   const { id } = await params;
@@ -47,6 +51,8 @@ export default async function AdminSessionDetailPage({ params }: PageProps) {
   ]);
 
   if (!session) notFound();
+
+  const convocationData = await loadSessionConvocationData(id);
 
   // Reserved-session related data
   let claimedCompany: { raison_sociale: string; email: string } | null = null;
@@ -232,6 +238,8 @@ export default async function AdminSessionDetailPage({ params }: PageProps) {
           )}
         </div>
       </div>
+
+      {convocationData && <ConvocationsPanel data={convocationData} />}
 
       {session.visibility === 'reserved' && (
         <section className="border-2 border-emerald-200 rounded p-4 mt-6 space-y-4">

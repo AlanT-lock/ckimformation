@@ -8,7 +8,14 @@ export type EmailLogKind =
   | 'session_reserved_invitation'
   | 'session_reserved_published'
   | 'session_reserved_completed'
-  | 'session_reserved_reminder';
+  | 'session_reserved_reminder'
+  | 'convocation';
+
+export interface EmailAttachment {
+  filename: string;
+  content: Buffer | string;
+  contentType?: string;
+}
 
 export interface SendAndLogInput {
   kind: EmailLogKind;
@@ -24,6 +31,7 @@ export interface SendAndLogInput {
   reminderNumber?: number;
   /** Métadonnées libres (formation, raison sociale, etc.). */
   metadata?: Record<string, unknown>;
+  attachments?: EmailAttachment[];
 }
 
 /**
@@ -41,6 +49,15 @@ export async function sendAndLog(input: SendAndLogInput): Promise<{ ok: true } |
       to: input.to,
       subject: input.subject,
       html: input.html,
+      ...(input.attachments && input.attachments.length > 0
+        ? {
+            attachments: input.attachments.map((a) => ({
+              filename: a.filename,
+              content: a.content,
+              contentType: a.contentType,
+            })),
+          }
+        : {}),
     });
     if (error) {
       status = 'failed';
