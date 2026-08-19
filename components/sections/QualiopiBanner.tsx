@@ -55,10 +55,10 @@ export function QualiopiBanner({
             <div className="shrink-0 bg-white rounded-md p-3 shadow-sm">
               <Image
                 src="/logo-qualiopi.png"
-                alt="Logo Qualiopi — Processus certifié — République française"
-                width={633}
-                height={338}
-                className="h-16 w-auto md:h-20"
+                alt="Logo Qualiopi — Processus certifié — Actions de formation"
+                width={842}
+                height={509}
+                className="h-20 w-auto md:h-24"
               />
             </div>
             <div className="flex-1 text-center md:text-left">
@@ -122,10 +122,10 @@ export function QualiopiBanner({
             >
               <Image
                 src="/logo-qualiopi.png"
-                alt="Logo Qualiopi — Processus certifié — République française"
-                width={633}
-                height={338}
-                className="h-24 md:h-28 w-auto"
+                alt="Logo Qualiopi — Processus certifié — Actions de formation"
+                width={842}
+                height={509}
+                className="h-28 md:h-32 w-auto"
               />
             </div>
           </FadeUp>

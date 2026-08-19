@@ -24,10 +24,10 @@ export function Footer() {
               <div className="shrink-0 bg-white rounded p-2">
                 <Image
                   src="/logo-qualiopi.png"
-                  alt="Logo Qualiopi — Processus certifié — République française"
-                  width={633}
-                  height={338}
-                  className="h-10 w-auto"
+                  alt="Logo Qualiopi — Processus certifié — Actions de formation"
+                  width={842}
+                  height={509}
+                  className="h-14 w-auto"
                 />
               </div>
               <div className="text-xs leading-relaxed">
