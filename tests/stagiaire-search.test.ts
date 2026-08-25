@@ -31,6 +31,7 @@ describe('profileMatchesQuery', () => {
   it('matche sur l’email', () => {
     expect(profileMatchesQuery('Marie', 'marie.dupont@acme.fr', 'dupont')).toBe(true);
     expect(profileMatchesQuery('Marie', 'marie.dupont@acme.fr', 'marie.dupont@acme.fr')).toBe(true);
+    expect(profileMatchesQuery('Marie', 'marie.dupont@acme.fr', '  MARIE.DUPONT@ACME.FR ')).toBe(true);
   });
 
   it('refuse un nom qui ne correspond pas', () => {

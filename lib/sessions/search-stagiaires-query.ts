@@ -1,9 +1,10 @@
 import 'server-only';
 
 import { createAdminClient } from '@/lib/supabase/admin';
+import { escapeIlikeExact, normalizeEmployeeEmail } from '@/lib/employees/linkability';
 import {
   filterStagiaireSearchHits,
-  profileMatchesQuery,
+  normalizeSearchText,
   type SessionSearchOccupant,
   type StagiaireSearchCandidate,
   type StagiaireSearchHit,
@@ -80,18 +81,66 @@ export async function searchStagiairesForSessionQuery(
 
   const admin = createAdminClient();
   const select = 'id, full_name, email, account_type';
+  const byId = new Map<string, StagiaireSearchCandidate>();
 
-  const [{ data, error }, occupants] = await Promise.all([
-    admin.from('profiles').select(select).eq('role', 'stagiaire').limit(5000),
+  const addRows = (rows: StagiaireSearchCandidate[] | null | undefined) => {
+    for (const row of rows ?? []) {
+      if (row?.id) byId.set(row.id, row);
+    }
+  };
+
+  const email = normalizeEmployeeEmail(q);
+  const isEmail = email.includes('@');
+  const tokens = normalizeSearchText(q).split(' ').filter((t) => t.length >= 2);
+  const namePatterns = [...new Set([q, ...tokens])].slice(0, 6).map((t) => `%${escapeIlikeExact(t)}%`);
+
+  const profileSearches = [
+    isEmail
+      ? admin.from('profiles').select(select).ilike('email', escapeIlikeExact(email)).limit(20)
+      : Promise.resolve({ data: [] as StagiaireSearchCandidate[], error: null }),
+    isEmail
+      ? admin.from('profiles').select(select).ilike('email', `%${escapeIlikeExact(email)}%`).limit(20)
+      : Promise.resolve({ data: [] as StagiaireSearchCandidate[], error: null }),
+    admin.from('profiles').select(select).eq('role', 'stagiaire').ilike('email', `%${escapeIlikeExact(q)}%`).limit(40),
+    ...namePatterns.map((pattern) =>
+      admin.from('profiles').select(select).eq('role', 'stagiaire').ilike('full_name', pattern).limit(40),
+    ),
+  ];
+
+  const employeeSearches = isEmail
+    ? [
+        admin.from('employees').select('profile_id').ilike('email', escapeIlikeExact(email)).limit(20),
+        admin.from('employees').select('profile_id').ilike('email', `%${escapeIlikeExact(email)}%`).limit(20),
+      ]
+    : [];
+
+  const [occupants, profileResults, employeeResults] = await Promise.all([
     loadSessionOccupants(admin, sessionId),
+    Promise.all(profileSearches),
+    Promise.all(employeeSearches),
   ]);
-  if (error) throw new Error(error.message);
 
-  const matched = ((data ?? []) as StagiaireSearchCandidate[]).filter((row) =>
-    profileMatchesQuery(row.full_name ?? '', row.email ?? '', q),
-  );
+  for (const result of profileResults) {
+    if (result.error) throw new Error(result.error.message);
+    addRows(result.data as StagiaireSearchCandidate[] | null);
+  }
 
-  return filterStagiaireSearchHits(matched, occupants).sort((a, b) =>
+  const extraIds = [
+    ...new Set(
+      employeeResults.flatMap((result) => {
+        if (result.error) return [];
+        return (result.data ?? []).map((row) => row.profile_id).filter((id): id is string => !!id);
+      }),
+    ),
+  ].filter((id) => !byId.has(id));
+
+  if (extraIds.length > 0) {
+    const { data, error } = await admin.from('profiles').select(select).in('id', extraIds);
+    if (error) throw new Error(error.message);
+    addRows(data as StagiaireSearchCandidate[] | null);
+  }
+
+  return filterStagiaireSearchHits([...byId.values()], occupants).sort((a, b) =>
     (a.full_name || a.email).localeCompare(b.full_name || b.email, 'fr', { sensitivity: 'base' }),
   );
 }

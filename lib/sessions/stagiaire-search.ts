@@ -33,20 +33,34 @@ function accountPriority(accountType: StagiaireSearchCandidate['account_type']):
   return 0;
 }
 
-/** Minuscules, sans accents, ponctuation → espaces. */
+/** Minuscules, sans accents. Conserve @ . _ + - pour les emails. */
 export function normalizeSearchText(value: string): string {
   return value
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
-    .replace(/[^a-z0-9@]+/g, ' ')
+    .replace(/[^a-z0-9@._+-]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
 
+function looksLikeEmail(value: string): boolean {
+  return value.includes('@');
+}
+
 /** Prénom, nom (dans n'importe quel ordre) ou email, accents facultatifs. */
 export function profileMatchesQuery(name: string, email: string, query: string): boolean {
-  const q = normalizeSearchText(query);
+  const raw = query.trim();
+  if (raw.length < 2) return false;
+
+  const emailNorm = asEmail(email);
+  const queryEmail = looksLikeEmail(raw) ? normalizeEmployeeEmail(raw) : '';
+  if (queryEmail) {
+    if (emailNorm === queryEmail) return true;
+    if (emailNorm.includes(queryEmail) || queryEmail.includes(emailNorm)) return true;
+  }
+
+  const q = normalizeSearchText(raw);
   if (q.length < 2) return false;
   const hay = normalizeSearchText(`${name} ${email}`);
   if (!hay) return false;
