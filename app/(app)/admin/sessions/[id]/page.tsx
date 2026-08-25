@@ -286,7 +286,7 @@ export default async function AdminSessionDetailPage({ params }: PageProps) {
       <div>
         <h2 className="font-display text-2xl tracking-wide">Feuille d&apos;émargement</h2>
         <p className="text-xs text-dark/60 mt-1 mb-3">
-          Signature du formateur (encadré orange) et des stagiaires, créneau par créneau.
+          Cliquez sur un créneau pour afficher ou masquer les signatures (formateur encadré orange).
         </p>
         <EmargementBoard
           creneaux={(creneaux ?? []).map((c) => ({

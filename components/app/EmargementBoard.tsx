@@ -21,40 +21,64 @@ export function EmargementBoard({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {creneaux.map((c) => {
         const rows = entries.filter((e) => e.creneauId === c.id);
         const formateur = rows.find((e) => e.role === 'formateur');
         const stagiaires = rows.filter((e) => e.role === 'stagiaire');
+        const signedStagiaires = stagiaires.filter((s) => s.signatureDataUrl).length;
+        const formateurSigned = Boolean(formateur?.signatureDataUrl);
         return (
-          <div key={c.id} className="bg-white border border-dark/10 rounded-lg p-4 space-y-3">
-            <p className="font-medium capitalize">
-              {formatDateLong(c.date)}
-              <span className="ml-2 text-dark/60 text-sm font-normal">
-                {FR_TIME(c.heure_debut)}–{FR_TIME(c.heure_fin)}
-              </span>
-            </p>
-            <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              <SignatureCard
-                role="formateur"
-                name={formateur?.name ?? formateurName}
-                signedAt={formateur?.signedAt ?? null}
-                signatureDataUrl={formateur?.signatureDataUrl ?? null}
-              />
-              {stagiaires.map((s) => (
+          <details key={c.id} className="group bg-white border border-dark/10 rounded-lg overflow-hidden">
+            <summary className="list-none cursor-pointer px-4 py-3 flex items-center justify-between gap-3 flex-wrap hover:bg-light/40 [&::-webkit-details-marker]:hidden">
+              <div className="min-w-0">
+                <p className="font-medium capitalize">{formatDateLong(c.date)}</p>
+                <p className="text-sm text-dark/60">
+                  {FR_TIME(c.heure_debut)}–{FR_TIME(c.heure_fin)}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span
+                  className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded ${
+                    formateurSigned ? 'bg-orange/20 text-orange' : 'bg-dark/10 text-dark/50'
+                  }`}
+                >
+                  {formateurSigned ? 'Formateur signé' : 'Formateur en attente'}
+                </span>
+                <span className="text-xs text-dark/60 whitespace-nowrap">
+                  {signedStagiaires}/{stagiaires.length} stagiaire{stagiaires.length > 1 ? 's' : ''}
+                </span>
+                <span
+                  className="text-dark/40 text-lg leading-none transition-transform group-open:rotate-180"
+                  aria-hidden
+                >
+                  ▾
+                </span>
+              </div>
+            </summary>
+            <div className="border-t border-dark/10 p-4 space-y-3">
+              <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <SignatureCard
-                  key={s.id}
-                  role="stagiaire"
-                  name={s.name}
-                  signedAt={s.signedAt}
-                  signatureDataUrl={s.signatureDataUrl}
+                  role="formateur"
+                  name={formateur?.name ?? formateurName}
+                  signedAt={formateur?.signedAt ?? null}
+                  signatureDataUrl={formateur?.signatureDataUrl ?? null}
                 />
-              ))}
-            </ul>
-            {stagiaires.length === 0 && (
-              <p className="text-xs text-dark/50">Aucun stagiaire inscrit sur cette session.</p>
-            )}
-          </div>
+                {stagiaires.map((s) => (
+                  <SignatureCard
+                    key={s.id}
+                    role="stagiaire"
+                    name={s.name}
+                    signedAt={s.signedAt}
+                    signatureDataUrl={s.signatureDataUrl}
+                  />
+                ))}
+              </ul>
+              {stagiaires.length === 0 && (
+                <p className="text-xs text-dark/50">Aucun stagiaire inscrit sur cette session.</p>
+              )}
+            </div>
+          </details>
         );
       })}
     </div>

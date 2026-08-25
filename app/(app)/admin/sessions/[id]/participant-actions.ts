@@ -3,6 +3,13 @@
 import { revalidatePath } from 'next/cache';
 import { getCurrentProfile } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import {
+  filterStagiaireSearchHits,
+  type SessionSearchOccupant,
+  type StagiaireSearchHit,
+} from '@/lib/sessions/stagiaire-search';
+
+export type { StagiaireSearchHit };
 
 async function requireAdmin() {
   const profile = await getCurrentProfile();
@@ -23,33 +30,42 @@ function escapeLikeChars(s: string): string {
   return s.replace(/[%_,()]/g, (c) => (c === ',' || c === '(' || c === ')' ? ' ' : `\\${c}`));
 }
 
-async function participatingProfileIds(
+async function loadSessionOccupants(
   admin: ReturnType<typeof createAdminClient>,
   sessionId: string,
-): Promise<Set<string>> {
+): Promise<SessionSearchOccupant[]> {
   const { data: insc } = await admin.from('inscriptions').select('id').eq('session_id', sessionId);
   const inscriptionIds = (insc ?? []).map((i) => i.id);
-  if (inscriptionIds.length === 0) return new Set();
+  if (inscriptionIds.length === 0) return [];
 
   const { data: parts } = await admin
     .from('inscription_participants')
-    .select('participant_profile_id, employee:employees(profile_id)')
+    .select(`
+      participant_profile_id,
+      profile:profiles!inscription_participants_participant_profile_id_fkey(email),
+      employee:employees(profile_id, email)
+    `)
     .in('inscription_id', inscriptionIds);
 
-  const ids = new Set<string>();
-  for (const row of parts ?? []) {
-    if (row.participant_profile_id) ids.add(row.participant_profile_id);
+  return (parts ?? []).map((row) => {
     const emp = Array.isArray(row.employee) ? row.employee[0] : row.employee;
-    if (emp?.profile_id) ids.add(emp.profile_id);
-  }
-  return ids;
+    const prof = Array.isArray(row.profile) ? row.profile[0] : row.profile;
+    return {
+      profileId: row.participant_profile_id,
+      profileEmail: prof?.email ?? null,
+      employeeProfileId: emp?.profile_id ?? null,
+      employeeEmail: emp?.email ?? null,
+    };
+  });
 }
 
-export interface StagiaireSearchHit {
-  id: string;
-  full_name: string;
-  email: string;
-  account_type: 'particulier' | 'entreprise' | null;
+function occupantProfileIds(occupants: SessionSearchOccupant[]): Set<string> {
+  const ids = new Set<string>();
+  for (const occupant of occupants) {
+    if (occupant.profileId) ids.add(occupant.profileId);
+    if (occupant.employeeProfileId) ids.add(occupant.employeeProfileId);
+  }
+  return ids;
 }
 
 export async function searchStagiairesForSession(
@@ -62,7 +78,7 @@ export async function searchStagiairesForSession(
 
   const admin = createAdminClient();
   const like = `%${escapeLikeChars(q)}%`;
-  const already = await participatingProfileIds(admin, sessionId);
+  const occupants = await loadSessionOccupants(admin, sessionId);
 
   const { data, error } = await admin
     .from('profiles')
@@ -70,10 +86,10 @@ export async function searchStagiairesForSession(
     .eq('role', 'stagiaire')
     .or(`full_name.ilike.${like},email.ilike.${like}`)
     .order('full_name')
-    .limit(20);
+    .limit(40);
   if (error) throw new Error(error.message);
 
-  return ((data ?? []) as StagiaireSearchHit[]).filter((p) => !already.has(p.id));
+  return filterStagiaireSearchHits(data ?? [], occupants);
 }
 
 export async function addProfileToSession(
@@ -88,16 +104,19 @@ export async function addProfileToSession(
 
   const { data: profile } = await admin
     .from('profiles')
-    .select('id, role, email, full_name')
+    .select('id, role, email, full_name, account_type')
     .eq('id', profileId)
     .maybeSingle();
   if (!profile) return { ok: false, error: 'Profil introuvable.' };
   if (profile.role !== 'stagiaire') {
     return { ok: false, error: 'Seuls les comptes stagiaires peuvent être inscrits.' };
   }
+  if (profile.account_type === 'entreprise') {
+    return { ok: false, error: 'Un compte entreprise ne peut pas être ajouté comme stagiaire.' };
+  }
 
-  const already = await participatingProfileIds(admin, sessionId);
-  if (already.has(profileId)) {
+  const occupants = await loadSessionOccupants(admin, sessionId);
+  if (occupantProfileIds(occupants).has(profileId)) {
     return { ok: false, error: 'Ce stagiaire est déjà inscrit à cette session.' };
   }
 

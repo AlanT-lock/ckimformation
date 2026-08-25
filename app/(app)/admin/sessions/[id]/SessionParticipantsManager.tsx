@@ -153,8 +153,8 @@ export function SessionParticipantsManager({
       <div className="bg-white border border-dark/10 rounded-lg p-4 space-y-3">
         <p className="text-xs uppercase tracking-[0.3em] text-teal">Ajouter un stagiaire (compte existant)</p>
         <p className="text-sm text-dark/60">
-          Recherchez un profil déjà créé (nom ou email). Il sera inscrit comme confirmé et pourra
-          accéder immédiatement à l’espace de formation.
+          Seuls les comptes avec connexion, pas encore inscrits à cette session, sont proposés.
+          L’email permet de distinguer deux personnes homonymes.
         </p>
         {error && (
           <div className="text-xs text-orange bg-orange/10 border border-orange/30 rounded p-2">{error}</div>
@@ -174,8 +174,18 @@ export function SessionParticipantsManager({
             {hits.map((h) => (
               <li key={h.id} className="flex items-center justify-between gap-3 px-3 py-2">
                 <div className="min-w-0">
-                  <div className="font-medium truncate">{h.full_name || h.email}</div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium truncate">{h.full_name || h.email}</span>
+                    <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-dark/10 text-dark/70">
+                      {h.account_type === 'particulier' ? 'Compte particulier' : 'Compte stagiaire'}
+                    </span>
+                  </div>
                   <div className="text-xs text-dark/50 break-all">{h.email}</div>
+                  {h.orphanEmployeeOnSession && (
+                    <p className="text-xs text-orange mt-0.5">
+                      Fiche salarié sans compte déjà inscrite — ajoutez ce compte pour rétablir l’accès.
+                    </p>
+                  )}
                 </div>
                 <Button type="button" onClick={() => onAdd(h)} disabled={pending}>
                   {pending ? '…' : 'Ajouter'}
