@@ -1,5 +1,9 @@
 import { normalizeEmployeeEmail } from '@/lib/employees/linkability';
 
+function asEmail(value: string | null | undefined): string {
+  return typeof value === 'string' ? normalizeEmployeeEmail(value) : '';
+}
+
 export interface SessionSearchOccupant {
   profileId: string | null;
   profileEmail: string | null;
@@ -44,35 +48,42 @@ export function filterStagiaireSearchHits(
   for (const occupant of occupants) {
     if (occupant.profileId) enrolledProfileIds.add(occupant.profileId);
     if (occupant.employeeProfileId) enrolledProfileIds.add(occupant.employeeProfileId);
-    if (occupant.profileEmail) {
-      enrolledAccountEmails.add(normalizeEmployeeEmail(occupant.profileEmail));
-    }
-    if (occupant.employeeEmail) {
-      const email = normalizeEmployeeEmail(occupant.employeeEmail);
-      if (occupant.employeeProfileId) enrolledAccountEmails.add(email);
-      else orphanEmployeeEmails.add(email);
+    const profileEmail = asEmail(occupant.profileEmail);
+    if (profileEmail) enrolledAccountEmails.add(profileEmail);
+    const employeeEmail = asEmail(occupant.employeeEmail);
+    if (employeeEmail) {
+      if (occupant.employeeProfileId) enrolledAccountEmails.add(employeeEmail);
+      else orphanEmployeeEmails.add(employeeEmail);
     }
   }
 
   const eligible = candidates.filter((profile) => {
     if (profile.account_type === 'entreprise') return false;
     if (enrolledProfileIds.has(profile.id)) return false;
-    const email = normalizeEmployeeEmail(profile.email);
-    if (enrolledAccountEmails.has(email)) return false;
+    const email = asEmail(profile.email);
+    if (email && enrolledAccountEmails.has(email)) return false;
     return true;
   });
 
   const byEmail = new Map<string, StagiaireSearchCandidate>();
+  const withoutEmail: StagiaireSearchCandidate[] = [];
   for (const profile of eligible) {
-    const email = normalizeEmployeeEmail(profile.email);
+    const email = asEmail(profile.email);
+    if (!email) {
+      withoutEmail.push(profile);
+      continue;
+    }
     const existing = byEmail.get(email);
     if (!existing || accountPriority(profile.account_type) > accountPriority(existing.account_type)) {
       byEmail.set(email, profile);
     }
   }
 
-  return [...byEmail.values()].map((profile) => ({
-    ...profile,
-    orphanEmployeeOnSession: orphanEmployeeEmails.has(normalizeEmployeeEmail(profile.email)),
+  return [...byEmail.values(), ...withoutEmail].map((profile) => ({
+    id: profile.id,
+    full_name: profile.full_name,
+    email: profile.email,
+    account_type: profile.account_type,
+    orphanEmployeeOnSession: orphanEmployeeEmails.has(asEmail(profile.email)),
   }));
 }

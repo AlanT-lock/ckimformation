@@ -3,9 +3,11 @@
 import { revalidatePath } from 'next/cache';
 import { getCurrentProfile } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { escapeIlikeExact } from '@/lib/employees/linkability';
 import {
   filterStagiaireSearchHits,
   type SessionSearchOccupant,
+  type StagiaireSearchCandidate,
   type StagiaireSearchHit,
 } from '@/lib/sessions/stagiaire-search';
 
@@ -26,33 +28,51 @@ function revalidateSession(sessionId: string) {
   revalidatePath('/stagiaire/parcours');
 }
 
-function escapeLikeChars(s: string): string {
-  return s.replace(/[%_,()]/g, (c) => (c === ',' || c === '(' || c === ')' ? ' ' : `\\${c}`));
-}
-
 async function loadSessionOccupants(
   admin: ReturnType<typeof createAdminClient>,
   sessionId: string,
 ): Promise<SessionSearchOccupant[]> {
-  const { data: insc } = await admin.from('inscriptions').select('id').eq('session_id', sessionId);
+  const { data: insc, error: inscErr } = await admin
+    .from('inscriptions')
+    .select('id')
+    .eq('session_id', sessionId);
+  if (inscErr) {
+    console.error('[admin] loadSessionOccupants inscriptions', inscErr);
+    return [];
+  }
   const inscriptionIds = (insc ?? []).map((i) => i.id);
   if (inscriptionIds.length === 0) return [];
 
-  const { data: parts } = await admin
+  const { data: parts, error: partsErr } = await admin
     .from('inscription_participants')
-    .select(`
-      participant_profile_id,
-      profile:profiles!inscription_participants_participant_profile_id_fkey(email),
-      employee:employees(profile_id, email)
-    `)
+    .select('participant_profile_id, employee_id')
     .in('inscription_id', inscriptionIds);
+  if (partsErr) {
+    console.error('[admin] loadSessionOccupants participants', partsErr);
+    return [];
+  }
+
+  const employeeIds = [...new Set((parts ?? []).map((p) => p.employee_id).filter((id): id is string => !!id))];
+  const empById = new Map<string, { profile_id: string | null; email: string }>();
+  if (employeeIds.length > 0) {
+    const { data: employees, error: empErr } = await admin
+      .from('employees')
+      .select('id, profile_id, email')
+      .in('id', employeeIds);
+    if (empErr) {
+      console.error('[admin] loadSessionOccupants employees', empErr);
+    } else {
+      for (const emp of employees ?? []) {
+        empById.set(emp.id, { profile_id: emp.profile_id, email: emp.email });
+      }
+    }
+  }
 
   return (parts ?? []).map((row) => {
-    const emp = Array.isArray(row.employee) ? row.employee[0] : row.employee;
-    const prof = Array.isArray(row.profile) ? row.profile[0] : row.profile;
+    const emp = row.employee_id ? empById.get(row.employee_id) : undefined;
     return {
       profileId: row.participant_profile_id,
-      profileEmail: prof?.email ?? null,
+      profileEmail: null,
       employeeProfileId: emp?.profile_id ?? null,
       employeeEmail: emp?.email ?? null,
     };
@@ -71,25 +91,38 @@ function occupantProfileIds(occupants: SessionSearchOccupant[]): Set<string> {
 export async function searchStagiairesForSession(
   sessionId: string,
   query: string,
-): Promise<StagiaireSearchHit[]> {
-  await requireAdmin();
-  const q = query.trim();
-  if (q.length < 2) return [];
+): Promise<{ ok: true; hits: StagiaireSearchHit[] } | { ok: false; error: string }> {
+  try {
+    await requireAdmin();
+    const q = query.trim();
+    if (q.length < 2) return { ok: true, hits: [] };
 
-  const admin = createAdminClient();
-  const like = `%${escapeLikeChars(q)}%`;
-  const occupants = await loadSessionOccupants(admin, sessionId);
+    const admin = createAdminClient();
+    const pattern = `%${escapeIlikeExact(q)}%`;
+    const select = 'id, full_name, email, account_type';
 
-  const { data, error } = await admin
-    .from('profiles')
-    .select('id, full_name, email, account_type')
-    .eq('role', 'stagiaire')
-    .or(`full_name.ilike.${like},email.ilike.${like}`)
-    .order('full_name')
-    .limit(40);
-  if (error) throw new Error(error.message);
+    const [byName, byEmail, occupants] = await Promise.all([
+      admin.from('profiles').select(select).eq('role', 'stagiaire').ilike('full_name', pattern).limit(40),
+      admin.from('profiles').select(select).eq('role', 'stagiaire').ilike('email', pattern).limit(40),
+      loadSessionOccupants(admin, sessionId),
+    ]);
 
-  return filterStagiaireSearchHits(data ?? [], occupants);
+    if (byName.error) throw new Error(byName.error.message);
+    if (byEmail.error) throw new Error(byEmail.error.message);
+
+    const byId = new Map<string, StagiaireSearchCandidate>();
+    for (const row of [...(byName.data ?? []), ...(byEmail.data ?? [])]) {
+      byId.set(row.id, row);
+    }
+
+    return { ok: true, hits: filterStagiaireSearchHits([...byId.values()], occupants) };
+  } catch (err) {
+    console.error('[admin] searchStagiairesForSession', err);
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : 'La recherche n’a pas pu aboutir.',
+    };
+  }
 }
 
 export async function addProfileToSession(

@@ -45,12 +45,22 @@ export function SessionParticipantsManager({
     let cancelled = false;
     const t = setTimeout(() => {
       setSearching(true);
+      setError(null);
       void searchStagiairesForSession(sessionId, q)
         .then((r) => {
-          if (!cancelled) setHits(r);
+          if (cancelled) return;
+          if (!r.ok) {
+            setError(r.error);
+            setHits([]);
+            return;
+          }
+          setError(null);
+          setHits(r.hits);
         })
-        .catch(() => {
-          if (!cancelled) setHits([]);
+        .catch((err: unknown) => {
+          if (cancelled) return;
+          setHits([]);
+          setError(err instanceof Error ? err.message : 'La recherche n’a pas pu aboutir.');
         })
         .finally(() => {
           if (!cancelled) setSearching(false);
@@ -194,7 +204,7 @@ export function SessionParticipantsManager({
             ))}
           </ul>
         )}
-        {q.trim().length >= 2 && hits.length === 0 && !searching && (
+        {q.trim().length >= 2 && hits.length === 0 && !searching && !error && (
           <p className="text-sm text-dark/50">Aucun compte correspondant, ou déjà inscrit à cette session.</p>
         )}
       </div>

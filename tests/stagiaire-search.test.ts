@@ -67,4 +67,25 @@ describe('filterStagiaireSearchHits', () => {
       ]),
     ).toEqual([]);
   });
+
+  it('ne casse pas si un candidat a un email manquant', () => {
+    expect(
+      filterStagiaireSearchHits(
+        [
+          { id: 'broken', full_name: 'Sans Email', email: null as unknown as string, account_type: 'particulier' },
+          jeanCompte,
+        ],
+        [],
+      ),
+    ).toEqual([
+      { ...jeanCompte, orphanEmployeeOnSession: false },
+      {
+        id: 'broken',
+        full_name: 'Sans Email',
+        email: null as unknown as string,
+        account_type: 'particulier',
+        orphanEmployeeOnSession: false,
+      },
+    ]);
+  });
 });
