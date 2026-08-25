@@ -84,7 +84,7 @@ export default async function AdminSessionDetailPage({ params }: PageProps) {
           payerLabel,
         });
       } else if (prof) {
-        const bits = prof.full_name.split(' ');
+        const bits = (prof.full_name ?? '').split(' ');
         participantRows.push({
           id: p.id,
           inscriptionId: ins.id,

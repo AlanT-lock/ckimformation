@@ -7,9 +7,8 @@ import { FieldLabel } from '@/components/app/Field';
 import {
   addProfileToSession,
   removeParticipantFromSession,
-  searchStagiairesForSession,
-  type StagiaireSearchHit,
 } from './participant-actions';
+import type { StagiaireSearchHit } from '@/lib/sessions/stagiaire-search';
 
 export interface SessionParticipantRow {
   id: string;
@@ -43,22 +42,31 @@ export function SessionParticipantsManager({
       return () => clearTimeout(t0);
     }
     let cancelled = false;
+    const controller = new AbortController();
     const t = setTimeout(() => {
       setSearching(true);
       setError(null);
-      void searchStagiairesForSession(sessionId, q)
-        .then((r) => {
-          if (cancelled) return;
-          if (!r.ok) {
-            setError(r.error);
-            setHits([]);
-            return;
+      void fetch(
+        `/api/admin/sessions/${sessionId}/stagiaires/search?q=${encodeURIComponent(q.trim())}`,
+        { signal: controller.signal },
+      )
+        .then(async (res) => {
+          const body = (await res.json().catch(() => ({}))) as {
+            hits?: StagiaireSearchHit[];
+            error?: string;
+          };
+          if (!res.ok) {
+            throw new Error(body.error || `Recherche impossible (${res.status})`);
           }
+          return body.hits ?? [];
+        })
+        .then((hits) => {
+          if (cancelled) return;
           setError(null);
-          setHits(r.hits);
+          setHits(hits);
         })
         .catch((err: unknown) => {
-          if (cancelled) return;
+          if (cancelled || (err instanceof DOMException && err.name === 'AbortError')) return;
           setHits([]);
           setError(err instanceof Error ? err.message : 'La recherche n’a pas pu aboutir.');
         })
@@ -68,6 +76,7 @@ export function SessionParticipantsManager({
     }, 250);
     return () => {
       cancelled = true;
+      controller.abort();
       clearTimeout(t);
     };
   }, [q, sessionId]);
