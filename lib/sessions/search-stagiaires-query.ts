@@ -140,7 +140,10 @@ export async function searchStagiairesForSessionQuery(
     addRows(data as StagiaireSearchCandidate[] | null);
   }
 
-  return filterStagiaireSearchHits([...byId.values()], occupants).sort((a, b) =>
-    (a.full_name || a.email).localeCompare(b.full_name || b.email, 'fr', { sensitivity: 'base' }),
-  );
+  return filterStagiaireSearchHits([...byId.values()], occupants).sort((a, b) => {
+    const rank = (t: StagiaireSearchHit['account_type']) => (t === 'particulier' ? 0 : 1);
+    const byType = rank(a.account_type) - rank(b.account_type);
+    if (byType !== 0) return byType;
+    return (a.full_name || a.email).localeCompare(b.full_name || b.email, 'fr', { sensitivity: 'base' });
+  });
 }

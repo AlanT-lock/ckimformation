@@ -39,6 +39,8 @@ export async function addProfileToSession(
   if (profile.role !== 'stagiaire') {
     return { ok: false, error: 'Seuls les comptes stagiaires peuvent être inscrits.' };
   }
+  // Un stagiaire peut être « particulier » ou « entreprise » : l'admin doit
+  // pouvoir l'inscrire dans les deux cas (rattrapage jour J).
 
   const occupants = await loadSessionOccupants(admin, sessionId);
   if (occupantProfileIds(occupants).has(profileId)) {
