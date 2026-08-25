@@ -172,8 +172,8 @@ export function SessionParticipantsManager({
       <div className="bg-white border border-dark/10 rounded-lg p-4 space-y-3">
         <p className="text-xs uppercase tracking-[0.3em] text-teal">Ajouter un stagiaire (compte existant)</p>
         <p className="text-sm text-dark/60">
-          Seuls les comptes avec connexion, pas encore inscrits à cette session, sont proposés.
-          L’email permet de distinguer deux personnes homonymes.
+          Tapez un prénom, un nom ou un email (accents facultatifs). Les personnes déjà inscrites
+          n’apparaissent pas.
         </p>
         {error && (
           <div className="text-xs text-orange bg-orange/10 border border-orange/30 rounded p-2">{error}</div>
@@ -196,7 +196,11 @@ export function SessionParticipantsManager({
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium truncate">{h.full_name || h.email}</span>
                     <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-dark/10 text-dark/70">
-                      {h.account_type === 'particulier' ? 'Compte particulier' : 'Compte stagiaire'}
+                      {h.account_type === 'entreprise'
+                        ? 'Compte entreprise'
+                        : h.account_type === 'particulier'
+                          ? 'Compte particulier'
+                          : 'Compte stagiaire'}
                     </span>
                   </div>
                   <div className="text-xs text-dark/50 break-all">{h.email}</div>

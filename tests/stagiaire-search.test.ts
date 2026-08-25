@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { filterStagiaireSearchHits } from '@/lib/sessions/stagiaire-search';
+import {
+  filterStagiaireSearchHits,
+  profileMatchesQuery,
+} from '@/lib/sessions/stagiaire-search';
 
 const jeanCompte = {
   id: 'profile-jean',
@@ -15,6 +18,26 @@ const jeanEntreprise = {
   account_type: 'entreprise' as const,
 };
 
+describe('profileMatchesQuery', () => {
+  it('trouve un nom avec ou sans accent', () => {
+    expect(profileMatchesQuery('Léa Martin', 'lea@x.fr', 'lea')).toBe(true);
+    expect(profileMatchesQuery('Lea Martin', 'lea@x.fr', 'léa')).toBe(true);
+  });
+
+  it('accepte prénom et nom dans n’importe quel ordre', () => {
+    expect(profileMatchesQuery('Marie Dupont', 'm@x.fr', 'dupont marie')).toBe(true);
+  });
+
+  it('matche sur l’email', () => {
+    expect(profileMatchesQuery('Marie', 'marie.dupont@acme.fr', 'dupont')).toBe(true);
+    expect(profileMatchesQuery('Marie', 'marie.dupont@acme.fr', 'marie.dupont@acme.fr')).toBe(true);
+  });
+
+  it('refuse un nom qui ne correspond pas', () => {
+    expect(profileMatchesQuery('Jean Dupont', 'jean@x.fr', 'martin')).toBe(false);
+  });
+});
+
 describe('filterStagiaireSearchHits', () => {
   it('exclut un profil déjà inscrit via participant_profile_id', () => {
     expect(
@@ -24,9 +47,10 @@ describe('filterStagiaireSearchHits', () => {
     ).toEqual([]);
   });
 
-  it('exclut les comptes entreprise du même nom', () => {
+  it('laisse le compte entreprise s’il n’est pas inscrit', () => {
     expect(filterStagiaireSearchHits([jeanCompte, jeanEntreprise], [])).toEqual([
       { ...jeanCompte, orphanEmployeeOnSession: false },
+      { ...jeanEntreprise, orphanEmployeeOnSession: false },
     ]);
   });
 

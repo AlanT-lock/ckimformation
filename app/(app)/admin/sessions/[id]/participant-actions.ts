@@ -39,9 +39,6 @@ export async function addProfileToSession(
   if (profile.role !== 'stagiaire') {
     return { ok: false, error: 'Seuls les comptes stagiaires peuvent être inscrits.' };
   }
-  if (profile.account_type === 'entreprise') {
-    return { ok: false, error: 'Un compte entreprise ne peut pas être ajouté comme stagiaire.' };
-  }
 
   const occupants = await loadSessionOccupants(admin, sessionId);
   if (occupantProfileIds(occupants).has(profileId)) {

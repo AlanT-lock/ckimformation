@@ -1,9 +1,9 @@
 import 'server-only';
 
 import { createAdminClient } from '@/lib/supabase/admin';
-import { escapeIlikeExact } from '@/lib/employees/linkability';
 import {
   filterStagiaireSearchHits,
+  profileMatchesQuery,
   type SessionSearchOccupant,
   type StagiaireSearchCandidate,
   type StagiaireSearchHit,
@@ -79,27 +79,19 @@ export async function searchStagiairesForSessionQuery(
   if (q.length < 2) return [];
 
   const admin = createAdminClient();
-  const pattern = `%${escapeIlikeExact(q)}%`;
   const select = 'id, full_name, email, account_type';
 
-  const [byName, byEmail, occupants] = await Promise.all([
-    admin.from('profiles').select(select).eq('role', 'stagiaire').ilike('full_name', pattern).limit(40),
-    admin.from('profiles').select(select).eq('role', 'stagiaire').ilike('email', pattern).limit(40),
+  const [{ data, error }, occupants] = await Promise.all([
+    admin.from('profiles').select(select).eq('role', 'stagiaire').limit(5000),
     loadSessionOccupants(admin, sessionId),
   ]);
+  if (error) throw new Error(error.message);
 
-  if (byName.error) throw new Error(byName.error.message);
-  if (byEmail.error) throw new Error(byEmail.error.message);
+  const matched = ((data ?? []) as StagiaireSearchCandidate[]).filter((row) =>
+    profileMatchesQuery(row.full_name ?? '', row.email ?? '', q),
+  );
 
-  const byId = new Map<string, StagiaireSearchCandidate>();
-  for (const row of [...(byName.data ?? []), ...(byEmail.data ?? [])]) {
-    byId.set(row.id, {
-      id: row.id,
-      full_name: row.full_name,
-      email: row.email,
-      account_type: row.account_type,
-    });
-  }
-
-  return filterStagiaireSearchHits([...byId.values()], occupants);
+  return filterStagiaireSearchHits(matched, occupants).sort((a, b) =>
+    (a.full_name || a.email).localeCompare(b.full_name || b.email, 'fr', { sensitivity: 'base' }),
+  );
 }

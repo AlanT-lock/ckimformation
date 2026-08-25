@@ -33,8 +33,31 @@ function accountPriority(accountType: StagiaireSearchCandidate['account_type']):
   return 0;
 }
 
+/** Minuscules, sans accents, ponctuation → espaces. */
+export function normalizeSearchText(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9@]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Prénom, nom (dans n'importe quel ordre) ou email, accents facultatifs. */
+export function profileMatchesQuery(name: string, email: string, query: string): boolean {
+  const q = normalizeSearchText(query);
+  if (q.length < 2) return false;
+  const hay = normalizeSearchText(`${name} ${email}`);
+  if (!hay) return false;
+  if (hay.includes(q)) return true;
+  const tokens = q.split(' ').filter((token) => token.length >= 2);
+  if (tokens.length === 0) return false;
+  return tokens.every((token) => hay.includes(token));
+}
+
 /**
- * Ne propose que des comptes stagiaires (pas entreprise) absents de la session.
+ * Retire seulement les profils déjà inscrits (id).
  * Si plusieurs profils partagent le même email, on garde le compte particulier.
  */
 export function filterStagiaireSearchHits(
@@ -42,28 +65,18 @@ export function filterStagiaireSearchHits(
   occupants: SessionSearchOccupant[],
 ): StagiaireSearchHit[] {
   const enrolledProfileIds = new Set<string>();
-  const enrolledAccountEmails = new Set<string>();
   const orphanEmployeeEmails = new Set<string>();
 
   for (const occupant of occupants) {
     if (occupant.profileId) enrolledProfileIds.add(occupant.profileId);
     if (occupant.employeeProfileId) enrolledProfileIds.add(occupant.employeeProfileId);
-    const profileEmail = asEmail(occupant.profileEmail);
-    if (profileEmail) enrolledAccountEmails.add(profileEmail);
     const employeeEmail = asEmail(occupant.employeeEmail);
-    if (employeeEmail) {
-      if (occupant.employeeProfileId) enrolledAccountEmails.add(employeeEmail);
-      else orphanEmployeeEmails.add(employeeEmail);
+    if (employeeEmail && !occupant.employeeProfileId) {
+      orphanEmployeeEmails.add(employeeEmail);
     }
   }
 
-  const eligible = candidates.filter((profile) => {
-    if (profile.account_type === 'entreprise') return false;
-    if (enrolledProfileIds.has(profile.id)) return false;
-    const email = asEmail(profile.email);
-    if (email && enrolledAccountEmails.has(email)) return false;
-    return true;
-  });
+  const eligible = candidates.filter((profile) => !enrolledProfileIds.has(profile.id));
 
   const byEmail = new Map<string, StagiaireSearchCandidate>();
   const withoutEmail: StagiaireSearchCandidate[] = [];
