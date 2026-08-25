@@ -112,8 +112,8 @@ export default async function StagiairesPage({ params }: PageProps) {
 
       {sansCompte > 0 && (
         <div className="bg-orange/10 border border-orange/30 rounded p-4 text-sm text-orange">
-          {sansCompte} stagiaire{sansCompte > 1 ? 's' : ''} sans compte. Envoyez l&apos;invitation pour qu&apos;ils puissent
-          signer les émargements et compléter les questionnaires le jour J.
+          {sansCompte} stagiaire{sansCompte > 1 ? 's' : ''} sans compte rattaché. Envoyez l&apos;invitation :
+          création d&apos;accès, ou rattachement si la personne a déjà un compte.
         </div>
       )}
 

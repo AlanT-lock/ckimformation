@@ -5,6 +5,7 @@ import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendAndLog } from '@/lib/email/log';
 import { renderSessionReservedCompleted } from '@/lib/email/templates/session-reservee';
+import { upsertEmployeeForEmployer } from '@/lib/employees/upsert';
 
 async function requireEtabOnSession(sessionId: string) {
   const profile = await getCurrentProfile();
@@ -98,6 +99,8 @@ export async function inscrireStagiaire(sessionId: string, employeeId: string) {
 /**
  * Crée une fiche salarié dans `employees` puis inscrit ce salarié à la session.
  * Si un salarié avec le même email existe déjà sous ce compte, on le réutilise.
+ * Si l'email correspond à un compte stagiaire existant, une invitation de
+ * rattachement est envoyée (pas de second compte).
  */
 export async function creerEtInscrireStagiaire(
   sessionId: string,
@@ -105,40 +108,10 @@ export async function creerEtInscrireStagiaire(
 ) {
   const { profile, sb } = await requireEtabOnSession(sessionId);
 
-  const prenom = payload.prenom.trim();
-  const nom = payload.nom.trim();
-  const email = payload.email.trim().toLowerCase();
-  if (!prenom || !nom || !email) throw new Error('Prénom, nom et email sont requis.');
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Email invalide.');
+  const result = await upsertEmployeeForEmployer(sb, profile.id, payload, profile.id);
+  if (!result.ok) throw new Error(result.error);
 
-  // 1) Récupère ou crée la fiche employee
-  const { data: existing } = await sb
-    .from('employees')
-    .select('id')
-    .eq('employer_profile_id', profile.id)
-    .eq('email', email)
-    .maybeSingle();
-
-  let employeeId: string;
-  if (existing) {
-    employeeId = (existing as { id: string }).id;
-  } else {
-    const { data: inserted, error: insErr } = await sb
-      .from('employees')
-      .insert({
-        employer_profile_id: profile.id,
-        prenom,
-        nom,
-        email,
-      })
-      .select('id')
-      .single();
-    if (insErr || !inserted) throw new Error(insErr?.message ?? 'Création employé impossible');
-    employeeId = (inserted as { id: string }).id;
-  }
-
-  // 2) Inscrit (réutilise la logique)
-  await inscrireStagiaire(sessionId, employeeId);
+  await inscrireStagiaire(sessionId, result.id);
 }
 
 export async function uploadDocumentRequest(

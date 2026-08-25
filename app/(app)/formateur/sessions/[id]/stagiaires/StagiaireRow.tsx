@@ -30,7 +30,15 @@ export function StagiaireCard({ sessionId, row }: { sessionId: string; row: Stag
     startTransition(async () => {
       const res = await sendInvitationToEmployee(sessionId, row.employeeId!);
       if (!res.ok) setError(res.error);
-      else setSuccess(res.resent ? 'Nouveau lien envoyé.' : 'Invitation envoyée.');
+      else if (res.mode === 'link') {
+        setSuccess(
+          res.resent
+            ? 'Nouveau lien de rattachement envoyé. Le stagiaire doit se connecter avec son compte existant.'
+            : 'Invitation de rattachement envoyée. Le stagiaire doit se connecter avec son compte existant.',
+        );
+      } else {
+        setSuccess(res.resent ? 'Nouveau lien envoyé.' : 'Invitation envoyée.');
+      }
     });
   }
 

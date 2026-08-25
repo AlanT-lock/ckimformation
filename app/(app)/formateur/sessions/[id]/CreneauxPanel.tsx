@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { Button } from '@/components/app/Button';
+import { SignaturePad } from '@/components/app/SignaturePad';
 import { createClient } from '@/lib/supabase/client';
-import { triggerEmargement, closeEmargement, reopenEmargement } from './actions';
+import { triggerEmargement, closeEmargement, reopenEmargement, signFormateurEmargement } from './actions';
 import { loadAckedTriggers, markTriggerAcked } from '@/lib/ui/acked-store';
 import { formatDateLong } from '@/lib/date';
 
@@ -29,27 +30,51 @@ export function CreneauxPanel({
   creneaux,
   initialTriggers,
   expectedByCreneau,
+  formateurSignedCreneauIds,
 }: {
   sessionId: string;
   creneaux: CreneauInfo[];
   initialTriggers: EmargementTriggerInfo[];
   expectedByCreneau: Record<string, number>;
+  formateurSignedCreneauIds: string[];
 }) {
   const [triggers, setTriggers] = useState<EmargementTriggerInfo[]>(initialTriggers);
   const [signatures, setSignatures] = useState<Record<string, number>>({});
+  const [formateurSigned, setFormateurSigned] = useState<Set<string>>(() => new Set(formateurSignedCreneauIds));
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [allDoneAlert, setAllDoneAlert] = useState<{ triggerId: string; creneauId: string } | null>(null);
+  const [signing, setSigning] = useState<CreneauInfo | null>(null);
+  const [signature, setSignature] = useState<string | null>(null);
   const ackedRef = useRef<Set<string>>(new Set());
 
   const supabase = useMemo(() => createClient(), []);
 
-  // Charge les triggers déjà acquittés (localStorage) après mount
   useEffect(() => {
     ackedRef.current = loadAckedTriggers();
   }, []);
 
-  // Subscribe : triggers + emargements
+  useEffect(() => {
+    setFormateurSigned(new Set(formateurSignedCreneauIds));
+  }, [formateurSignedCreneauIds]);
+
+  useEffect(() => {
+    setTriggers(initialTriggers);
+  }, [initialTriggers]);
+
+  // Comme côté stagiaire : dès qu'un émargement est ouvert et non signé, on ouvre le pad.
+  useEffect(() => {
+    if (signing) return;
+    const next = creneaux.find((c) => {
+      const trig = triggers.find((t) => t.creneau_id === c.id);
+      return trig && !trig.closed_at && !formateurSigned.has(c.id);
+    });
+    if (next) {
+      setSignature(null);
+      setSigning(next);
+    }
+  }, [creneaux, triggers, formateurSigned, signing]);
+
   useEffect(() => {
     const ch = supabase
       .channel(`form-cre-${sessionId}`)
@@ -73,7 +98,6 @@ export function CreneauxPanel({
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'emargements' },
         () => {
-          // Refresh counts (simple: refetch)
           refreshCounts();
         }
       )
@@ -96,7 +120,6 @@ export function CreneauxPanel({
     });
     setSignatures(counts);
 
-    // Détecte les créneaux ouverts dont les émargements ont atteint l'effectif attendu
     setTriggers((arr) => {
       for (const trig of arr) {
         if (trig.closed_at) continue;
@@ -122,8 +145,15 @@ export function CreneauxPanel({
   function open(creneauId: string) {
     setError(null);
     startTransition(async () => {
-      try { await triggerEmargement(sessionId, creneauId); }
-      catch (err) { setError(err instanceof Error ? err.message : 'Erreur'); }
+      try {
+        const trig = await triggerEmargement(sessionId, creneauId);
+        setTriggers((arr) => {
+          const filtered = arr.filter((t) => t.id !== trig.id && t.creneau_id !== trig.creneau_id);
+          return [...filtered, trig];
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Erreur');
+      }
     });
   }
   function close(triggerId: string) {
@@ -141,9 +171,22 @@ export function CreneauxPanel({
     });
   }
 
+  function submitFormateurSignature() {
+    if (!signing || !signature) return;
+    setError(null);
+    const creneauId = signing.id;
+    startTransition(async () => {
+      const res = await signFormateurEmargement(sessionId, creneauId, signature);
+      if (!res.ok) { setError(res.error); return; }
+      setFormateurSigned((s) => new Set([...s, creneauId]));
+      setSignature(null);
+      setSigning(null);
+    });
+  }
+
   return (
     <div className="space-y-3">
-      {error && (
+      {error && !signing && (
         <div className="text-sm text-orange bg-orange/10 border border-orange/30 rounded p-3">{error}</div>
       )}
       <div className="bg-white border border-dark/10 rounded-lg overflow-hidden divide-y divide-dark/10">
@@ -153,6 +196,7 @@ export function CreneauxPanel({
           const expected = expectedByCreneau[c.id] ?? 0;
           const isOpen = trig && !trig.closed_at;
           const isClosed = trig && trig.closed_at;
+          const formateurOk = formateurSigned.has(c.id);
           return (
             <div key={c.id} className="p-4 flex items-center justify-between gap-4 flex-wrap">
               <div>
@@ -166,8 +210,12 @@ export function CreneauxPanel({
                       {isOpen ? <span className="text-teal">Émargement ouvert</span> : <span className="text-dark/50">Émargement clôturé</span>}
                       {' · '}
                       <span>
-                        {signed} signature{signed > 1 ? 's' : ''}
+                        {signed} signature{signed > 1 ? 's' : ''} stagiaire{signed > 1 ? 's' : ''}
                         {expected > 0 && ` / ${expected} attendue${expected > 1 ? 's' : ''}`}
+                      </span>
+                      {' · '}
+                      <span className={formateurOk ? 'text-orange' : 'text-dark/50'}>
+                        {formateurOk ? 'Formateur signé' : 'Formateur non signé'}
                       </span>
                     </>
                   ) : (
@@ -195,7 +243,31 @@ export function CreneauxPanel({
         })}
       </div>
 
-      {allDoneAlert && (
+      {signing && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <h3 className="font-display text-2xl">Votre émargement formateur</h3>
+            <p className="text-sm text-dark/70 mt-1">
+              <span className="capitalize">{formatDateLong(signing.date)}</span>
+              {' '}({FR_TIME(signing.heure_debut)}–{FR_TIME(signing.heure_fin)})
+            </p>
+            <p className="text-sm text-dark/60 mt-2">
+              L&apos;émargement est ouvert pour les stagiaires. Signez maintenant pour tracer votre présence.
+            </p>
+            <div className="mt-4">
+              <SignaturePad onChange={setSignature} />
+            </div>
+            {error && <div className="mt-3 text-sm text-orange bg-orange/10 border border-orange/30 rounded p-2">{error}</div>}
+            <div className="mt-4 flex justify-end gap-2">
+              <Button onClick={submitFormateurSignature} disabled={!signature || pending}>
+                {pending ? 'Envoi…' : 'Valider ma signature'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {allDoneAlert && !signing && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full space-y-4">
             <h3 className="font-display text-2xl text-teal">Tout le monde a signé.</h3>

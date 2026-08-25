@@ -13,6 +13,7 @@ import {
   type InscriptionPayerInfo,
   type InscriptionSessionInfo,
 } from '@/lib/email/templates/inscription';
+import { upsertEmployeeForEmployer } from '@/lib/employees/upsert';
 
 const ADMIN_EMAIL = 'contact@ckimformation.fr';
 
@@ -247,28 +248,16 @@ export async function demanderInscriptionEntreprise(
     }
   }
 
-  // 2) Crée les nouveaux employés (s'ils n'existent pas déjà — sinon récupère l'ID)
+  // 2) Crée les nouveaux employés (s'ils n'existent pas déjà — sinon récupère l'ID).
+  //    Si l'email a déjà un compte stagiaire, on envoie une invitation de rattachement
+  //    au lieu de tenter de créer un second compte.
   const createdIds: string[] = [];
   for (const e of normalizedNew) {
-    const { data: existing } = await supabase
-      .from('employees')
-      .select('id')
-      .eq('employer_profile_id', profile.id)
-      .eq('email', e.email)
-      .maybeSingle();
-    if (existing) {
-      createdIds.push(existing.id);
-      continue;
+    const result = await upsertEmployeeForEmployer(supabase, profile.id, e, profile.id);
+    if (!result.ok) {
+      throw new Error(`Création du salarié ${e.email} impossible : ${result.error}`);
     }
-    const { data: inserted, error: insErr } = await supabase
-      .from('employees')
-      .insert({ employer_profile_id: profile.id, prenom: e.prenom, nom: e.nom, email: e.email })
-      .select('id')
-      .single();
-    if (insErr || !inserted) {
-      throw new Error(`Création du salarié ${e.email} impossible : ${insErr?.message ?? ''}`);
-    }
-    createdIds.push(inserted.id);
+    createdIds.push(result.id);
   }
 
   const allEmployeeIds = Array.from(new Set([...validatedExistingIds, ...createdIds]));

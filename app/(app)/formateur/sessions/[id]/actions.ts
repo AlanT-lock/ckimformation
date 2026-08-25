@@ -48,16 +48,68 @@ export async function untriggerTest(sessionId: string, triggerId: string) {
 export async function triggerEmargement(sessionId: string, creneauId: string) {
   const profile = await requireFormateurOfSession(sessionId);
   const supabase = await createClient();
-  const { error } = await supabase.from('creneau_emargement_triggers').insert({
-    session_id: sessionId,
-    creneau_id: creneauId,
-    triggered_by: profile.id,
-  });
+  const { data, error } = await supabase
+    .from('creneau_emargement_triggers')
+    .insert({
+      session_id: sessionId,
+      creneau_id: creneauId,
+      triggered_by: profile.id,
+    })
+    .select('id, creneau_id, triggered_at, closed_at')
+    .single();
   if (error) {
     if (error.code === '23505') throw new Error("L'émargement de ce créneau est déjà ouvert.");
     throw new Error(error.message);
   }
   revalidatePath(`/formateur/sessions/${sessionId}`);
+  revalidatePath(`/admin/sessions/${sessionId}`);
+  return data as { id: string; creneau_id: string; triggered_at: string; closed_at: string | null };
+}
+
+export async function signFormateurEmargement(
+  sessionId: string,
+  creneauId: string,
+  signatureDataUrl: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const profile = await requireFormateurOfSession(sessionId);
+  if (!signatureDataUrl.startsWith('data:image/')) {
+    return { ok: false, error: 'Signature invalide.' };
+  }
+  const supabase = await createClient();
+
+  const { data: cre } = await supabase
+    .from('session_creneaux')
+    .select('id, session_id')
+    .eq('id', creneauId)
+    .maybeSingle();
+  if (!cre || cre.session_id !== sessionId) {
+    return { ok: false, error: 'Créneau introuvable.' };
+  }
+
+  const { data: trig } = await supabase
+    .from('creneau_emargement_triggers')
+    .select('id, closed_at')
+    .eq('session_id', sessionId)
+    .eq('creneau_id', creneauId)
+    .maybeSingle();
+  if (!trig) return { ok: false, error: "L'émargement n'est pas ouvert." };
+  if (trig.closed_at) return { ok: false, error: "L'émargement de ce créneau est clôturé." };
+
+  const { error } = await supabase.from('formateur_emargements').upsert(
+    {
+      session_id: sessionId,
+      creneau_id: creneauId,
+      profile_id: profile.id,
+      signature_data: signatureDataUrl,
+      signed_at: new Date().toISOString(),
+    },
+    { onConflict: 'creneau_id' },
+  );
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/formateur/sessions/${sessionId}`);
+  revalidatePath(`/admin/sessions/${sessionId}`);
+  return { ok: true };
 }
 
 export async function closeEmargement(sessionId: string, triggerId: string) {
@@ -69,6 +121,7 @@ export async function closeEmargement(sessionId: string, triggerId: string) {
     .eq('id', triggerId);
   if (error) throw new Error(error.message);
   revalidatePath(`/formateur/sessions/${sessionId}`);
+  revalidatePath(`/admin/sessions/${sessionId}`);
 }
 
 export async function reopenEmargement(sessionId: string, triggerId: string) {
@@ -80,6 +133,7 @@ export async function reopenEmargement(sessionId: string, triggerId: string) {
     .eq('id', triggerId);
   if (error) throw new Error(error.message);
   revalidatePath(`/formateur/sessions/${sessionId}`);
+  revalidatePath(`/admin/sessions/${sessionId}`);
 }
 
 export async function terminateSession(sessionId: string) {

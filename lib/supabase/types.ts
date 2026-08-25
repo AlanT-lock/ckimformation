@@ -158,6 +158,18 @@ export interface Employee {
   updated_at: string;
 }
 
+export interface EmployeeInvitation {
+  id: string;
+  employee_id: string;
+  email: string;
+  token: string;
+  invited_by: string | null;
+  invited_at: string;
+  expires_at: string;
+  claimed_by: string | null;
+  claimed_at: string | null;
+}
+
 export interface Inscription {
   id: string;
   session_id: string;
@@ -190,6 +202,15 @@ export interface CreneauEmargementTrigger {
   triggered_at: string;
   triggered_by: string | null;
   closed_at: string | null;
+}
+
+export interface FormateurEmargement {
+  id: string;
+  session_id: string;
+  creneau_id: string;
+  profile_id: string;
+  signature_data: string;
+  signed_at: string;
 }
 
 export interface SessionTestTrigger {

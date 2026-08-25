@@ -4,10 +4,13 @@ import { createClient } from '@/lib/supabase/server';
 async function doLogout(request: NextRequest) {
   const supabase = await createClient();
   await supabase.auth.signOut();
+  const nextRaw = request.nextUrl.searchParams.get('next');
+  const next =
+    nextRaw && nextRaw.startsWith('/') && !nextRaw.startsWith('//') ? nextRaw : '/';
   // Status 303 (See Other) → impose un GET sur la cible.
   // Sans ça, NextResponse.redirect() défaut à 307 et le navigateur rejoue la
   // requête en POST sur "/", ce qui produit une erreur.
-  return NextResponse.redirect(new URL('/', request.url), { status: 303 });
+  return NextResponse.redirect(new URL(next, request.url), { status: 303 });
 }
 
 export async function POST(request: NextRequest) {

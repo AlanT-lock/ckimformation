@@ -5,6 +5,8 @@ import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { TestsPanel } from './TestsPanel';
 import { CreneauxPanel } from './CreneauxPanel';
 import { TerminateSessionPopup } from './TerminateSessionPopup';
+import { EmargementBoard } from '@/components/app/EmargementBoard';
+import type { EmargementBoardEntry } from '@/lib/emargements/board';
 
 interface PageProps { params: Promise<{ id: string }> }
 
@@ -29,7 +31,7 @@ export default async function FormateurSessionDetail({ params }: PageProps) {
 
   const formation = Array.isArray(session.formation) ? session.formation[0] : session.formation;
 
-  const [{ data: creneaux }, { data: inscriptions }, { data: tests }, { data: triggers }, { data: emargementTriggers }, { data: absences }] = await Promise.all([
+  const [{ data: creneaux }, { data: inscriptions }, { data: tests }, { data: triggers }, { data: emargementTriggers }, { data: absences }, { data: formateurProfile }] = await Promise.all([
     supabase.from('session_creneaux').select('*').eq('session_id', id).order('ordre'),
     supabase
       .from('inscriptions')
@@ -65,6 +67,9 @@ export default async function FormateurSessionDetail({ params }: PageProps) {
       .from('creneau_absences')
       .select('creneau_id, inscription_participant_id, session_creneaux!inner(session_id)')
       .eq('session_creneaux.session_id', id),
+    session.formateur_id
+      ? supabase.from('profiles').select('id, full_name').eq('id', session.formateur_id).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
   const allParticipantIds = (inscriptions ?? []).flatMap(
@@ -99,6 +104,76 @@ export default async function FormateurSessionDetail({ params }: PageProps) {
     return absCount < totalCreneaux; // au moins un créneau de présence
   });
   const expectedCompletions = activeParticipantsForTests.length;
+
+  const creneauIds = (creneaux ?? []).map((c) => c.id);
+  const [{ data: stagiaireEmargements }, { data: formateurEmargements }] = await Promise.all([
+    creneauIds.length > 0
+      ? supabase
+          .from('emargements')
+          .select('creneau_id, signed_at, signature_data, inscription_participant_id')
+          .in('creneau_id', creneauIds)
+      : Promise.resolve({ data: [] }),
+    supabase
+      .from('formateur_emargements')
+      .select('creneau_id, signed_at, signature_data')
+      .eq('session_id', id),
+  ]);
+
+  const participantNames = new Map<string, string>();
+  for (const ins of inscriptions ?? []) {
+    const parts = (ins.participants ?? []) as Array<{
+      id: string;
+      employee: { prenom: string; nom: string } | { prenom: string; nom: string }[] | null;
+      profile: { full_name: string } | { full_name: string }[] | null;
+    }>;
+    for (const p of parts) {
+      const emp = Array.isArray(p.employee) ? p.employee[0] : p.employee;
+      const prof = Array.isArray(p.profile) ? p.profile[0] : p.profile;
+      const name = emp ? `${emp.prenom} ${emp.nom}`.trim() : (prof?.full_name ?? 'Stagiaire');
+      participantNames.set(p.id, name);
+    }
+  }
+
+  const formateurName = formateurProfile?.full_name || 'Formateur';
+  const boardEntries: EmargementBoardEntry[] = [];
+  for (const fe of formateurEmargements ?? []) {
+    boardEntries.push({
+      id: `formateur-${fe.creneau_id}`,
+      creneauId: fe.creneau_id,
+      role: 'formateur',
+      name: formateurName,
+      signedAt: fe.signed_at,
+      signatureDataUrl: fe.signature_data,
+    });
+  }
+  for (const se of stagiaireEmargements ?? []) {
+    if (!se.inscription_participant_id) continue;
+    boardEntries.push({
+      id: `${se.inscription_participant_id}-${se.creneau_id}`,
+      creneauId: se.creneau_id,
+      role: 'stagiaire',
+      name: participantNames.get(se.inscription_participant_id) ?? 'Stagiaire',
+      signedAt: se.signed_at,
+      signatureDataUrl: se.signature_data,
+    });
+  }
+  for (const [pid, name] of participantNames) {
+    for (const c of creneaux ?? []) {
+      const exists = boardEntries.some((e) => e.id === `${pid}-${c.id}`);
+      if (!exists) {
+        boardEntries.push({
+          id: `${pid}-${c.id}`,
+          creneauId: c.id,
+          role: 'stagiaire',
+          name,
+          signedAt: null,
+          signatureDataUrl: null,
+        });
+      }
+    }
+  }
+
+  const formateurSignedCreneauIds = (formateurEmargements ?? []).map((e) => e.creneau_id);
 
   // Évaluations formateur (autre section) — compteur des évaluations remplies
   const { data: evalTests } = await supabase
@@ -150,13 +225,28 @@ export default async function FormateurSessionDetail({ params }: PageProps) {
           </ButtonLink>
         </div>
         <p className="text-xs text-dark/60 mb-3">
-          Ouvre l&apos;émargement d&apos;un créneau : tous les stagiaires connectés voient un popup avec le champ signature.
+          Ouvre l&apos;émargement d&apos;un créneau : tu signes immédiatement, et les stagiaires connectés voient le popup de signature.
         </p>
         <CreneauxPanel
           sessionId={id}
           creneaux={(creneaux ?? []).map((c) => ({ id: c.id, date: c.date, heure_debut: c.heure_debut, heure_fin: c.heure_fin, ordre: c.ordre }))}
           initialTriggers={(emargementTriggers ?? []).map((t) => ({ id: t.id, creneau_id: t.creneau_id, triggered_at: t.triggered_at, closed_at: t.closed_at }))}
           expectedByCreneau={expectedByCreneau}
+          formateurSignedCreneauIds={formateurSignedCreneauIds}
+        />
+      </section>
+
+      <section>
+        <h2 className="font-display text-2xl tracking-wide">Feuille d&apos;émargement</h2>
+        <p className="text-xs text-dark/60 mt-1 mb-3">
+          Signatures du formateur (encadré orange) et des stagiaires, créneau par créneau.
+        </p>
+        <EmargementBoard
+          creneaux={(creneaux ?? []).map((c) => ({
+            id: c.id, date: c.date, heure_debut: c.heure_debut, heure_fin: c.heure_fin, ordre: c.ordre,
+          }))}
+          entries={boardEntries}
+          formateurName={formateurName}
         />
       </section>
 

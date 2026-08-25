@@ -23,13 +23,25 @@ export default async function EmployesPage() {
     .order('nom', { ascending: true });
 
   const list = (employees ?? []) as Employee[];
+  const pendingIds = new Set<string>();
+  if (list.length > 0) {
+    const { data: pending } = await supabase
+      .from('employee_invitations')
+      .select('employee_id, expires_at')
+      .in('employee_id', list.map((e) => e.id))
+      .is('claimed_at', null);
+    const now = Date.now();
+    for (const row of pending ?? []) {
+      if (new Date(row.expires_at).getTime() > now) pendingIds.add(row.employee_id);
+    }
+  }
 
   return (
     <div className="space-y-8">
       <PageHeader
         eyebrow="Espace entreprise"
         title="Mes salariés"
-        description="Ajoutez et gérez les fiches de vos salariés. Vous pourrez ensuite les inscrire à une session de formation."
+        description="Ajoutez et gérez les fiches de vos salariés. Vous pourrez ensuite les inscrire à une session de formation. Si le salarié a déjà un compte, il recevra une invitation de rattachement."
       />
 
       <AddEmployeeForm />
@@ -43,7 +55,7 @@ export default async function EmployesPage() {
         ) : (
           <ul className="space-y-2">
             {list.map((e) => (
-              <EmployeeCard key={e.id} employee={e} />
+              <EmployeeCard key={e.id} employee={e} invitationPending={pendingIds.has(e.id)} />
             ))}
           </ul>
         )}

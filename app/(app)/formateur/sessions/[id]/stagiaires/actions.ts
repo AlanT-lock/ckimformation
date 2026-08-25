@@ -5,6 +5,8 @@ import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { resend, EMAIL_FROM } from '@/lib/email/resend';
 import { invitationEmailHtml, invitationEmailSubject } from '@/lib/email/templates/invitation';
+import { findProfileByEmail, sendEmployeeLinkInvitation } from '@/lib/employees/invitations';
+import { evaluateEmployeeLink } from '@/lib/employees/linkability';
 
 export async function toggleCreneauAbsence(
   sessionId: string,
@@ -103,8 +105,8 @@ export async function updateEmployeeEmailBeforeAccount(
 export async function sendInvitationToEmployee(
   sessionId: string,
   employeeId: string
-): Promise<{ ok: true; resent: boolean } | { ok: false; error: string }> {
-  await requireFormateurOfSession(sessionId);
+): Promise<{ ok: true; resent: boolean; mode: 'create' | 'recovery' | 'link' } | { ok: false; error: string }> {
+  const actor = await requireFormateurOfSession(sessionId);
   const admin = createAdminClient();
 
   const { data: emp } = await admin
@@ -113,6 +115,19 @@ export async function sendInvitationToEmployee(
     .eq('id', employeeId)
     .single();
   if (!emp) return { ok: false, error: 'Salarié introuvable.' };
+
+  // Compte déjà existant (signup stagiaire) : rattacher, ne jamais recréer un user auth.
+  if (!emp.profile_id) {
+    const existing = await findProfileByEmail(emp.email);
+    if (existing) {
+      const eligible = evaluateEmployeeLink(existing, emp.employer_profile_id);
+      if (!eligible.ok) return { ok: false, error: eligible.message };
+      const sent = await sendEmployeeLinkInvitation(emp.id, actor.id);
+      if (!sent.ok) return { ok: false, error: sent.error };
+      revalidatePath(`/formateur/sessions/${sessionId}/stagiaires`);
+      return { ok: true, resent: sent.resent, mode: 'link' };
+    }
+  }
 
   const isResend = !!emp.profile_id;
 
@@ -173,6 +188,13 @@ export async function sendInvitationToEmployee(
       },
     });
     if (error || !data?.properties?.action_link) {
+      const alreadyRegistered = /already (been )?registered|already exists|user already/i.test(error?.message ?? '');
+      if (alreadyRegistered) {
+        const sent = await sendEmployeeLinkInvitation(emp.id, actor.id);
+        if (!sent.ok) return { ok: false, error: sent.error };
+        revalidatePath(`/formateur/sessions/${sessionId}/stagiaires`);
+        return { ok: true, resent: sent.resent, mode: 'link' };
+      }
       return { ok: false, error: error?.message ?? "L'invitation n'a pas pu être créée." };
     }
     actionLink = data.properties.action_link;
@@ -199,5 +221,5 @@ export async function sendInvitationToEmployee(
   }
 
   revalidatePath(`/formateur/sessions/${sessionId}/stagiaires`);
-  return { ok: true, resent: isResend };
+  return { ok: true, resent: isResend, mode: isResend ? 'recovery' : 'create' };
 }

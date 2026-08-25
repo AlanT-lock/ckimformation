@@ -10,13 +10,13 @@ export function AddEmployeeForm() {
   const [nom, setNom] = useState('');
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setSuccess(false);
+    setSuccess(null);
     startTransition(async () => {
       const res = await createEmployee({ prenom, nom, email });
       if (!res.ok) {
@@ -26,13 +26,29 @@ export function AddEmployeeForm() {
       setPrenom('');
       setNom('');
       setEmail('');
-      setSuccess(true);
+      if (res.invitation === 'sent') {
+        setSuccess(
+          'Ce salarié a déjà un compte. Une invitation de rattachement lui a été envoyée par email.',
+        );
+      } else if (res.invitation === 'failed') {
+        setSuccess(
+          'Salarié ajouté, mais l’email d’invitation n’a pas pu être envoyé. Utilisez « Renvoyer l’invitation ».',
+        );
+      } else if (!res.created) {
+        setSuccess('Ce salarié est déjà dans votre liste.');
+      } else {
+        setSuccess('Salarié ajouté.');
+      }
     });
   }
 
   return (
     <form onSubmit={submit} className="bg-white border border-dark/10 rounded-lg p-6">
       <h2 className="font-display text-xl mb-4">Ajouter un salarié</h2>
+      <p className="text-sm text-dark/60 mb-4">
+        S’il a déjà un compte C-KIM, il recevra une invitation pour rattacher ce compte à votre entreprise
+        — aucun second profil ne sera créé.
+      </p>
       <div className="grid sm:grid-cols-3 gap-4">
         <Field label="Prénom" value={prenom} onChange={(e) => setPrenom(e.target.value)} required />
         <Field label="Nom" value={nom} onChange={(e) => setNom(e.target.value)} required />
@@ -43,7 +59,7 @@ export function AddEmployeeForm() {
           {pending ? 'Ajout…' : 'Ajouter le salarié'}
         </Button>
         {error && <p className="text-sm text-orange">{error}</p>}
-        {success && <p className="text-sm text-teal">Salarié ajouté.</p>}
+        {success && <p className="text-sm text-teal">{success}</p>}
       </div>
     </form>
   );

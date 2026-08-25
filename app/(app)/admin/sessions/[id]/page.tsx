@@ -11,6 +11,9 @@ import type { SessionStatut, SessionAdresse } from '@/lib/supabase/types';
 import { formatDate } from '@/lib/date';
 import { loadSessionConvocationData } from '@/lib/pdf/data';
 import { ConvocationsPanel } from './ConvocationsPanel';
+import { SessionParticipantsManager, type SessionParticipantRow } from './SessionParticipantsManager';
+import { EmargementBoard } from '@/components/app/EmargementBoard';
+import type { EmargementBoardEntry } from '@/lib/emargements/board';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -42,7 +45,7 @@ export default async function AdminSessionDetailPage({ params }: PageProps) {
         payer:profiles!inscriptions_payer_profile_id_fkey(full_name, email, account_type),
         participants:inscription_participants(
           id,
-          employee:employees(prenom, nom, email),
+          employee:employees(prenom, nom, email, profile_id),
           profile:profiles!inscription_participants_participant_profile_id_fkey(full_name, email)
         )
       `)
@@ -52,7 +55,113 @@ export default async function AdminSessionDetailPage({ params }: PageProps) {
 
   if (!session) notFound();
 
+  const participantRows: SessionParticipantRow[] = [];
+  for (const ins of inscriptions ?? []) {
+    const pay = Array.isArray(ins.payer) ? ins.payer[0] : ins.payer;
+    const payerLabel = pay?.full_name || pay?.email || '';
+    const parts = (ins.participants ?? []) as Array<{
+      id: string;
+      employee: {
+        prenom: string; nom: string; email: string; profile_id: string | null;
+      } | {
+        prenom: string; nom: string; email: string; profile_id: string | null;
+      }[] | null;
+      profile: { full_name: string; email: string } | { full_name: string; email: string }[] | null;
+    }>;
+    for (const p of parts) {
+      const emp = Array.isArray(p.employee) ? p.employee[0] : p.employee;
+      const prof = Array.isArray(p.profile) ? p.profile[0] : p.profile;
+      if (emp) {
+        participantRows.push({
+          id: p.id,
+          inscriptionId: ins.id,
+          inscriptionStatut: ins.statut,
+          prenom: emp.prenom,
+          nom: emp.nom,
+          email: emp.email,
+          kind: 'employee',
+          hasAccount: !!emp.profile_id,
+          payerLabel,
+        });
+      } else if (prof) {
+        const bits = prof.full_name.split(' ');
+        participantRows.push({
+          id: p.id,
+          inscriptionId: ins.id,
+          inscriptionStatut: ins.statut,
+          prenom: bits[0] ?? '',
+          nom: bits.slice(1).join(' '),
+          email: prof.email,
+          kind: 'profile',
+          hasAccount: true,
+          payerLabel,
+        });
+      }
+    }
+  }
+
   const convocationData = await loadSessionConvocationData(id);
+
+  const creneauIds = (creneaux ?? []).map((c) => c.id);
+  const [{ data: stagiaireEmargements }, { data: formateurEmargements }] = await Promise.all([
+    creneauIds.length > 0
+      ? supabase
+          .from('emargements')
+          .select('creneau_id, signed_at, signature_data, inscription_participant_id')
+          .in('creneau_id', creneauIds)
+      : Promise.resolve({ data: [] }),
+    supabase
+      .from('formateur_emargements')
+      .select('creneau_id, signed_at, signature_data')
+      .eq('session_id', id),
+  ]);
+
+  const formateurName =
+    (formateurs ?? []).find((f) => f.id === session.formateur_id)?.full_name
+    || 'Formateur';
+  const boardEntries: EmargementBoardEntry[] = [];
+  for (const fe of formateurEmargements ?? []) {
+    boardEntries.push({
+      id: `formateur-${fe.creneau_id}`,
+      creneauId: fe.creneau_id,
+      role: 'formateur',
+      name: formateurName,
+      signedAt: fe.signed_at,
+      signatureDataUrl: fe.signature_data,
+    });
+  }
+  const signedStagiaire = new Set(
+    (stagiaireEmargements ?? [])
+      .filter((e) => e.inscription_participant_id)
+      .map((e) => `${e.inscription_participant_id}-${e.creneau_id}`),
+  );
+  for (const se of stagiaireEmargements ?? []) {
+    if (!se.inscription_participant_id) continue;
+    const part = participantRows.find((p) => p.id === se.inscription_participant_id);
+    boardEntries.push({
+      id: `${se.inscription_participant_id}-${se.creneau_id}`,
+      creneauId: se.creneau_id,
+      role: 'stagiaire',
+      name: part ? `${part.prenom} ${part.nom}`.trim() : 'Stagiaire',
+      signedAt: se.signed_at,
+      signatureDataUrl: se.signature_data,
+    });
+  }
+  for (const p of participantRows) {
+    for (const c of creneaux ?? []) {
+      const key = `${p.id}-${c.id}`;
+      if (!signedStagiaire.has(key)) {
+        boardEntries.push({
+          id: key,
+          creneauId: c.id,
+          role: 'stagiaire',
+          name: `${p.prenom} ${p.nom}`.trim(),
+          signedAt: null,
+          signatureDataUrl: null,
+        });
+      }
+    }
+  }
 
   // Reserved-session related data
   let claimedCompany: { raison_sociale: string; email: string } | null = null;
@@ -171,6 +280,30 @@ export default async function AdminSessionDetailPage({ params }: PageProps) {
         <p className="text-xs text-dark/60 mt-1">Ajoute, supprime des créneaux. Les modifications sont sauvegardées automatiquement.</p>
         <div className="mt-4">
           <CreneauxManager sessionId={session.id} initial={creneaux ?? []} />
+        </div>
+      </div>
+
+      <div>
+        <h2 className="font-display text-2xl tracking-wide">Feuille d&apos;émargement</h2>
+        <p className="text-xs text-dark/60 mt-1 mb-3">
+          Signature du formateur (encadré orange) et des stagiaires, créneau par créneau.
+        </p>
+        <EmargementBoard
+          creneaux={(creneaux ?? []).map((c) => ({
+            id: c.id, date: c.date, heure_debut: c.heure_debut, heure_fin: c.heure_fin, ordre: c.ordre,
+          }))}
+          entries={boardEntries}
+          formateurName={formateurName}
+        />
+      </div>
+
+      <div>
+        <h2 className="font-display text-2xl tracking-wide">Stagiaires ({participantRows.length})</h2>
+        <p className="text-xs text-dark/60 mt-1">
+          Retirez un participant ou ajoutez un compte déjà créé (pour rattacher manuellement un stagiaire à la session).
+        </p>
+        <div className="mt-4">
+          <SessionParticipantsManager sessionId={session.id} initial={participantRows} />
         </div>
       </div>
 

@@ -7,15 +7,22 @@ interface PageProps {
   searchParams: Promise<{ redirect?: string; error?: string; message?: string }>;
 }
 
+function safeInternalPath(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  if (!raw.startsWith('/') || raw.startsWith('//')) return undefined;
+  return raw;
+}
+
 export default async function LoginPage({ searchParams }: PageProps) {
   const sp = await searchParams;
+  const redirectTo = safeInternalPath(sp.redirect);
   // Si déjà connecté, dispatch direct vers le bon espace
   const profile = await getCurrentProfile();
   if (profile) {
     const home =
       profile.role === 'admin' ? '/admin' :
       profile.role === 'formateur' ? '/formateur' : '/stagiaire';
-    redirect(sp.redirect || home);
+    redirect(redirectTo || home);
   }
   return (
     <div>
@@ -27,7 +34,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
         Accédez à votre espace personnel.
       </p>
 
-      <LoginForm redirectTo={sp.redirect} initialError={sp.error} initialMessage={sp.message} />
+      <LoginForm redirectTo={redirectTo} initialError={sp.error} initialMessage={sp.message} />
 
       <div className="mt-8 text-sm text-muted space-y-2">
         <p>

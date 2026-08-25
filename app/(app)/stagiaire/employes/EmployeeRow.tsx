@@ -3,20 +3,28 @@
 import { useState, useTransition } from 'react';
 import { Field } from '@/components/app/Field';
 import { Button } from '@/components/app/Button';
-import { updateEmployee, deleteEmployee } from './actions';
+import { updateEmployee, deleteEmployee, resendEmployeeInvitation } from './actions';
 import type { Employee } from '@/lib/supabase/types';
 
-export function EmployeeCard({ employee }: { employee: Employee }) {
+export function EmployeeCard({
+  employee,
+  invitationPending,
+}: {
+  employee: Employee;
+  invitationPending: boolean;
+}) {
   const [edit, setEdit] = useState(false);
   const [prenom, setPrenom] = useState(employee.prenom);
   const [nom, setNom] = useState(employee.nom);
   const [email, setEmail] = useState(employee.email);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const hasAccount = !!employee.profile_id;
 
   function save() {
     setError(null);
+    setSuccess(null);
     startTransition(async () => {
       const res = await updateEmployee(employee.id, { prenom, nom, email });
       if (!res.ok) setError(res.error);
@@ -27,9 +35,20 @@ export function EmployeeCard({ employee }: { employee: Employee }) {
   function remove() {
     if (!confirm(`Supprimer ${employee.prenom} ${employee.nom} ?`)) return;
     setError(null);
+    setSuccess(null);
     startTransition(async () => {
       const res = await deleteEmployee(employee.id);
       if (!res.ok) setError(res.error);
+    });
+  }
+
+  function resendInvite() {
+    setError(null);
+    setSuccess(null);
+    startTransition(async () => {
+      const res = await resendEmployeeInvitation(employee.id);
+      if (!res.ok) setError(res.error);
+      else setSuccess(res.resent ? 'Nouveau lien d’invitation envoyé.' : 'Invitation envoyée.');
     });
   }
 
@@ -58,17 +77,25 @@ export function EmployeeCard({ employee }: { employee: Employee }) {
           <p className="text-xs text-dark/60 mt-0.5 break-all">{employee.email}</p>
         </div>
         {hasAccount ? (
-          <span className="text-xs px-2 py-0.5 rounded bg-teal/15 text-teal whitespace-nowrap">Compte créé</span>
+          <span className="text-xs px-2 py-0.5 rounded bg-teal/15 text-teal whitespace-nowrap">Compte rattaché</span>
+        ) : invitationPending ? (
+          <span className="text-xs px-2 py-0.5 rounded bg-orange/15 text-orange whitespace-nowrap">Invitation envoyée</span>
         ) : (
           <span className="text-xs px-2 py-0.5 rounded bg-dark/10 text-dark/60 whitespace-nowrap">Fiche</span>
         )}
       </div>
       <div className="flex gap-2 flex-wrap pt-2 border-t border-dark/10">
         <Button variant="secondary" onClick={() => setEdit(true)} disabled={pending}>Modifier</Button>
+        {!hasAccount && (
+          <Button variant="secondary" onClick={resendInvite} disabled={pending}>
+            {pending ? '…' : invitationPending ? 'Renvoyer l’invitation' : 'Inviter à rattacher'}
+          </Button>
+        )}
         <Button variant="ghost" onClick={remove} disabled={pending} className="text-orange hover:text-orange/80">
           Supprimer
         </Button>
         {error && <span className="text-xs text-orange self-center">{error}</span>}
+        {success && <span className="text-xs text-teal self-center">{success}</span>}
       </div>
     </li>
   );
