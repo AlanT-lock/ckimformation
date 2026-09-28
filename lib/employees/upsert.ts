@@ -20,6 +20,8 @@ export type UpsertEmployeeResult =
       id: string;
       created: boolean;
       invitation: 'sent' | 'not_needed' | 'failed';
+      /** L'entreprise s'est ajoutée elle-même (même compte, même email). */
+      self?: boolean;
     }
   | { ok: false; error: string };
 
@@ -45,6 +47,9 @@ export async function upsertEmployeeForEmployer(
   }
 
   const existingProfile = await findProfileByEmail(email);
+  if (existingProfile?.id === employerProfileId) {
+    return upsertSelfEmployee(sb, employerProfileId, { prenom, nom, email });
+  }
   const canLink = assertEmailCanBeLinked(existingProfile, employerProfileId);
   if (!canLink.ok) return canLink;
 
@@ -82,4 +87,52 @@ export async function upsertEmployeeForEmployer(
 
   const invitation = await maybeInviteExistingAccount(inserted.id, invitedBy);
   return { ok: true, id: inserted.id, created: true, invitation };
+}
+
+/**
+ * Le compte entreprise s'ajoute comme salarié (ex. la gérante qui suit elle-même
+ * une formation). Un email = un seul compte auth : la fiche salarié est liée
+ * directement au compte de l'entreprise, sans invitation. On ne touche PAS à
+ * profiles.employer_profile_id, sinon l'espace entreprise serait réduit à
+ * « En formation ».
+ */
+async function upsertSelfEmployee(
+  sb: SupabaseClient,
+  employerProfileId: string,
+  draft: EmployeeDraft,
+): Promise<UpsertEmployeeResult> {
+  const { data: existing } = await sb
+    .from('employees')
+    .select('id, profile_id')
+    .eq('employer_profile_id', employerProfileId)
+    .eq('email', draft.email)
+    .maybeSingle();
+
+  if (existing) {
+    if (existing.profile_id !== employerProfileId) {
+      const { error } = await sb
+        .from('employees')
+        .update({ profile_id: employerProfileId, updated_at: new Date().toISOString() })
+        .eq('id', existing.id);
+      if (error) return { ok: false, error: error.message };
+    }
+    return { ok: true, id: existing.id, created: false, invitation: 'not_needed', self: true };
+  }
+
+  const { data: inserted, error } = await sb
+    .from('employees')
+    .insert({
+      employer_profile_id: employerProfileId,
+      profile_id: employerProfileId,
+      prenom: draft.prenom,
+      nom: draft.nom,
+      email: draft.email,
+    })
+    .select('id')
+    .single();
+  if (error || !inserted) {
+    if (error?.code === '23505') return { ok: false, error: 'Vous êtes déjà dans la liste des salariés.' };
+    return { ok: false, error: error?.message ?? 'Création du salarié impossible.' };
+  }
+  return { ok: true, id: inserted.id, created: true, invitation: 'not_needed', self: true };
 }

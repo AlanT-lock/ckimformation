@@ -68,6 +68,9 @@ export async function addEmployeeByAdmin(
   if (!res.ok) return res;
   revalidateCompany(companyId);
 
+  if (res.self) {
+    return { ok: true, message: 'Le contact de l’entreprise a été ajouté comme salarié (même compte, même identifiant).' };
+  }
   if (res.invitation === 'sent') return { ok: true, message: invitationMessage('link') };
   if (res.invitation === 'failed') {
     return { ok: true, message: 'Salarié ajouté, mais l’invitation n’a pas pu être envoyée. Utilisez « Renvoyer ».' };

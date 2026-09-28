@@ -37,7 +37,7 @@ async function requireEntreprise() {
 }
 
 export type CreateEmployeeResult =
-  | { ok: true; id: string; created: boolean; invitation: 'sent' | 'not_needed' | 'failed' }
+  | { ok: true; id: string; created: boolean; invitation: 'sent' | 'not_needed' | 'failed'; self?: boolean }
   | { ok: false; error: string };
 
 export async function createEmployee(raw: EmployeeInput): Promise<CreateEmployeeResult> {
@@ -51,7 +51,7 @@ export async function createEmployee(raw: EmployeeInput): Promise<CreateEmployee
   if (!result.ok) return result;
 
   revalidatePath('/stagiaire/employes');
-  return { ok: true, id: result.id, created: result.created, invitation: result.invitation };
+  return { ok: true, id: result.id, created: result.created, invitation: result.invitation, self: result.self };
 }
 
 export async function updateEmployee(id: string, raw: EmployeeInput): Promise<{ ok: true } | { ok: false; error: string }> {

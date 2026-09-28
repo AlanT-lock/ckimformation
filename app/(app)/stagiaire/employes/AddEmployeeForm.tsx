@@ -26,7 +26,11 @@ export function AddEmployeeForm() {
       setPrenom('');
       setNom('');
       setEmail('');
-      if (res.invitation === 'sent') {
+      if (res.self) {
+        setSuccess(
+          'Vous êtes ajouté·e comme salarié·e. Vous pouvez maintenant vous inscrire aux sessions et suivre vos formations depuis « En formation ».',
+        );
+      } else if (res.invitation === 'sent') {
         setSuccess(
           'Ce salarié a déjà un compte. Une invitation de rattachement lui a été envoyée par email.',
         );
@@ -47,7 +51,8 @@ export function AddEmployeeForm() {
       <h2 className="font-display text-xl mb-4">Ajouter un salarié</h2>
       <p className="text-sm text-dark/60 mb-4">
         S’il a déjà un compte C-KIM, il recevra une invitation pour rattacher ce compte à votre entreprise
-        — aucun second profil ne sera créé.
+        — aucun second profil ne sera créé. Vous suivez vous-même une formation ? Ajoutez-vous avec votre
+        propre adresse email.
       </p>
       <div className="grid sm:grid-cols-3 gap-4">
         <Field label="Prénom" value={prenom} onChange={(e) => setPrenom(e.target.value)} required />
