@@ -129,13 +129,10 @@ export function EvaluationForm({
       .map((q) => toResponse(q, answers[q.id]));
 
     startTransition(async () => {
-      try {
-        await submitFormateurEvaluation(sessionId, testId, participantId, payload);
-        setSuccess(true);
-        router.refresh();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erreur');
-      }
+      const res = await submitFormateurEvaluation(sessionId, testId, participantId, payload);
+      if (!res.ok) { setError(res.error); return; }
+      setSuccess(true);
+      router.refresh();
     });
   }
 
