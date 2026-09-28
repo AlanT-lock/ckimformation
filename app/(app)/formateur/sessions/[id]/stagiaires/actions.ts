@@ -3,10 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { resend, EMAIL_FROM } from '@/lib/email/resend';
-import { invitationEmailHtml, invitationEmailSubject } from '@/lib/email/templates/invitation';
-import { findProfileByEmail, sendEmployeeLinkInvitation } from '@/lib/employees/invitations';
-import { evaluateEmployeeLink } from '@/lib/employees/linkability';
+import { sendEmployeeAccountInvitation } from '@/lib/employees/account-invitation';
 
 export async function toggleCreneauAbsence(
   sessionId: string,
@@ -46,10 +43,6 @@ export async function toggleCreneauAbsence(
   revalidatePath(`/formateur/sessions/${sessionId}`);
   revalidatePath(`/formateur/sessions/${sessionId}/stagiaires`);
   return { ok: true };
-}
-
-function siteUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 }
 
 async function requireFormateurOfSession(sessionId: string) {
@@ -109,29 +102,6 @@ export async function sendInvitationToEmployee(
   const actor = await requireFormateurOfSession(sessionId);
   const admin = createAdminClient();
 
-  const { data: emp } = await admin
-    .from('employees')
-    .select('id, prenom, nom, email, profile_id, employer_profile_id')
-    .eq('id', employeeId)
-    .single();
-  if (!emp) return { ok: false, error: 'Salarié introuvable.' };
-
-  // Compte déjà existant (signup stagiaire) : rattacher, ne jamais recréer un user auth.
-  if (!emp.profile_id) {
-    const existing = await findProfileByEmail(emp.email);
-    if (existing) {
-      const eligible = evaluateEmployeeLink(existing, emp.employer_profile_id);
-      if (!eligible.ok) return { ok: false, error: eligible.message };
-      const sent = await sendEmployeeLinkInvitation(emp.id, actor.id);
-      if (!sent.ok) return { ok: false, error: sent.error };
-      revalidatePath(`/formateur/sessions/${sessionId}/stagiaires`);
-      return { ok: true, resent: sent.resent, mode: 'link' };
-    }
-  }
-
-  const isResend = !!emp.profile_id;
-
-  // Charge contexte session pour l'email
   const { data: sess } = await admin
     .from('sessions')
     .select('formation:formations(titre)')
@@ -139,87 +109,11 @@ export async function sendInvitationToEmployee(
     .single();
   const formation = sess && (Array.isArray(sess.formation) ? sess.formation[0] : sess.formation);
 
-  const { data: company } = await admin
-    .from('company_details')
-    .select('raison_sociale')
-    .eq('profile_id', emp.employer_profile_id)
-    .maybeSingle();
-  const { data: employer } = await admin
-    .from('profiles')
-    .select('full_name')
-    .eq('id', emp.employer_profile_id)
-    .maybeSingle();
-  const entrepriseLabel = company?.raison_sociale || employer?.full_name || 'Votre employeur';
-
-  const redirect = `${siteUrl()}/callback?redirect=/stagiaire/parcours`;
-  let actionLink: string;
-
-  if (isResend) {
-    // Le compte auth existe déjà — on génère un lien de récupération (set/reset password)
-    // qui ramène l'utilisateur sur /setup-password via /callback.
-    const { data, error } = await admin.auth.admin.generateLink({
-      type: 'recovery',
-      email: emp.email,
-      options: { redirectTo: redirect },
-    });
-    if (error || !data?.properties?.action_link) {
-      return {
-        ok: false,
-        error: error?.message ?? "Impossible de générer un nouveau lien d'invitation.",
-      };
-    }
-    actionLink = data.properties.action_link;
-  } else {
-    // Première invitation : crée l'auth user + récupère le lien.
-    // generateLink('invite') crée l'utilisateur sans envoyer d'email automatique
-    // (on envoie nous-mêmes l'email branded C-KIM ci-dessous).
-    const { data, error } = await admin.auth.admin.generateLink({
-      type: 'invite',
-      email: emp.email,
-      options: {
-        data: {
-          role: 'stagiaire',
-          account_type: 'particulier',
-          full_name: `${emp.prenom} ${emp.nom}`.trim(),
-          employer_profile_id: emp.employer_profile_id,
-          employee_id: emp.id,
-        },
-        redirectTo: redirect,
-      },
-    });
-    if (error || !data?.properties?.action_link) {
-      const alreadyRegistered = /already (been )?registered|already exists|user already/i.test(error?.message ?? '');
-      if (alreadyRegistered) {
-        const sent = await sendEmployeeLinkInvitation(emp.id, actor.id);
-        if (!sent.ok) return { ok: false, error: sent.error };
-        revalidatePath(`/formateur/sessions/${sessionId}/stagiaires`);
-        return { ok: true, resent: sent.resent, mode: 'link' };
-      }
-      return { ok: false, error: error?.message ?? "L'invitation n'a pas pu être créée." };
-    }
-    actionLink = data.properties.action_link;
-  }
-
-  // Email custom branding C-KIM avec le lien valide
-  try {
-    await resend.emails.send({
-      from: EMAIL_FROM,
-      to: emp.email,
-      subject: invitationEmailSubject(formation?.titre ?? 'Formation', isResend),
-      html: invitationEmailHtml({
-        prenom: emp.prenom,
-        nom: emp.nom,
-        entrepriseLabel,
-        formationTitre: formation?.titre ?? 'Formation',
-        invitationUrl: actionLink,
-        isResend,
-      }),
-    });
-  } catch (err) {
-    console.error('[invitation] Email failed:', err);
-    return { ok: false, error: "Le lien a été généré mais l'email n'a pas pu être envoyé." };
-  }
+  const result = await sendEmployeeAccountInvitation(employeeId, actor.id, {
+    formationTitre: formation?.titre ?? 'Formation',
+  });
+  if (!result.ok) return result;
 
   revalidatePath(`/formateur/sessions/${sessionId}/stagiaires`);
-  return { ok: true, resent: isResend, mode: isResend ? 'recovery' : 'create' };
+  return result;
 }

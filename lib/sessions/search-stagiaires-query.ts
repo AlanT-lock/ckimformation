@@ -12,18 +12,28 @@ import {
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
+/**
+ * Participants d'une session (hors inscriptions refusées).
+ * Par défaut une erreur de lecture renvoie [] (recherche tolérante) ;
+ * `strict: true` la lève — à utiliser quand le résultat sert de garde anti-doublon.
+ */
 export async function loadSessionOccupants(
   admin: AdminClient,
   sessionId: string,
+  opts: { strict?: boolean } = {},
 ): Promise<SessionSearchOccupant[]> {
+  function fail(step: string, err: unknown): SessionSearchOccupant[] {
+    console.error(`[admin] loadSessionOccupants ${step}`, err);
+    if (opts.strict) throw new Error('Lecture des participants de la session impossible.');
+    return [];
+  }
+
   const { data: insc, error: inscErr } = await admin
     .from('inscriptions')
     .select('id')
-    .eq('session_id', sessionId);
-  if (inscErr) {
-    console.error('[admin] loadSessionOccupants inscriptions', inscErr);
-    return [];
-  }
+    .eq('session_id', sessionId)
+    .neq('statut', 'refusee');
+  if (inscErr) return fail('inscriptions', inscErr);
   const inscriptionIds = (insc ?? []).map((i) => i.id);
   if (inscriptionIds.length === 0) return [];
 
@@ -31,10 +41,7 @@ export async function loadSessionOccupants(
     .from('inscription_participants')
     .select('participant_profile_id, employee_id')
     .in('inscription_id', inscriptionIds);
-  if (partsErr) {
-    console.error('[admin] loadSessionOccupants participants', partsErr);
-    return [];
-  }
+  if (partsErr) return fail('participants', partsErr);
 
   const employeeIds = [...new Set((parts ?? []).map((p) => p.employee_id).filter((id): id is string => !!id))];
   const empById = new Map<string, { profile_id: string | null; email: string }>();
@@ -44,7 +51,7 @@ export async function loadSessionOccupants(
       .select('id, profile_id, email')
       .in('id', employeeIds);
     if (empErr) {
-      console.error('[admin] loadSessionOccupants employees', empErr);
+      fail('employees', empErr);
     } else {
       for (const emp of employees ?? []) {
         empById.set(emp.id, { profile_id: emp.profile_id, email: emp.email });
@@ -59,6 +66,7 @@ export async function loadSessionOccupants(
       profileEmail: null,
       employeeProfileId: emp?.profile_id ?? null,
       employeeEmail: emp?.email ?? null,
+      employeeId: row.employee_id,
     };
   });
 }

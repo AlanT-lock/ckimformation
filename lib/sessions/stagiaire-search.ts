@@ -9,6 +9,8 @@ export interface SessionSearchOccupant {
   profileEmail: string | null;
   employeeProfileId: string | null;
   employeeEmail: string | null;
+  /** Fiche salarié inscrite (null si participant par profil). */
+  employeeId?: string | null;
 }
 
 export interface StagiaireSearchCandidate {

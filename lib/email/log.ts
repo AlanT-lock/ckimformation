@@ -10,7 +10,9 @@ export type EmailLogKind =
   | 'session_reserved_completed'
   | 'session_reserved_reminder'
   | 'convocation'
-  | 'employee_link_invitation';
+  | 'employee_link_invitation'
+  | 'company_invitation'
+  | 'employee_account_invitation';
 
 export interface EmailAttachment {
   filename: string;

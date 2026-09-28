@@ -12,6 +12,7 @@ const NAV_ADMIN: NavItem[] = [
   { href: '/admin/tests', label: 'Tests & enquêtes' },
   { href: '/admin/analytics/enquetes', label: 'Analyses enquêtes' },
   { href: '/admin/stagiaires', label: 'Stagiaires' },
+  { href: '/admin/entreprises', label: 'Entreprises' },
   { href: '/admin/formateurs', label: 'Formateurs' },
   { href: '/admin/analytics', label: 'Analytics' },
 ];

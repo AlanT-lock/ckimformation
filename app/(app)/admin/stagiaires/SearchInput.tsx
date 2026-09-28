@@ -3,7 +3,15 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 
-export function SearchInput({ initial }: { initial: string }) {
+export function SearchInput({
+  initial,
+  basePath = '/admin/stagiaires',
+  placeholder = 'Recherche par nom, prénom, email ou téléphone…',
+}: {
+  initial: string;
+  basePath?: string;
+  placeholder?: string;
+}) {
   const router = useRouter();
   const [value, setValue] = useState(initial);
   const [pending, startTransition] = useTransition();
@@ -13,7 +21,7 @@ export function SearchInput({ initial }: { initial: string }) {
       const params = new URLSearchParams();
       if (q.trim()) params.set('q', q.trim());
       const qs = params.toString();
-      router.replace(`/admin/stagiaires${qs ? `?${qs}` : ''}`);
+      router.replace(`${basePath}${qs ? `?${qs}` : ''}`);
     });
   }
 
@@ -34,7 +42,7 @@ export function SearchInput({ initial }: { initial: string }) {
           type="search"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="Recherche par nom, prénom, email ou téléphone…"
+          placeholder={placeholder}
           className="w-full bg-white border border-dark/15 rounded px-4 py-3 text-sm focus:outline-none focus:border-teal placeholder:text-dark/40"
           autoFocus
         />

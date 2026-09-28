@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatDateTime, formatDate, formatTime, formatDateLong, formatDateLetter } from '@/lib/date';
+import { formatDateTime, formatDate, formatTime, formatDateLong, formatDateLetter, todayIsoParis } from '@/lib/date';
 
 describe('lib/date — fuseau Europe/Paris figé', () => {
   it('formatDateTime applique CEST (UTC+2) en été', () => {
@@ -41,5 +41,12 @@ describe('lib/date — fuseau Europe/Paris figé', () => {
     expect(formatTime('')).toBe('');
     expect(formatDateLetter(null)).toBe('');
     expect(formatDateTime('pas-une-date')).toBe('');
+  });
+});
+
+describe('todayIsoParis', () => {
+  it('donne la date du jour à Paris (UTC+2 l’été)', () => {
+    expect(todayIsoParis(new Date('2026-09-27T22:30:00Z'))).toBe('2026-09-28');
+    expect(todayIsoParis(new Date('2026-09-27T21:30:00Z'))).toBe('2026-09-27');
   });
 });

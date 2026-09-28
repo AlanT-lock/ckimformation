@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/app/PageHeader';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { SearchInput } from './SearchInput';
 import { formatDate } from '@/lib/date';
+import { stagiaireKind, type StagiaireKind } from '@/lib/companies/status';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +18,7 @@ interface Row {
   full_name: string;
   email: string;
   phone: string | null;
-  accountType: 'particulier' | 'entreprise' | null;
+  typeKind: StagiaireKind | null;
   companyName: string | null;
   createdAt: string | null;
   hasAccount: boolean;
@@ -41,7 +42,7 @@ export default async function AdminStagiairesPage({ searchParams }: PageProps) {
   const profilesQuery = supabase
     .from('profiles')
     .select(`
-      id, full_name, email, phone, account_type, created_at,
+      id, full_name, email, phone, account_type, employer_profile_id, created_at,
       company:company_details!company_details_profile_id_fkey(raison_sociale)
     `)
     .eq('role', 'stagiaire')
@@ -75,7 +76,7 @@ export default async function AdminStagiairesPage({ searchParams }: PageProps) {
 
   for (const p of (profiles ?? []) as Array<{
     id: string; full_name: string; email: string; phone: string | null;
-    account_type: 'particulier' | 'entreprise' | null; created_at: string | null;
+    account_type: 'particulier' | 'entreprise' | null; employer_profile_id: string | null; created_at: string | null;
     company: { raison_sociale: string } | { raison_sociale: string }[] | null;
   }>) {
     const comp = Array.isArray(p.company) ? p.company[0] : p.company;
@@ -85,7 +86,7 @@ export default async function AdminStagiairesPage({ searchParams }: PageProps) {
       full_name: p.full_name,
       email: p.email,
       phone: p.phone,
-      accountType: p.account_type,
+      typeKind: stagiaireKind({ rowKind: 'profile', accountType: p.account_type, hasEmployer: !!p.employer_profile_id }),
       companyName: comp?.raison_sociale ?? null,
       createdAt: p.created_at,
       hasAccount: true,
@@ -111,7 +112,7 @@ export default async function AdminStagiairesPage({ searchParams }: PageProps) {
       full_name: `${e.prenom} ${e.nom}`.trim(),
       email: e.email,
       phone: null,
-      accountType: 'entreprise',
+      typeKind: 'salarie',
       companyName: comp?.raison_sociale ?? null,
       createdAt: e.created_at,
       hasAccount: false,
@@ -174,7 +175,7 @@ export default async function AdminStagiairesPage({ searchParams }: PageProps) {
                       <span className="text-dark/70">{r.phone || <span className="text-dark/40">—</span>}</span>
                     </Cell>
                     <Cell href={cellsLink ? href : null}>
-                      <TypeBadge accountType={r.accountType} />
+                      <TypeBadge kind={r.typeKind} />
                     </Cell>
                     <Cell href={cellsLink ? href : null}>
                       <span className="text-dark/70">{r.companyName ?? <span className="text-dark/40">—</span>}</span>
@@ -210,8 +211,10 @@ function Cell({ href, children }: { href: string | null; children: React.ReactNo
   );
 }
 
-function TypeBadge({ accountType }: { accountType: 'particulier' | 'entreprise' | null }) {
-  if (accountType === 'entreprise') return <span className="text-xs px-2 py-0.5 rounded-full uppercase tracking-wider font-medium bg-teal/10 text-teal">Salarié</span>;
-  if (accountType === 'particulier') return <span className="text-xs px-2 py-0.5 rounded-full uppercase tracking-wider font-medium bg-dark/10 text-dark/70">Particulier</span>;
+function TypeBadge({ kind }: { kind: StagiaireKind | null }) {
+  const base = 'text-xs px-2 py-0.5 rounded-full uppercase tracking-wider font-medium';
+  if (kind === 'entreprise') return <span className={`${base} bg-orange/10 text-orange`}>Entreprise</span>;
+  if (kind === 'salarie') return <span className={`${base} bg-teal/10 text-teal`}>Salarié</span>;
+  if (kind === 'particulier') return <span className={`${base} bg-dark/10 text-dark/70`}>Particulier</span>;
   return <span className="text-xs text-dark/40">—</span>;
 }

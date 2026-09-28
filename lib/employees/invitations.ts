@@ -65,7 +65,7 @@ export function assertEmailCanBeLinked(
   return { ok: true };
 }
 
-async function entrepriseLabel(employerProfileId: string): Promise<string> {
+export async function getEntrepriseLabel(employerProfileId: string): Promise<string> {
   const admin = createAdminClient();
   const [{ data: company }, { data: employer }] = await Promise.all([
     admin.from('company_details').select('raison_sociale').eq('profile_id', employerProfileId).maybeSingle(),
@@ -173,7 +173,7 @@ export async function sendEmployeeLinkInvitation(
   const upserted = await upsertPendingInvitation(employeeId, normalizeEmployeeEmail(emp.email), invitedBy);
   if ('error' in upserted) return { ok: false, error: upserted.error };
 
-  const label = await entrepriseLabel(emp.employer_profile_id);
+  const label = await getEntrepriseLabel(emp.employer_profile_id);
   const invitationUrl = `${siteUrl()}/rattachement-employe?token=${encodeURIComponent(upserted.token)}`;
   const subject = employeeLinkInvitationEmailSubject(label);
   const html = employeeLinkInvitationEmailHtml({

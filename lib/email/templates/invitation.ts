@@ -6,17 +6,20 @@ export interface InvitationEmailInput {
   prenom: string;
   nom: string;
   entrepriseLabel: string;
-  formationTitre: string;
+  /** null/absent : invitation créée hors inscription (ex. salarié ajouté par l'admin). */
+  formationTitre?: string | null;
   invitationUrl: string;
   /** true si c'est un renvoi (auth user déjà créé), false si première invitation */
   isResend?: boolean;
 }
 
 export function invitationEmailHtml(d: InvitationEmailInput): string {
-  const heading = d.isResend ? 'Nouveau lien d\'accès' : 'Votre accès à la formation';
+  const heading = d.isResend ? 'Nouveau lien d\'accès' : d.formationTitre ? 'Votre accès à la formation' : 'Votre accès C-KIM Formation';
   const intro = d.isResend
     ? `Nous vous renvoyons un lien d'accès pour finaliser votre compte. Il remplace le précédent (qui n'est plus valable).`
-    : `${escapeHtml(d.entrepriseLabel)} vous a inscrit·e à la formation <strong>${escapeHtml(d.formationTitre)}</strong>. Pour pouvoir signer les émargements et compléter les questionnaires le jour de la formation, créez votre accès en cliquant ci-dessous.`;
+    : d.formationTitre
+      ? `${escapeHtml(d.entrepriseLabel)} vous a inscrit·e à la formation <strong>${escapeHtml(d.formationTitre)}</strong>. Pour pouvoir signer les émargements et compléter les questionnaires le jour de la formation, créez votre accès en cliquant ci-dessous.`
+      : `${escapeHtml(d.entrepriseLabel)} vous a créé un accès à l'espace C-KIM Formation. Créez votre mot de passe pour suivre vos formations, signer les émargements et répondre aux questionnaires.`;
   const ctaLabel = d.isResend ? 'Définir mon mot de passe' : 'Créer mon mot de passe';
 
   return `<div style="font-family:system-ui,sans-serif;max-width:560px;margin:auto;color:#0f172a;">
@@ -24,7 +27,7 @@ export function invitationEmailHtml(d: InvitationEmailInput): string {
   <p style="margin:0 0 16px;">Bonjour ${escapeHtml(d.prenom)} ${escapeHtml(d.nom)},</p>
   <p style="margin:0 0 16px;">${intro}</p>
 
-  ${!d.isResend ? `
+  ${!d.isResend && d.formationTitre ? `
   <p style="margin:0 0 16px;">
     Formation : <strong>${escapeHtml(d.formationTitre)}</strong>
   </p>
@@ -46,8 +49,9 @@ export function invitationEmailHtml(d: InvitationEmailInput): string {
 </div>`;
 }
 
-export function invitationEmailSubject(formationTitre: string, isResend = false): string {
+export function invitationEmailSubject(formationTitre: string | null, isResend = false): string {
+  const suffix = formationTitre ? ` — ${formationTitre}` : '';
   return isResend
-    ? `[C-KIM] Nouveau lien d'accès — ${formationTitre}`
-    : `[C-KIM] Créez votre accès — ${formationTitre}`;
+    ? `[C-KIM] Nouveau lien d'accès${suffix}`
+    : `[C-KIM] Créez votre accès${suffix}`;
 }

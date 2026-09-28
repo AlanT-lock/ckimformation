@@ -8,6 +8,9 @@ import { completionScorePct, type ScaleQ } from '@/lib/enquetes/alerts';
 import { formatDate, formatDateTime } from '@/lib/date';
 import { TestAnswerList, type AnswerListQuestion } from '@/components/app/TestAnswerList';
 import { computeScore } from '@/lib/scoring';
+import { getAllSecteurs } from '@/lib/db/secteurs';
+import { canConvertToCompany } from '@/lib/companies/conversion';
+import { ConvertToCompany } from './ConvertToCompany';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,7 +42,7 @@ export default async function AdminStagiaireDetailPage({ params, searchParams }:
   const { data: prof } = await supabase
     .from('profiles')
     .select(`
-      id, full_name, email, phone, role, account_type, employer_profile_id, created_at,
+      id, full_name, email, phone, role, account_type, employer_profile_id, secteur_activite, created_at,
       company:company_details!company_details_profile_id_fkey(raison_sociale, siret, tva_intra, contact_fonction)
     `)
     .eq('id', id)
@@ -72,6 +75,8 @@ export default async function AdminStagiaireDetailPage({ params, searchParams }:
     .select('id')
     .eq('profile_id', id);
   const employeeIds = (employeeRows ?? []).map((e) => e.id);
+  const convertible = canConvertToCompany(prof, employeeIds.length).ok;
+  const secteurs = convertible && tab === 'infos' ? await getAllSecteurs() : [];
 
   // 4. Inscription participants liés au profile (soit participant_profile_id, soit via employees)
   let participantsQuery = supabase
@@ -195,7 +200,14 @@ export default async function AdminStagiaireDetailPage({ params, searchParams }:
         eyebrow="Stagiaire"
         title={prof.full_name || '—'}
         description={`${prof.email}${prof.phone ? ` · ${prof.phone}` : ''}`}
-        actions={<ButtonLink href="/admin/stagiaires" variant="secondary">← Liste</ButtonLink>}
+        actions={
+          <>
+            {prof.account_type === 'entreprise' && (
+              <ButtonLink href={`/admin/entreprises/${prof.id}`} variant="secondary">Fiche entreprise</ButtonLink>
+            )}
+            <ButtonLink href="/admin/stagiaires" variant="secondary">← Liste</ButtonLink>
+          </>
+        }
       />
 
       {/* Onglets */}
@@ -216,6 +228,19 @@ export default async function AdminStagiaireDetailPage({ params, searchParams }:
           );
         })}
       </nav>
+
+      {tab === 'infos' && convertible && (
+        <ConvertToCompany
+          profileId={prof.id}
+          secteurs={secteurs}
+          prefill={{
+            full_name: prof.full_name ?? '',
+            email: prof.email,
+            phone: prof.phone ?? '',
+            secteur_activite: prof.secteur_activite ?? '',
+          }}
+        />
+      )}
 
       {tab === 'infos' && (
         <InfosSection

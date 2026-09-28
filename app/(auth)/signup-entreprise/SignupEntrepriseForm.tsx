@@ -6,6 +6,14 @@ import { createClient } from '@/lib/supabase/client';
 import { RgpdCheckbox } from '@/components/forms/RgpdCheckbox';
 import type { Secteur } from '@/lib/db/secteurs';
 import { claimInvitationFromTokenAction } from '@/app/actions/claim-session-invitation';
+import { CompanyFormFields } from '@/components/forms/CompanyFormFields';
+import {
+  EMPTY_COMPANY_INPUT,
+  toCompanyAuthMetadata,
+  validateCompanySection,
+  type CompanyInput,
+  type CompanySection,
+} from '@/lib/validation/company';
 
 export interface SignupEntreprisePrefill {
   email?: string;
@@ -16,41 +24,12 @@ export interface SignupEntreprisePrefill {
   contact_phone?: string;
 }
 
-interface FormState {
-  // Société
-  raison_sociale: string;
-  siret: string;
-  tva_intra: string;
-  secteur_activite: string;
-  // Adresse
-  addr_rue: string;
-  addr_cp: string;
-  addr_ville: string;
-  // Contact
-  full_name: string;
-  contact_fonction: string;
-  email: string;
-  phone: string;
-  // Auth
+interface FormState extends CompanyInput {
   password: string;
   confirm: string;
 }
 
-const INITIAL: FormState = {
-  raison_sociale: '',
-  siret: '',
-  tva_intra: '',
-  secteur_activite: '',
-  addr_rue: '',
-  addr_cp: '',
-  addr_ville: '',
-  full_name: '',
-  contact_fonction: '',
-  email: '',
-  phone: '',
-  password: '',
-  confirm: '',
-};
+const INITIAL: FormState = { ...EMPTY_COMPANY_INPUT, password: '', confirm: '' };
 
 type Step = 0 | 1 | 2 | 3;
 
@@ -61,26 +40,12 @@ const STEPS: { num: number; title: string; subtitle: string }[] = [
   { num: 4, title: 'Accès', subtitle: 'Email et mot de passe' },
 ];
 
+const SECTION_BY_STEP: Record<0 | 1 | 2, CompanySection> = { 0: 'societe', 1: 'adresse', 2: 'contact' };
+
 function validate(step: Step, f: FormState): string | null {
-  if (step === 0) {
-    if (!f.raison_sociale.trim()) return 'La raison sociale est obligatoire.';
-  }
-  if (step === 1) {
-    if (!f.addr_rue.trim()) return "L'adresse (rue) est obligatoire.";
-    if (!f.addr_cp.trim()) return 'Le code postal est obligatoire.';
-    if (!f.addr_ville.trim()) return 'La ville est obligatoire.';
-  }
-  if (step === 2) {
-    if (!f.full_name.trim()) return 'Le nom et prénom du contact sont obligatoires.';
-    if (!f.contact_fonction.trim()) return 'La fonction du contact est obligatoire.';
-    if (!f.email.trim()) return "L'email du contact est obligatoire.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim())) return 'Email invalide.';
-    if (!f.phone.trim()) return 'Le téléphone du contact est obligatoire.';
-  }
-  if (step === 3) {
-    if (f.password.length < 8) return 'Mot de passe : 8 caractères minimum.';
-    if (f.password !== f.confirm) return 'Les mots de passe ne correspondent pas.';
-  }
+  if (step !== 3) return validateCompanySection(SECTION_BY_STEP[step], f);
+  if (f.password.length < 8) return 'Mot de passe : 8 caractères minimum.';
+  if (f.password !== f.confirm) return 'Les mots de passe ne correspondent pas.';
   return null;
 }
 
@@ -132,17 +97,11 @@ export function SignupEntrepriseForm({
   }
 
   async function submit() {
-    const err = validate(3, form) ?? validateRgpd(rgpd);
+    const err = validate(0, form) ?? validate(1, form) ?? validate(2, form) ?? validate(3, form) ?? validateRgpd(rgpd);
     if (err) { setError(err); return; }
     setError(null);
     setMessage(null);
     setLoading(true);
-    const billing_address = {
-      rue: form.addr_rue.trim(),
-      code_postal: form.addr_cp.trim(),
-      ville: form.addr_ville.trim(),
-      pays: 'France',
-    };
     const postConfirmPath = invitationToken && invitationSessionId
       ? `/stagiaire/session-dediee/${invitationSessionId}?invitation_token=${encodeURIComponent(invitationToken)}`
       : '/stagiaire';
@@ -151,18 +110,7 @@ export function SignupEntrepriseForm({
       password: form.password,
       options: {
         emailRedirectTo: `${window.location.origin}/callback?redirect=${encodeURIComponent(postConfirmPath)}`,
-        data: {
-          role: 'stagiaire',
-          account_type: 'entreprise',
-          full_name: form.full_name.trim(),
-          phone: form.phone.trim(),
-          raison_sociale: form.raison_sociale.trim(),
-          siret: form.siret.trim(),
-          tva_intra: form.tva_intra.trim(),
-          contact_fonction: form.contact_fonction.trim(),
-          secteur_activite: form.secteur_activite,
-          billing_address: JSON.stringify(billing_address),
-        },
+        data: toCompanyAuthMetadata(form),
       },
     });
     setLoading(false);
@@ -199,89 +147,19 @@ export function SignupEntrepriseForm({
 
         {step === 0 && (
           <StepContent title="Société" description="Renseignez les informations légales de votre entreprise.">
-            <Field
-              label="Raison sociale"
-              required
-              value={form.raison_sociale}
-              onChange={(v) => set('raison_sociale', v)}
-              autoComplete="organization"
-            />
-            <div className="grid sm:grid-cols-2 gap-3">
-              <Field label="SIRET" value={form.siret} onChange={(v) => set('siret', v)} />
-              <Field label="TVA intracom." value={form.tva_intra} onChange={(v) => set('tva_intra', v)} />
-            </div>
-            <SelectField
-              label="Secteur d'activité"
-              value={form.secteur_activite}
-              onChange={(v) => set('secteur_activite', v)}
-              options={[{ value: '', label: '— Non précisé —' }, ...secteurs.map((s) => ({ value: s.code, label: s.label }))]}
-            />
+            <CompanyFormFields value={form} onChange={(next) => setForm((s) => ({ ...s, ...next }))} secteurs={secteurs} sections={['societe']} />
           </StepContent>
         )}
 
         {step === 1 && (
           <StepContent title="Adresse de facturation" description="Tous les champs sont obligatoires.">
-            <Field
-              label="Rue"
-              required
-              value={form.addr_rue}
-              onChange={(v) => set('addr_rue', v)}
-              autoComplete="street-address"
-            />
-            <div className="grid grid-cols-3 gap-3">
-              <Field
-                label="Code postal"
-                required
-                value={form.addr_cp}
-                onChange={(v) => set('addr_cp', v)}
-                autoComplete="postal-code"
-              />
-              <div className="col-span-2">
-                <Field
-                  label="Ville"
-                  required
-                  value={form.addr_ville}
-                  onChange={(v) => set('addr_ville', v)}
-                  autoComplete="address-level2"
-                />
-              </div>
-            </div>
+            <CompanyFormFields value={form} onChange={(next) => setForm((s) => ({ ...s, ...next }))} secteurs={secteurs} sections={['adresse']} />
           </StepContent>
         )}
 
         {step === 2 && (
           <StepContent title="Contact principal" description="Personne référente du compte. Tous les champs sont obligatoires.">
-            <Field
-              label="Nom et prénom"
-              required
-              value={form.full_name}
-              onChange={(v) => set('full_name', v)}
-              autoComplete="name"
-            />
-            <Field
-              label="Fonction"
-              required
-              value={form.contact_fonction}
-              onChange={(v) => set('contact_fonction', v)}
-              autoComplete="organization-title"
-              placeholder="Ex. Responsable RH"
-            />
-            <Field
-              label="Email"
-              type="email"
-              required
-              value={form.email}
-              onChange={(v) => set('email', v)}
-              autoComplete="email"
-            />
-            <Field
-              label="Téléphone"
-              type="tel"
-              required
-              value={form.phone}
-              onChange={(v) => set('phone', v)}
-              autoComplete="tel"
-            />
+            <CompanyFormFields value={form} onChange={(next) => setForm((s) => ({ ...s, ...next }))} secteurs={secteurs} sections={['contact']} />
           </StepContent>
         )}
 
@@ -411,28 +289,6 @@ function Field({
         placeholder={placeholder}
         className="mt-1 w-full bg-white/5 border border-white/15 rounded px-3 py-2.5 text-white placeholder-muted/40 focus:outline-none focus:border-teal-l transition"
       />
-    </label>
-  );
-}
-
-function SelectField({
-  label, value, onChange, options,
-}: {
-  label: string; value: string; onChange: (v: string) => void;
-  options: { value: string; label: string }[];
-}) {
-  return (
-    <label className="block">
-      <span className="text-xs uppercase tracking-[0.2em] text-muted">{label}</span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full bg-white/5 border border-white/15 rounded px-3 py-2.5 text-white focus:outline-none focus:border-teal-l transition"
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value} className="text-dark">{o.label}</option>
-        ))}
-      </select>
     </label>
   );
 }

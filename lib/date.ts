@@ -60,3 +60,14 @@ export function formatDateLetter(value: DateInput): string {
   const d = toDate(value);
   return d ? dateLetterFmt.format(d) : '';
 }
+
+// 'en-CA' produit le format ISO YYYY-MM-DD ; utilisé uniquement pour comparer des dates, jamais affiché.
+const isoDayFmt = new Intl.DateTimeFormat('en-CA', {
+  timeZone: TZ,
+  year: 'numeric', month: '2-digit', day: '2-digit',
+});
+
+/** Date du jour à Paris au format YYYY-MM-DD (comparable aux colonnes `date`). */
+export function todayIsoParis(now: Date = new Date()): string {
+  return isoDayFmt.format(now);
+}
