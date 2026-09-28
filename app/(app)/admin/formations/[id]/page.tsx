@@ -4,6 +4,7 @@ import { ButtonLink } from '@/components/app/Button';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { FormationForm } from '../FormationForm';
 import { DeleteFormationButton } from './DeleteFormationButton';
+import { FichePdfManager } from './FichePdfManager';
 import { getAllSecteurs } from '@/lib/db/secteurs';
 
 interface PageProps { params: Promise<{ id: string }> }
@@ -31,18 +32,11 @@ export default async function AdminEditFormationPage({ params }: PageProps) {
           <>
             <ButtonLink href="/admin/formations" variant="secondary">← Retour</ButtonLink>
             <ButtonLink href={`/formations/${f.slug}`} variant="secondary">Voir le site →</ButtonLink>
-            <ButtonLink
-              href={`/api/formations/${f.id}/pdf`}
-              variant="secondary"
-              target="_blank"
-              rel="noopener"
-            >
-              ↓ Télécharger la fiche PDF
-            </ButtonLink>
             <DeleteFormationButton formationId={f.id} />
           </>
         }
       />
+      <FichePdfManager formationId={f.id} isCustom={!!f.fiche_pdf_path} />
       <FormationForm
         allFormations={all ?? []}
         allSecteurs={secteurs}

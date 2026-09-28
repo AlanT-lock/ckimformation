@@ -124,6 +124,8 @@ export interface ConfirmationEmailInput {
   documentsUrl?: string;
   /** Nombre de docs joints par l'admin (pour adapter le wording) */
   adminDocsCount?: number;
+  /** Lien de consultation de la fiche PDF (également jointe au mail) */
+  ficheUrl?: string;
 }
 
 export function confirmationEmailHtml(d: ConfirmationEmailInput): string {
@@ -135,6 +137,14 @@ export function confirmationEmailHtml(d: ConfirmationEmailInput): string {
        </p>
        <p style="margin:0 0 16px;">
          <a href="${d.documentsUrl}" style="display:inline-block;padding:10px 18px;background:#1B8FA0;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;">Voir mes documents</a>
+       </p>`
+    : '';
+
+  const ficheBlock = d.ficheUrl
+    ? `<h3 style="margin:24px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:0.06em;color:#475569;">Fiche de la formation</h3>
+       <p style="margin:0 0 12px;">Vous trouverez la fiche de la formation en pièce jointe (objectifs, programme, modalités). Vous pouvez aussi la consulter en ligne :</p>
+       <p style="margin:0 0 16px;">
+         <a href="${d.ficheUrl}" style="display:inline-block;padding:10px 18px;background:#1B8FA0;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;">Voir la fiche</a>
        </p>`
     : '';
 
@@ -155,6 +165,8 @@ export function confirmationEmailHtml(d: ConfirmationEmailInput): string {
   <table style="width:100%;border-collapse:collapse;background:#EEF5F7;border-radius:8px;overflow:hidden;margin-bottom:24px;">
     ${participantsRows(d.participants)}
   </table>
+
+  ${ficheBlock}
 
   ${docsBlock}
 

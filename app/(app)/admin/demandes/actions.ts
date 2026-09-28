@@ -19,6 +19,7 @@ import {
   documentsRequestedEmailSubject,
 } from '@/lib/email/templates/documents';
 import { BUCKET_ADMIN, BUCKET_PAYER, deleteDocument } from '@/lib/storage/documents';
+import { loadFormationFiche, type FormationFiche } from '@/lib/formations/fiche-pdf';
 
 const ADMIN_EMAIL = 'contact@ckimformation.fr';
 
@@ -41,7 +42,7 @@ async function fetchInscriptionContext(inscriptionId: string, admin: ReturnType<
       id, session_id, payer_profile_id, analyse_besoins,
       session:sessions(
         adresse,
-        formation:formations(titre),
+        formation:formations(id, slug, titre),
         formateur:profiles!sessions_formateur_id_fkey(full_name),
         creneaux:session_creneaux(date, heure_debut, heure_fin, ordre)
       ),
@@ -110,7 +111,7 @@ async function fetchInscriptionContext(inscriptionId: string, admin: ReturnType<
     })
     .filter((x): x is InscriptionParticipantInfo => x !== null);
 
-  return { ins, session, payer, participants, analyseBesoins: ins.analyse_besoins ?? '' };
+  return { ins, session, payer, participants, analyseBesoins: ins.analyse_besoins ?? '', formationId: (formation?.id as string | undefined) ?? null };
 }
 
 async function countAdminDocs(inscriptionId: string, admin: ReturnType<typeof createAdminClient>): Promise<number> {
@@ -139,10 +140,21 @@ export async function confirmerDemande(inscriptionId: string): Promise<void> {
   if (error) throw new Error(error.message);
 
   const admin = createAdminClient();
-  const [{ session, payer, participants }, adminDocsCount] = await Promise.all([
+  const [{ session, payer, participants, formationId }, adminDocsCount] = await Promise.all([
     fetchInscriptionContext(inscriptionId, admin),
     countAdminDocs(inscriptionId, admin),
   ]);
+
+  // Fiche PDF de la formation (déposée ou générée) : jointe au mail + lien.
+  // Un échec ne doit pas bloquer la confirmation : le mail part sans pièce jointe.
+  let fiche: FormationFiche | null = null;
+  if (formationId) {
+    try {
+      fiche = await loadFormationFiche(admin, formationId);
+    } catch (err) {
+      console.error('[confirm] Fiche PDF indisponible:', err);
+    }
+  }
 
   try {
     await resend.emails.send({
@@ -155,7 +167,9 @@ export async function confirmerDemande(inscriptionId: string): Promise<void> {
         participants,
         adminDocsCount,
         documentsUrl: `${siteUrl()}/stagiaire/inscriptions/${inscriptionId}`,
+        ficheUrl: fiche ? `${siteUrl()}/api/formations/${fiche.slug}/pdf` : undefined,
       }),
+      ...(fiche ? { attachments: [{ filename: fiche.filename, content: fiche.buffer }] } : {}),
     });
   } catch (err) {
     console.error('[confirm] Email payer failed:', err);
