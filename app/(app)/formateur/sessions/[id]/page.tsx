@@ -7,6 +7,8 @@ import { CreneauxPanel } from './CreneauxPanel';
 import { TerminateSessionPopup } from './TerminateSessionPopup';
 import { EmargementBoard } from '@/components/app/EmargementBoard';
 import type { EmargementBoardEntry } from '@/lib/emargements/board';
+import { loadSessionSuivi } from '@/lib/suivi/data';
+import { JourneesSection } from './journees/JourneesSection';
 
 interface PageProps { params: Promise<{ id: string }> }
 
@@ -196,6 +198,8 @@ export default async function FormateurSessionDetail({ params }: PageProps) {
     evalDone = (evalComps ?? []).length;
   }
 
+  const suivi = await loadSessionSuivi(id, []);
+
   const adr = session.adresse as { rue?: string; ville?: string; code_postal?: string; complement?: string } | null;
   const ville = [adr?.ville, adr?.code_postal].filter(Boolean).join(' ');
 
@@ -292,6 +296,16 @@ export default async function FormateurSessionDetail({ params }: PageProps) {
             <span className="text-dark/80">{evalDone} / {evalTotal} remplie{evalDone > 1 ? 's' : ''}</span>
           </p>
         </section>
+      )}
+
+      {suivi && (
+        <JourneesSection
+          sessionId={id}
+          statut={session.statut}
+          journees={suivi.journees.map((j) => ({ date: j.date, termineeAt: j.termineeAt, competencesCount: j.competences.length }))}
+          competencesTotal={suivi.competences.length}
+          competencesVues={suivi.competences.filter((c) => c.vueLe).length}
+        />
       )}
 
       <TerminateSessionPopup

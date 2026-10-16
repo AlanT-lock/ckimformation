@@ -12,7 +12,8 @@ export type EmailLogKind =
   | 'convocation'
   | 'employee_link_invitation'
   | 'company_invitation'
-  | 'employee_account_invitation';
+  | 'employee_account_invitation'
+  | 'journee_terminee';
 
 export interface EmailAttachment {
   filename: string;

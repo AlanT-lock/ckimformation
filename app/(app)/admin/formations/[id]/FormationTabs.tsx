@@ -10,6 +10,7 @@ export function FormationTabs({ formationId }: { formationId: string }) {
   const tabs = [
     { href: base, label: 'Fiche formation', active: pathname === base },
     { href: `${base}/tests`, label: 'Tests & enquêtes', active: pathname.startsWith(`${base}/tests`) },
+    { href: `${base}/competences`, label: 'Compétences', active: pathname.startsWith(`${base}/competences`) },
   ];
 
   return (

@@ -14,6 +14,9 @@ import { ConvocationsPanel } from './ConvocationsPanel';
 import { SessionParticipantsManager, type SessionParticipantRow } from './SessionParticipantsManager';
 import { EmargementBoard } from '@/components/app/EmargementBoard';
 import { TestsExportPanel, type TestsExportRow } from './TestsExportPanel';
+import { loadSessionSuivi } from '@/lib/suivi/data';
+import { SuiviProgress } from '@/components/app/suivi/SuiviProgress';
+import { SuiviDetail } from '@/components/app/suivi/SuiviDetail';
 import type { EmargementBoardEntry } from '@/lib/emargements/board';
 
 interface PageProps {
@@ -101,7 +104,10 @@ export default async function AdminSessionDetailPage({ params }: PageProps) {
     }
   }
 
-  const convocationData = await loadSessionConvocationData(id);
+  const [convocationData, suivi] = await Promise.all([
+    loadSessionConvocationData(id),
+    loadSessionSuivi(id, 'all'),
+  ]);
 
   // Tests & enquêtes : stagiaires confirmés + nombre de complétions
   const confirmedRows = participantRows.filter((r) => r.inscriptionStatut === 'confirmee');
@@ -354,6 +360,25 @@ export default async function AdminSessionDetailPage({ params }: PageProps) {
           <TestsExportPanel sessionId={session.id} rows={testsExportRows} />
         </div>
       </div>
+
+      {suivi && suivi.journees.length > 0 && (
+        <details className="group">
+          <summary className="cursor-pointer list-none">
+            <h2 className="font-display text-2xl tracking-wide inline">Suivi des journées</h2>
+            <span className="ml-3 text-xs text-teal group-open:hidden">Afficher ▾</span>
+            <span className="ml-3 text-xs text-teal hidden group-open:inline">Masquer ▴</span>
+            <p className="text-xs text-dark/60 mt-1">
+              Compétences cochées et commentaires du formateur en fin de journée (vue entreprise, tous les stagiaires).
+            </p>
+          </summary>
+          <div className="mt-4 space-y-6">
+            <div className="bg-white rounded-xl border border-dark/10 p-5">
+              <SuiviProgress suivi={suivi} />
+            </div>
+            <SuiviDetail suivi={suivi} commentairesLabel="Commentaires par stagiaire" />
+          </div>
+        </details>
+      )}
 
       <div>
         <h2 className="font-display text-2xl tracking-wide">Demandes d&apos;inscription ({inscriptions?.length ?? 0})</h2>

@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { redirectEmployeeStagiaire } from '@/lib/auth/employee-guard';
+import { loadEntrepriseSuivis } from '@/lib/suivi/data';
+import { SuiviCard } from '@/components/app/suivi/SuiviCard';
 
 export default async function StagiaireHome() {
   const profile = await getCurrentProfile();
@@ -14,6 +16,8 @@ export default async function StagiaireHome() {
     .limit(10);
 
   const isEntreprise = profile!.account_type === 'entreprise';
+  // Suivi gamifié des formations en cours de ses salariés (une section par session)
+  const suivis = isEntreprise ? await loadEntrepriseSuivis(profile!.id) : [];
 
   const STATUT_LABEL: Record<string, string> = {
     en_attente: 'Demande en attente',
@@ -35,6 +39,22 @@ export default async function StagiaireHome() {
           Bonjour {profile!.full_name?.split(' ')[0] || ''}.
         </h1>
       </div>
+
+      {suivis.length > 0 && (
+        <section>
+          <h2 className="font-display text-2xl tracking-wide">
+            Formation{suivis.length > 1 ? 's' : ''} en cours de vos salariés
+          </h2>
+          <p className="text-sm text-dark/60 mt-1">
+            Suivez jour après jour les compétences travaillées et les retours du formateur.
+          </p>
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            {suivis.map((s) => (
+              <SuiviCard key={s.sessionId} suivi={s} stagiaires={s.stagiaires} />
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Link
