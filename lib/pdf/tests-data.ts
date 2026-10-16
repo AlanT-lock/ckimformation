@@ -49,7 +49,8 @@ type CompletionRow = {
 
 /**
  * Charge les tests / enquêtes complétés d'un participant, prêts pour le PDF.
- * - sans `completionId` : toutes les complétions du participant (évaluations formateur en dernier) ;
+ * - sans `completionId` : toutes les complétions du participant + l'enquête financeur de son
+ *   inscription si l'entreprise a répondu (évaluations formateur en dernier) ;
  * - avec `completionId` : uniquement cette complétion, si elle appartient au participant
  *   ou s'il s'agit de l'enquête financeur de son inscription. Renvoie `null` sinon.
  */
@@ -68,13 +69,20 @@ export async function loadParticipantPdfTests(
     `)
     .not('completed_at', 'is', null)
     .order('completed_at', { ascending: true });
-  query = completionId ? query.eq('id', completionId) : query.eq('inscription_participant_id', participantId);
+  query = completionId
+    ? query.eq('id', completionId)
+    : query.or(
+        `inscription_participant_id.eq.${participantId},and(inscription_id.eq.${inscriptionId},inscription_participant_id.is.null)`
+      );
   const { data } = await query;
 
-  const completions = (data ?? []).map((c) => ({
+  const completions = ((data ?? []).map((c) => ({
     ...c,
     test: Array.isArray(c.test) ? c.test[0] ?? null : c.test,
-  })) as CompletionRow[];
+  })) as CompletionRow[]).filter(
+    // Sans participant : seule l'enquête financeur de l'inscription est rattachée au stagiaire
+    (c) => completionId || c.inscription_participant_id === participantId || c.test?.enquete_kind === 'financeur'
+  );
 
   if (completionId) {
     const c = completions[0];

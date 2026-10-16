@@ -13,6 +13,7 @@ import { loadSessionConvocationData } from '@/lib/pdf/data';
 import { ConvocationsPanel } from './ConvocationsPanel';
 import { SessionParticipantsManager, type SessionParticipantRow } from './SessionParticipantsManager';
 import { EmargementBoard } from '@/components/app/EmargementBoard';
+import { TestsExportPanel, type TestsExportRow } from './TestsExportPanel';
 import type { EmargementBoardEntry } from '@/lib/emargements/board';
 
 interface PageProps {
@@ -101,6 +102,30 @@ export default async function AdminSessionDetailPage({ params }: PageProps) {
   }
 
   const convocationData = await loadSessionConvocationData(id);
+
+  // Tests & enquêtes : stagiaires confirmés + nombre de complétions
+  const confirmedRows = participantRows.filter((r) => r.inscriptionStatut === 'confirmee');
+  const { data: completionRows } = confirmedRows.length > 0
+    ? await supabase
+        .from('test_completions')
+        .select('inscription_participant_id')
+        .in('inscription_participant_id', confirmedRows.map((r) => r.id))
+        .not('completed_at', 'is', null)
+    : { data: [] as Array<{ inscription_participant_id: string | null }> };
+  const completedByParticipant = new Map<string, number>();
+  for (const c of completionRows ?? []) {
+    if (!c.inscription_participant_id) continue;
+    completedByParticipant.set(c.inscription_participant_id, (completedByParticipant.get(c.inscription_participant_id) ?? 0) + 1);
+  }
+  const testsExportRows: TestsExportRow[] = confirmedRows
+    .map((r) => ({
+      participantId: r.id,
+      nom: `${r.prenom} ${r.nom}`.trim() || r.email,
+      // Seules les fiches salarié sont forcément rattachées à l'entreprise payeuse
+      entreprise: r.kind === 'employee' ? r.payerLabel || null : null,
+      completedCount: completedByParticipant.get(r.id) ?? 0,
+    }))
+    .sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
 
   const creneauIds = (creneaux ?? []).map((c) => c.id);
   const [{ data: stagiaireEmargements }, { data: formateurEmargements }] = await Promise.all([
@@ -316,6 +341,17 @@ export default async function AdminSessionDetailPage({ params }: PageProps) {
         </p>
         <div className="mt-4">
           <SessionParticipantsManager sessionId={session.id} initial={participantRows} />
+        </div>
+      </div>
+
+      <div>
+        <h2 className="font-display text-2xl tracking-wide">Tests &amp; enquêtes</h2>
+        <p className="text-xs text-dark/60 mt-1">
+          Exportez en PDF les réponses aux tests et enquêtes (y compris l&apos;enquête financeur et les évaluations formateur),
+          pour un stagiaire ou pour tous les stagiaires dans un seul fichier.
+        </p>
+        <div className="mt-4">
+          <TestsExportPanel sessionId={session.id} rows={testsExportRows} />
         </div>
       </div>
 
