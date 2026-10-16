@@ -196,7 +196,7 @@ export default function FinancementPage() {
                     <strong>800 € par an</strong> pour les salariés non qualifiés, plafonné à 8 000 €
                   </li>
                   <li>
-                    <strong>Reste à charge de 100 €</strong> par dossier depuis 2024 (sauf abondement employeur ou France Travail)
+                    <strong>Reste à charge :</strong> une participation forfaitaire, revalorisée chaque année (sauf abondement employeur ou France Travail)
                   </li>
                 </ul>
               </Card>
@@ -333,7 +333,7 @@ export default function FinancementPage() {
                   ['Public', 'Toute personne active 16+'],
                   ['Initiative', 'Salarié / particulier'],
                   ['Pris en charge', 'Selon solde du compte'],
-                  ['Reste à charge', '100 € par dossier (2024)'],
+                  ['Reste à charge', 'Une participation forfaitaire, revalorisée chaque année'],
                   ['Démarche', 'Inscription en ligne autonome'],
                   ['Délai', 'Quelques jours'],
                 ]}
