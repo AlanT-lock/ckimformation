@@ -169,7 +169,7 @@ export function TestsList({ tests }: { tests: PdfTest[] }) {
               ) : (
                 test.questions.map((q, qi) => (
                   <View key={qi} style={pdfStyles.question} wrap={false}>
-                    <Text style={pdfStyles.questionLabel}>{q.ordre + 1}. {q.libelle}</Text>
+                    <Text style={pdfStyles.questionLabel}>{q.ordre}. {q.libelle}</Text>
                     <Text style={pdfStyles.questionAnswer}>{q.reponseAffichee || '—'}</Text>
                     {q.bonneReponse !== null && (q.type === 'qcm_unique' || q.type === 'qcm_multiple') && (
                       <Text style={pdfStyles.questionCorrect}>

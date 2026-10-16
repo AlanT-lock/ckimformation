@@ -314,7 +314,7 @@ export default async function AdminSessionParticipantPage({ params }: PageProps)
                         const r = byQ.get(q.id);
                         return (
                           <div key={q.id}>
-                            <p className="font-medium">{q.ordre + 1}. {q.libelle}</p>
+                            <p className="font-medium">{q.ordre}. {q.libelle}</p>
                             <div className="mt-1 text-dark/70 pl-4 border-l-2 border-dark/10">
                               {r ? renderAnswer(q, r.valeur, r.valeur_json) : <span>—</span>}
                             </div>

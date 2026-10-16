@@ -62,7 +62,7 @@ export default async function AdminEnqueteFinanceurPage() {
       <div>
         <h2 className="font-display text-2xl tracking-wide">Questions</h2>
         <p className="text-xs text-dark/60 mt-1">
-          Ces questions s'appliquent à toutes les formations. Le financeur doit être connecté pour y répondre.
+          Ces questions s'appliquent à toutes les formations. L'entreprise y répond directement depuis le lien reçu par email, sans connexion.
         </p>
         <div className="mt-4">
           <QuestionsManager
