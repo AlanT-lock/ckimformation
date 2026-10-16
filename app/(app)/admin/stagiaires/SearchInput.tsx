@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export function SearchInput({
   initial,
@@ -13,13 +13,16 @@ export function SearchInput({
   placeholder?: string;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [value, setValue] = useState(initial);
   const [pending, startTransition] = useTransition();
 
   function go(q: string) {
     startTransition(() => {
-      const params = new URLSearchParams();
+      // Conserve les autres filtres éventuels (dates, entreprise, tri…)
+      const params = new URLSearchParams(searchParams.toString());
       if (q.trim()) params.set('q', q.trim());
+      else params.delete('q');
       const qs = params.toString();
       router.replace(`${basePath}${qs ? `?${qs}` : ''}`);
     });

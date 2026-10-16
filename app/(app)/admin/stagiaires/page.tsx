@@ -5,11 +5,13 @@ import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { SearchInput } from './SearchInput';
 import { formatDate } from '@/lib/date';
 import { stagiaireKind, type StagiaireKind } from '@/lib/companies/status';
+import { createdAtBounds, parseStagiairesFilters } from '@/lib/stagiaires/filters';
+import { StagiairesFilters, type EntrepriseOption } from './StagiairesFilters';
 
 export const dynamic = 'force-dynamic';
 
 interface PageProps {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; du?: string; au?: string; entreprise?: string; tri?: string }>;
 }
 
 interface Row {
@@ -32,9 +34,37 @@ export default async function AdminStagiairesPage({ searchParams }: PageProps) {
   const profile = await getCurrentProfile();
   if (!profile || profile.role !== 'admin') redirect('/login');
 
-  const sp = await searchParams;
-  const q = (sp.q ?? '').trim();
+  const filters = parseStagiairesFilters(await searchParams);
+  const { q } = filters;
   const supabase = await createClient();
+  const { gte, lt } = createdAtBounds(filters.du, filters.au);
+
+  // Liste des entreprises (dropdown + nom d'employeur des salariés avec compte)
+  const { data: entrepriseProfiles } = await supabase
+    .from('profiles')
+    .select('id, full_name, email, company:company_details!company_details_profile_id_fkey(raison_sociale)')
+    .eq('account_type', 'entreprise');
+  const entreprises: EntrepriseOption[] = (entrepriseProfiles ?? [])
+    .map((e) => {
+      const comp = Array.isArray(e.company) ? e.company[0] : e.company;
+      return { id: e.id, label: comp?.raison_sociale || e.full_name || e.email };
+    })
+    .sort((a, b) => a.label.localeCompare(b.label, 'fr', { sensitivity: 'base' }));
+  const entrepriseLabel = new Map(entreprises.map((e) => [e.id, e.label]));
+
+  // Filtre entreprise : profils rattachés (employer_profile_id ou fiche salarié liée,
+  // y compris l'entreprise elle-même si elle s'est ajoutée comme salariée)
+  let profileIdsForEntreprise: string[] | null = null;
+  if (filters.entreprise) {
+    const [{ data: linkedEmployees }, { data: linkedProfiles }] = await Promise.all([
+      supabase.from('employees').select('profile_id').eq('employer_profile_id', filters.entreprise).not('profile_id', 'is', null),
+      supabase.from('profiles').select('id').eq('employer_profile_id', filters.entreprise),
+    ]);
+    profileIdsForEntreprise = Array.from(new Set([
+      ...(linkedEmployees ?? []).map((e) => e.profile_id as string),
+      ...(linkedProfiles ?? []).map((p) => p.id),
+    ]));
+  }
 
   // 1. Profiles (stagiaires connectés ou pouvant se connecter) + 2. employees sans profile_id
   const like = q ? `%${escapeLikeChars(q)}%` : null;
@@ -51,6 +81,12 @@ export default async function AdminStagiairesPage({ searchParams }: PageProps) {
 
   if (like) {
     profilesQuery.or(`full_name.ilike.${like},email.ilike.${like},phone.ilike.${like}`);
+  }
+  if (gte) profilesQuery.gte('created_at', gte);
+  if (lt) profilesQuery.lt('created_at', lt);
+  if (profileIdsForEntreprise) {
+    // Aucun id → aucun résultat (uuid nul jamais attribué)
+    profilesQuery.in('id', profileIdsForEntreprise.length > 0 ? profileIdsForEntreprise : ['00000000-0000-0000-0000-000000000000']);
   }
 
   const employeesQuery = supabase
@@ -69,6 +105,9 @@ export default async function AdminStagiairesPage({ searchParams }: PageProps) {
   if (like) {
     employeesQuery.or(`prenom.ilike.${like},nom.ilike.${like},email.ilike.${like}`);
   }
+  if (gte) employeesQuery.gte('created_at', gte);
+  if (lt) employeesQuery.lt('created_at', lt);
+  if (filters.entreprise) employeesQuery.eq('employer_profile_id', filters.entreprise);
 
   const [{ data: profiles }, { data: employees }] = await Promise.all([profilesQuery, employeesQuery]);
 
@@ -87,7 +126,8 @@ export default async function AdminStagiairesPage({ searchParams }: PageProps) {
       email: p.email,
       phone: p.phone,
       typeKind: stagiaireKind({ rowKind: 'profile', accountType: p.account_type, hasEmployer: !!p.employer_profile_id }),
-      companyName: comp?.raison_sociale ?? null,
+      companyName: comp?.raison_sociale
+        ?? (p.employer_profile_id ? entrepriseLabel.get(p.employer_profile_id) ?? null : null),
       createdAt: p.created_at,
       hasAccount: true,
     });
@@ -119,8 +159,12 @@ export default async function AdminStagiairesPage({ searchParams }: PageProps) {
     });
   }
 
-  // Trie par nom asc
-  rows.sort((a, b) => a.full_name.localeCompare(b.full_name, 'fr', { sensitivity: 'base' }));
+  if (filters.tri === 'recent') {
+    rows.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
+  } else {
+    rows.sort((a, b) => a.full_name.localeCompare(b.full_name, 'fr', { sensitivity: 'base' }));
+  }
+  const hasFilters = !!(q || filters.du || filters.au || filters.entreprise);
 
   return (
     <div className="space-y-6">
@@ -132,18 +176,31 @@ export default async function AdminStagiairesPage({ searchParams }: PageProps) {
 
       <SearchInput initial={q} />
 
+      <StagiairesFilters
+        entreprises={entreprises}
+        du={filters.du}
+        au={filters.au}
+        entreprise={filters.entreprise}
+        tri={filters.tri}
+      />
+
       <div className="text-xs text-dark/60">
         {rows.length} résultat{rows.length > 1 ? 's' : ''}
         {q && <> pour <strong>« {q} »</strong></>}
+        {filters.entreprise && <> · entreprise <strong>{entrepriseLabel.get(filters.entreprise) ?? '—'}</strong></>}
+        {(filters.du || filters.au) && (
+          <> · inscrits {filters.du ? <>du <strong>{formatDate(filters.du)}</strong></> : null}
+          {filters.au ? <> au <strong>{formatDate(filters.au)}</strong></> : null}</>
+        )}
       </div>
 
       <div className="bg-white rounded-lg border border-dark/10 overflow-x-auto">
         {rows.length === 0 ? (
           <p className="p-8 text-sm text-dark/60 text-center">
-            {q ? 'Aucun stagiaire ne correspond à votre recherche.' : 'Aucun stagiaire pour le moment.'}
+            {hasFilters ? 'Aucun stagiaire ne correspond à ces critères.' : 'Aucun stagiaire pour le moment.'}
           </p>
         ) : (
-          <table className="w-full text-sm min-w-[720px]">
+          <table className="w-full text-sm min-w-[820px]">
             <thead className="bg-light text-xs uppercase tracking-[0.15em] text-dark/60">
               <tr>
                 <th className="text-left py-3 px-4">Nom</th>
@@ -151,6 +208,7 @@ export default async function AdminStagiairesPage({ searchParams }: PageProps) {
                 <th className="text-left py-3 px-4">Téléphone</th>
                 <th className="text-left py-3 px-4">Type</th>
                 <th className="text-left py-3 px-4">Société / Employeur</th>
+                <th className="text-left py-3 px-4">Inscrit le</th>
                 <th className="text-right py-3 px-4"></th>
               </tr>
             </thead>
@@ -180,15 +238,16 @@ export default async function AdminStagiairesPage({ searchParams }: PageProps) {
                     <Cell href={cellsLink ? href : null}>
                       <span className="text-dark/70">{r.companyName ?? <span className="text-dark/40">—</span>}</span>
                     </Cell>
+                    <Cell href={cellsLink ? href : null}>
+                      <span className="text-dark/70 whitespace-nowrap">
+                        {r.createdAt ? formatDate(r.createdAt) : <span className="text-dark/40">—</span>}
+                      </span>
+                    </Cell>
                     <td className="py-3 px-4 text-right">
-                      {r.hasAccount ? (
+                      {r.hasAccount && (
                         <Link href={href} className="text-xs uppercase tracking-[0.15em] text-teal hover:underline whitespace-nowrap">
                           Voir →
                         </Link>
-                      ) : (
-                        <span className="text-xs text-dark/40 whitespace-nowrap">
-                          {r.createdAt && formatDate(r.createdAt)}
-                        </span>
                       )}
                     </td>
                   </tr>
