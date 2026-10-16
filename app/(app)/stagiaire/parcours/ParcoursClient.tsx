@@ -7,6 +7,7 @@ import { SignaturePad } from '@/components/app/SignaturePad';
 import { createClient } from '@/lib/supabase/client';
 import { formatDate, formatDateLong } from '@/lib/date';
 import { signCreneauForCurrentUser } from './actions';
+import { ReviewPopup, REVIEW_POPUP_FLAG } from './ReviewPopup';
 
 export interface ParticipantSession {
   inscriptionParticipantId: string;
@@ -72,6 +73,18 @@ export function ParcoursClient({
   const [signature, setSignature] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [showReviewPopup, setShowReviewPopup] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (window.sessionStorage.getItem(REVIEW_POPUP_FLAG) === '1') {
+        window.sessionStorage.removeItem(REVIEW_POPUP_FLAG);
+        setShowReviewPopup(true);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const supabase = useMemo(() => createClient(), []);
   const sessionIds = useMemo(() => sessions.map((s) => s.sessionId), [sessions]);
@@ -266,6 +279,8 @@ export function ParcoursClient({
           </div>
         </Modal>
       )}
+
+      {showReviewPopup && <ReviewPopup onClose={() => setShowReviewPopup(false)} />}
     </>
   );
 }
