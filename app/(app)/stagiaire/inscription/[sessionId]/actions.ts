@@ -14,6 +14,7 @@ import {
   type InscriptionSessionInfo,
 } from '@/lib/email/templates/inscription';
 import { upsertEmployeeForEmployer } from '@/lib/employees/upsert';
+import { siteUrl } from '@/lib/site-url';
 
 const ADMIN_EMAIL = 'contact@ckimformation.fr';
 
@@ -27,10 +28,6 @@ export interface NewEmployeeInput {
   prenom: string;
   nom: string;
   email: string;
-}
-
-function siteUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 }
 
 async function fetchSessionForEmail(sessionId: string, admin: ReturnType<typeof createAdminClient>): Promise<InscriptionSessionInfo> {

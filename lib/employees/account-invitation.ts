@@ -9,14 +9,11 @@ import {
   sendEmployeeLinkInvitation,
 } from '@/lib/employees/invitations';
 import { evaluateEmployeeLink } from '@/lib/employees/linkability';
+import { siteUrl } from '@/lib/site-url';
 
 export type AccountInvitationResult =
   | { ok: true; resent: boolean; mode: 'create' | 'recovery' | 'link' }
   | { ok: false; error: string };
-
-function siteUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
-}
 
 /**
  * Invite un salarié à créer (ou redéfinir) son accès.

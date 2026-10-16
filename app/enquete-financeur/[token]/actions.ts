@@ -1,7 +1,6 @@
 'use server';
 
 import { createAdminClient } from '@/lib/supabase/admin';
-import { getCurrentProfile } from '@/lib/supabase/server';
 
 export interface AnswerInput {
   question_id: string;
@@ -10,32 +9,22 @@ export interface AnswerInput {
 }
 
 /**
- * Soumission de l'enquête financeur — l'utilisateur DOIT être connecté ET
- * être le payer de l'inscription liée au token.
+ * Soumission de l'enquête financeur — sans connexion : le token identifie
+ * l'inscription (et donc l'entreprise payeuse). Valable jusqu'à la réponse.
  */
 export async function submitEnqueteFinanceur(
   token: string,
   answers: AnswerInput[]
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const profile = await getCurrentProfile();
-  if (!profile) return { ok: false, error: 'Vous devez être connecté pour répondre.' };
-
   const admin = createAdminClient();
   const { data: envoi, error: envoiErr } = await admin
     .from('enquete_financeur_envois')
-    .select(`
-      id, test_id, inscription_id, responded_at,
-      inscription:inscriptions(payer_profile_id)
-    `)
+    .select('id, test_id, inscription_id, responded_at')
     .eq('token', token)
     .single();
 
   if (envoiErr || !envoi) return { ok: false, error: 'Lien introuvable.' };
 
-  const ins = Array.isArray(envoi.inscription) ? envoi.inscription[0] : envoi.inscription;
-  if (!ins || ins.payer_profile_id !== profile.id) {
-    return { ok: false, error: 'Vous n\'êtes pas autorisé à répondre à cette enquête.' };
-  }
   if (envoi.responded_at) return { ok: false, error: 'Vous avez déjà répondu à cette enquête.' };
 
   const nowIso = new Date().toISOString();
@@ -65,7 +54,9 @@ export async function submitEnqueteFinanceur(
     const { error: rErr } = await admin.from('responses').insert(rows);
     if (rErr) {
       console.error('[enquete-financeur] insert responses failed', rErr);
-      return { ok: false, error: rErr.message };
+      // Sans ce rollback, la complétion orpheline bloquerait un nouvel envoi.
+      await admin.from('test_completions').delete().eq('id', completion.id);
+      return { ok: false, error: "Vos réponses n'ont pas pu être enregistrées. Merci de réessayer." };
     }
   }
 

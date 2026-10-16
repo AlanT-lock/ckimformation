@@ -11,14 +11,12 @@ import {
   type CompanyInput,
 } from '@/lib/validation/company';
 import { canConvertToCompany } from './conversion';
+import { siteUrl } from '@/lib/site-url';
 
 export type InviteCompanyResult =
   | { ok: true; id: string; emailSent: boolean }
   | { ok: false; error: string; convertibleProfileId?: string };
 
-function siteUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
-}
 function redirectTo(): string {
   return `${siteUrl()}/callback?redirect=/stagiaire`;
 }

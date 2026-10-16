@@ -20,12 +20,9 @@ import {
 } from '@/lib/email/templates/documents';
 import { BUCKET_ADMIN, BUCKET_PAYER, deleteDocument } from '@/lib/storage/documents';
 import { loadFormationFiche, type FormationFiche } from '@/lib/formations/fiche-pdf';
+import { siteUrl } from '@/lib/site-url';
 
 const ADMIN_EMAIL = 'contact@ckimformation.fr';
-
-function siteUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
-}
 
 async function requireAdmin() {
   const profile = await getCurrentProfile();

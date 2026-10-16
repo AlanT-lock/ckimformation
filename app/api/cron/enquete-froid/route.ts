@@ -5,6 +5,7 @@ import { isAuthorizedCron } from '@/lib/recommendations/cron-auth';
 import { enqueteFroidEmailHtml, enqueteFroidEmailSubject } from '@/lib/email/templates/enquete-froid';
 import { sendAndLog } from '@/lib/email/log';
 import { formatDate } from '@/lib/date';
+import { siteUrl } from '@/lib/site-url';
 
 /**
  * Cron quotidien :
@@ -21,10 +22,6 @@ import { formatDate } from '@/lib/date';
  */
 
 const FIFTEEN_DAYS_MS = 15 * 24 * 60 * 60 * 1000;
-
-function siteUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? 'https://ckimformation.fr';
-}
 
 function genToken(): string {
   return randomBytes(24).toString('hex');

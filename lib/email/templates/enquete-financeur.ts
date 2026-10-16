@@ -48,8 +48,8 @@ export function enqueteFinanceurEmailHtml(d: EnqueteFinanceurEmailInput): string
                 ${intro}
               </p>
               <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#3b4548;">
-                Quelques minutes suffisent pour répondre. Vous devrez vous connecter à votre espace
-                entreprise pour accéder au questionnaire.
+                Quelques minutes suffisent pour répondre, directement depuis le lien ci-dessous,
+                sans avoir à vous connecter.
               </p>
               <table role="presentation" cellpadding="0" cellspacing="0">
                 <tr>

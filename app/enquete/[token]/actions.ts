@@ -34,8 +34,26 @@ export async function submitEnqueteFroid(
     return { ok: false, error: 'Inscription introuvable pour cette enquête.' };
   }
 
-  // Crée la complétion + réponses (bypass RLS via admin client)
   const nowIso = new Date().toISOString();
+
+  // Réponse déjà enregistrée pour ce participant et ce test (ex. remplie depuis
+  // son espace) : on clôt l'envoi au lieu d'échouer sur la contrainte d'unicité.
+  const { data: existing } = await admin
+    .from('test_completions')
+    .select('id, completed_at')
+    .eq('inscription_participant_id', envoi.inscription_participant_id)
+    .eq('test_id', envoi.test_id)
+    .maybeSingle();
+  if (existing?.completed_at) {
+    await admin.from('enquete_froid_envois').update({ responded_at: existing.completed_at }).eq('id', envoi.id);
+    return { ok: false, error: 'Vous avez déjà répondu à cette enquête.' };
+  }
+  if (existing) {
+    // Complétion inachevée : on la remplace par la nouvelle réponse.
+    await admin.from('test_completions').delete().eq('id', existing.id);
+  }
+
+  // Crée la complétion + réponses (bypass RLS via admin client)
   const { data: completion, error: cErr } = await admin
     .from('test_completions')
     .insert({

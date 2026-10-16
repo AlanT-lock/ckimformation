@@ -10,10 +10,7 @@ import {
   type RelanceContext,
   type ProfileSummary,
 } from '@/lib/recommendations/engine';
-
-function siteUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? 'https://project-0t9kh.vercel.app';
-}
+import { siteUrl } from '@/lib/site-url';
 
 function firstName(p: ProfileSummary): string {
   return (p.full_name || '').trim().split(/\s+/)[0] || '';

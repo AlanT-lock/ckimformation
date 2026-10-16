@@ -7,6 +7,7 @@ import type {
   ConvocationParticipant,
   SessionConvocationData,
 } from './convocation-types';
+import { siteUrl } from '@/lib/site-url';
 
 export type { ConvocationCreneau, ConvocationParticipant, SessionConvocationData };
 
@@ -50,10 +51,6 @@ export function formatSessionLieu(adresse: SessionAdresse | null | undefined): s
   return [adresse.rue, adresse.complement, [adresse.code_postal, adresse.ville].filter(Boolean).join(' ')]
     .filter(Boolean)
     .join(', ');
-}
-
-function siteUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? 'https://ckim-formation.fr';
 }
 
 export function logoUrl(): string {

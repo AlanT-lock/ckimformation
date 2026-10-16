@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { getCurrentProfile } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { siteUrl as getSiteUrl } from '@/lib/site-url';
 
 async function requireAdmin() {
   const profile = await getCurrentProfile();
@@ -14,7 +15,7 @@ export async function inviteFormateur(input: { email: string; full_name: string;
   await requireAdmin();
   const admin = createAdminClient();
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+  const siteUrl = getSiteUrl();
 
   const { data, error } = await admin.auth.admin.inviteUserByEmail(input.email, {
     data: {

@@ -1,8 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { getCurrentProfile } from '@/lib/supabase/server';
 import { AnswerFormFinanceur } from './AnswerFormFinanceur';
 import type { QuestionType } from '@/lib/supabase/types';
 
@@ -13,12 +11,8 @@ export const dynamic = 'force-dynamic';
 export default async function EnqueteFinanceurPage({ params }: PageProps) {
   const { token } = await params;
 
-  // Auth requise — si non connecté, redirige vers login avec retour
-  const profile = await getCurrentProfile();
-  if (!profile) {
-    redirect(`/login?redirect=${encodeURIComponent(`/enquete-financeur/${token}`)}`);
-  }
-
+  // Pas de connexion : le token (unique, aléatoire) identifie l'inscription et
+  // donc l'entreprise payeuse. Il reste valable tant que l'enquête n'est pas envoyée.
   const admin = createAdminClient();
   const { data: envoi } = await admin
     .from('enquete_financeur_envois')
@@ -27,18 +21,19 @@ export default async function EnqueteFinanceurPage({ params }: PageProps) {
       test:tests(id, nom, description),
       inscription:inscriptions(
         id, payer_profile_id,
+        payer:profiles!inscriptions_payer_profile_id_fkey(
+          full_name,
+          company:company_details!company_details_profile_id_fkey(raison_sociale)
+        ),
         session:sessions(formation:formations(titre))
       )
     `)
     .eq('token', token)
     .maybeSingle();
 
-  const ins = envoi && (Array.isArray(envoi.inscription) ? envoi.inscription[0] : envoi.inscription);
-  const isAuthorized = ins?.payer_profile_id === profile.id;
-
   return (
     <main className="min-h-screen bg-light flex flex-col">
-      <header className="px-6 md:px-10 py-6 bg-white border-b border-dark/10 flex items-center justify-between">
+      <header className="px-6 md:px-10 py-6 bg-white border-b border-dark/10">
         <Link href="/" aria-label="C-KIM Formation — Accueil" className="inline-block">
           <Image
             src="/logo-ckim.png"
@@ -48,9 +43,6 @@ export default async function EnqueteFinanceurPage({ params }: PageProps) {
             className="h-12 w-auto"
           />
         </Link>
-        <Link href="/stagiaire" className="text-xs uppercase tracking-[0.2em] text-teal hover:underline">
-          Mon espace
-        </Link>
       </header>
 
       <div className="flex-1 px-4 sm:px-6 py-10">
@@ -59,11 +51,6 @@ export default async function EnqueteFinanceurPage({ params }: PageProps) {
             <EmptyState
               title="Lien invalide"
               message="Ce lien d'enquête est introuvable. Vérifiez que vous avez copié l'URL complète depuis l'email reçu."
-            />
-          ) : !isAuthorized ? (
-            <EmptyState
-              title="Accès refusé"
-              message="Vous n'êtes pas autorisé à répondre à cette enquête. Seul le compte ayant financé la formation peut y accéder."
             />
           ) : envoi.responded_at ? (
             <EmptyState
@@ -109,6 +96,9 @@ async function EnqueteContent({ envoi, token }: { envoi: EnvoiData; token: strin
   const inscription = Array.isArray(envoi.inscription) ? envoi.inscription[0] : envoi.inscription;
   const sess = inscription && (Array.isArray(inscription.session) ? inscription.session[0] : inscription.session);
   const formation = sess && (Array.isArray(sess.formation) ? sess.formation[0] : sess.formation);
+  const payer = inscription && (Array.isArray(inscription.payer) ? inscription.payer[0] : inscription.payer);
+  const company = payer && (Array.isArray(payer.company) ? payer.company[0] : payer.company);
+  const entrepriseNom = company?.raison_sociale || payer?.full_name || null;
 
   const { data: questions } = await admin
     .from('questions')
@@ -126,8 +116,11 @@ async function EnqueteContent({ envoi, token }: { envoi: EnvoiData; token: strin
         {formation?.titre && (
           <p className="mt-1 text-sm text-dark/60">Formation : <strong className="text-dark/80">{formation.titre}</strong></p>
         )}
+        {entrepriseNom && (
+          <p className="mt-1 text-sm text-dark/60">Entreprise : <strong className="text-dark/80">{entrepriseNom}</strong></p>
+        )}
         <p className="mt-4 text-sm text-dark/70 leading-relaxed">
-          Merci de prendre quelques minutes pour partager votre retour sur l'organisation et la qualité
+          Merci de prendre quelques minutes pour partager votre retour sur l&apos;organisation et la qualité
           de la prestation. Vos réponses nous aident à améliorer nos services.
         </p>
       </div>

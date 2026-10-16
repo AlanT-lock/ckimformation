@@ -5,6 +5,7 @@ import { isAuthorizedCron } from '@/lib/recommendations/cron-auth';
 import { enqueteFinanceurEmailHtml, enqueteFinanceurEmailSubject } from '@/lib/email/templates/enquete-financeur';
 import { sendAndLog } from '@/lib/email/log';
 import { formatDate } from '@/lib/date';
+import { siteUrl } from '@/lib/site-url';
 
 /**
  * Cron quotidien — enquête financeur.
@@ -22,10 +23,6 @@ import { formatDate } from '@/lib/date';
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_REMINDERS = 2;
-
-function siteUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? 'https://ckimformation.fr';
-}
 
 function genToken(): string {
   return randomBytes(24).toString('hex');

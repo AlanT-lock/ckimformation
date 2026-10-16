@@ -9,6 +9,7 @@ import {
   renderSessionReservedInvitation,
   renderSessionReservedReminder,
 } from '@/lib/email/templates/session-reservee';
+import { siteUrl } from '@/lib/site-url';
 
 export interface EtablissementSearchResult {
   profile_id: string;
@@ -155,8 +156,7 @@ export async function sendInvitationEmail(
     .maybeSingle();
   const existingTyped = existing as { id: string; account_type: string | null } | null;
 
-  const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_BASE_URL ?? 'https://ckim-formation.fr';
+  const baseUrl = siteUrl();
   const ctaUrl =
     existingTyped && existingTyped.account_type === 'entreprise'
       ? `${baseUrl}/stagiaire/session-dediee/${sessionId}?invitation_token=${inv.token}`

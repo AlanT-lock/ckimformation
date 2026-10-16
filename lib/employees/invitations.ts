@@ -15,6 +15,7 @@ import {
   normalizeEmployeeEmail,
   type LinkableProfile,
 } from './linkability';
+import { siteUrl } from '@/lib/site-url';
 
 const INVITATION_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 
@@ -22,10 +23,6 @@ export interface ExistingProfile extends LinkableProfile {
   email: string;
   employer_profile_id: string | null;
   full_name: string;
-}
-
-function siteUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 }
 
 function pickBestProfile(rows: ExistingProfile[]): ExistingProfile | null {

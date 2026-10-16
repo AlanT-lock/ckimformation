@@ -6,6 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { sendAndLog } from '@/lib/email/log';
 import { renderSessionReservedCompleted } from '@/lib/email/templates/session-reservee';
 import { upsertEmployeeForEmployer } from '@/lib/employees/upsert';
+import { siteUrl } from '@/lib/site-url';
 
 async function requireEtabOnSession(sessionId: string) {
   const profile = await getCurrentProfile();
@@ -169,8 +170,7 @@ export async function finaliserSession(sessionId: string) {
     }
     const f = sess?.formations ?? null;
     const formationTitre = !f ? '' : Array.isArray(f) ? f[0]?.titre ?? '' : f.titre ?? '';
-    const baseUrl =
-      process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_BASE_URL ?? 'https://ckim-formation.fr';
+    const baseUrl = siteUrl();
     const adminUrl = `${baseUrl}/admin/sessions/${sessionId}`;
 
     const { data: admins } = await sbAdmin.from('profiles').select('email').eq('role', 'admin');

@@ -7,6 +7,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { sendAndLog } from '@/lib/email/log';
 import { renderSessionReservedPublished } from '@/lib/email/templates/session-reservee';
 import type { SessionStatut, SessionAdresse } from '@/lib/supabase/types';
+import { siteUrl } from '@/lib/site-url';
 
 export interface CreneauInput {
   date: string;
@@ -306,8 +307,7 @@ async function sendReservedPublishedEmail(sessionId: string, companyProfileId: s
   }));
   const adminDocsCount = (sess?.session_admin_documents ?? []).length;
 
-  const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_BASE_URL ?? 'https://ckim-formation.fr';
+  const baseUrl = siteUrl();
   const raisonSociale = company?.raison_sociale ?? profile.full_name ?? '';
 
   const html = renderSessionReservedPublished({
