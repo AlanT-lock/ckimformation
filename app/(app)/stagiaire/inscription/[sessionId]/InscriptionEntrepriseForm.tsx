@@ -1,24 +1,33 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Field, Textarea } from '@/components/app/Field';
+import { Field } from '@/components/app/Field';
 import { Button } from '@/components/app/Button';
 import { demanderInscriptionEntreprise, type NewEmployeeInput } from './actions';
 import type { Employee } from '@/lib/supabase/types';
+import {
+  BesoinsQuestionnaire,
+  besoinsClientError,
+  emptyBesoinsState,
+  toBesoinsInputs,
+  type BesoinsState,
+} from '@/components/app/besoins/BesoinsQuestionnaire';
+import type { BesoinQuestion } from '@/lib/besoins/answers';
 
 interface Props {
   sessionId: string;
   employees: Employee[];
+  besoinsQuestions: BesoinQuestion[];
 }
 
 interface NewLine extends NewEmployeeInput {
   key: string;
 }
 
-export function InscriptionEntrepriseForm({ sessionId, employees }: Props) {
+export function InscriptionEntrepriseForm({ sessionId, employees, besoinsQuestions }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [newLines, setNewLines] = useState<NewLine[]>([]);
-  const [analyseBesoins, setAnalyseBesoins] = useState('');
+  const [besoins, setBesoins] = useState<BesoinsState>(() => emptyBesoinsState(besoinsQuestions));
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -57,13 +66,19 @@ export function InscriptionEntrepriseForm({ sessionId, employees }: Props) {
       setError('Sélectionnez au moins un salarié à inscrire.');
       return;
     }
-    if (analyseBesoins.trim().length < 10) {
-      setError("Merci de détailler l'analyse des besoins (10 caractères minimum).");
+    const besoinsError = besoinsClientError(besoinsQuestions, besoins);
+    if (besoinsError) {
+      setError(besoinsError);
       return;
     }
     startTransition(async () => {
       try {
-        await demanderInscriptionEntreprise(sessionId, Array.from(selected), newOnes, analyseBesoins);
+        await demanderInscriptionEntreprise(
+          sessionId,
+          Array.from(selected),
+          newOnes,
+          toBesoinsInputs(besoinsQuestions, besoins)
+        );
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Erreur inconnue';
         if (msg.includes('NEXT_REDIRECT')) return;
@@ -135,19 +150,17 @@ export function InscriptionEntrepriseForm({ sessionId, employees }: Props) {
         </div>
       </section>
 
-      <section>
-        <Textarea
-          label="Analyse des besoins (obligatoire)"
-          rows={5}
-          required
-          value={analyseBesoins}
-          onChange={(e) => setAnalyseBesoins(e.target.value)}
-          placeholder="Décrivez précisément pourquoi vous (ou vos salariés) souhaitez suivre cette formation : contexte, compétences visées, attentes…"
-        />
-        <p className="mt-1 text-xs text-dark/50">
-          Cette information est exigée dans le cadre Qualiopi et nous aide à adapter la formation.
-        </p>
+{besoinsQuestions.length > 0 && (
+      <section className="space-y-3">
+        <div>
+          <h3 className="font-display text-xl tracking-wide">Analyse des besoins</h3>
+          <p className="text-xs text-dark/50 mt-1">
+            Exigée dans le cadre Qualiopi : une seule réponse pour l&apos;ensemble des salariés inscrits ; elle nous aide à adapter la formation.
+          </p>
+        </div>
+        <BesoinsQuestionnaire questions={besoinsQuestions} value={besoins} onChange={setBesoins} />
       </section>
+      )}
 
       {error && (
         <div className="bg-orange/10 border border-orange/30 rounded p-3 text-sm text-orange whitespace-pre-line">

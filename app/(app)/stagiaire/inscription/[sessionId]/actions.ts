@@ -1,5 +1,7 @@
 'use server';
 
+import { prepareBesoins, storeBesoinsReponses } from '@/lib/besoins/data';
+import type { BesoinAnswerInput, BesoinAnswerSnapshot } from '@/lib/besoins/answers';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
@@ -86,6 +88,25 @@ async function fetchPayerInfo(
   };
 }
 
+type PreparedBesoins = { testId: string; answers: BesoinAnswerSnapshot[]; summary: string };
+
+/** Valide l'analyse des besoins (questionnaire de la formation de la session) avant toute écriture. */
+async function prepareSessionBesoins(sessionId: string, inputs: BesoinAnswerInput[]): Promise<PreparedBesoins> {
+  const admin = createAdminClient();
+  const { data: s } = await admin.from('sessions').select('formation_id').eq('id', sessionId).maybeSingle();
+  if (!s?.formation_id) throw new Error('Session introuvable.');
+  const res = await prepareBesoins(s.formation_id, Array.isArray(inputs) ? inputs : []);
+  if (!res.ok) throw new Error(res.error);
+  return res;
+}
+
+/** Réponses structurées (non bloquant : le résumé est déjà sur la demande). */
+async function saveBesoinsForInscription(inscriptionId: string, prepared: PreparedBesoins) {
+  if (prepared.answers.length === 0) return;
+  const res = await storeBesoinsReponses({ inscriptionId }, prepared.testId, prepared.answers);
+  if (!res.ok) console.error('[demande] enregistrement analyse des besoins échoué', res.error);
+}
+
 async function sendDemandeAdminEmail(
   inscriptionId: string,
   payer: InscriptionPayerInfo,
@@ -117,16 +138,14 @@ async function sendDemandeAdminEmail(
 // -----------------------------------------------------------------------------
 export async function demanderInscriptionParticulier(
   sessionId: string,
-  analyseBesoins: string
+  besoinsAnswers: BesoinAnswerInput[]
 ): Promise<void> {
   const profile = await requireStagiaire();
   if (profile.account_type !== 'particulier') {
     throw new Error('Cette action est réservée aux comptes particuliers.');
   }
-  const besoins = analyseBesoins.trim();
-  if (besoins.length < 10) {
-    throw new Error('Merci de détailler votre analyse des besoins (10 caractères minimum).');
-  }
+  const prepared = await prepareSessionBesoins(sessionId, besoinsAnswers);
+  const besoins = prepared.summary;
 
   const supabase = await createClient();
 
@@ -148,7 +167,7 @@ export async function demanderInscriptionParticulier(
       payer_profile_id: profile.id,
       participant_profile_id: profile.id,
       statut: 'en_attente',
-      analyse_besoins: besoins,
+      analyse_besoins: besoins || null,
     })
     .select('id')
     .single();
@@ -165,6 +184,7 @@ export async function demanderInscriptionParticulier(
     console.error('[demande/particulier] insert participant failed', partErr);
     throw new Error(partErr.message);
   }
+  await saveBesoinsForInscription(insc.id, prepared);
 
   // Email + lecture admin sont accessoires : on n'échoue pas la demande si ça
   // foire (sécurité contre RESEND_API_KEY manquant, SERVICE_ROLE_KEY manquant,
@@ -199,16 +219,14 @@ export async function demanderInscriptionEntreprise(
   sessionId: string,
   existingEmployeeIds: string[],
   newEmployees: NewEmployeeInput[],
-  analyseBesoins: string
+  besoinsAnswers: BesoinAnswerInput[]
 ): Promise<void> {
   const profile = await requireStagiaire();
   if (profile.account_type !== 'entreprise') {
     throw new Error('Cette action est réservée aux comptes entreprise.');
   }
-  const besoins = analyseBesoins.trim();
-  if (besoins.length < 10) {
-    throw new Error('Merci de détailler votre analyse des besoins (10 caractères minimum).');
-  }
+  const prepared = await prepareSessionBesoins(sessionId, besoinsAnswers);
+  const besoins = prepared.summary;
 
   // Normalise new employees
   const normalizedNew = newEmployees
@@ -268,7 +286,7 @@ export async function demanderInscriptionEntreprise(
       payer_profile_id: profile.id,
       participant_profile_id: null,
       statut: 'en_attente',
-      analyse_besoins: besoins,
+      analyse_besoins: besoins || null,
     })
     .select('id')
     .single();
@@ -283,6 +301,7 @@ export async function demanderInscriptionEntreprise(
     console.error('[demande/entreprise] insert participants failed', partErr);
     throw new Error(partErr.message);
   }
+  await saveBesoinsForInscription(insc.id, prepared);
 
   // Email + lecture admin sont accessoires
   try {

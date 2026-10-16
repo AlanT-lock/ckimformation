@@ -55,6 +55,7 @@ export default async function FormateurSessionDetail({ params }: PageProps) {
       .eq('actif', true)
       // Exclure les enquêtes à froid (envoyées par email auto) et les évaluations formateur (autre section)
       .neq('kind', 'evaluation_formateur')
+      .neq('kind', 'analyse_besoins')
       .or('kind.neq.enquete,enquete_kind.eq.a_chaud')
       .order('ordre'),
     supabase

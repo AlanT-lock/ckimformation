@@ -7,6 +7,8 @@ import { DemandeActions } from './DemandeActions';
 import { EnqueteFinanceurSection } from './EnqueteFinanceurSection';
 import type { InscriptionDocumentDemande, InscriptionAdminDocument } from '@/lib/supabase/types';
 import { formatDateLong, formatDateTime } from '@/lib/date';
+import { loadBesoinsReponses } from '@/lib/besoins/data';
+import { BesoinsAnswersView } from '@/components/app/besoins/BesoinsAnswersView';
 const FR_TIME = (h: string) => h.slice(0, 5);
 
 function fmtSize(bytes: number | null): string {
@@ -59,6 +61,7 @@ export default async function AdminDemandeDetailPage({ params, searchParams }: P
     .single();
 
   if (!ins) notFound();
+  const besoinsReponses = await loadBesoinsReponses({ inscriptionId: ins.id });
 
   const sess = Array.isArray(ins.session) ? ins.session[0] : ins.session;
   const form = sess && (Array.isArray(sess.formation) ? sess.formation[0] : sess.formation);
@@ -231,9 +234,11 @@ export default async function AdminDemandeDetailPage({ params, searchParams }: P
 
       <section className="bg-white rounded-lg border border-dark/10 p-6">
         <h2 className="font-display text-xl mb-3">Analyse des besoins</h2>
-        <div className="p-4 bg-light rounded border border-dark/10 whitespace-pre-wrap text-sm">
-          {ins.analyse_besoins || <em className="text-dark/50">Non renseignée</em>}
-        </div>
+        <BesoinsAnswersView
+          answers={besoinsReponses?.answers ?? null}
+          updatedAt={besoinsReponses?.updatedAt ?? null}
+          legacyText={ins.analyse_besoins}
+        />
       </section>
 
       {/* Documents demandés au payer */}

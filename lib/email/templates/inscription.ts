@@ -103,7 +103,7 @@ export function demandeAdminEmailHtml(d: DemandeAdminEmailInput): string {
   </table>
 
   <h3 style="margin:0 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:0.06em;color:#475569;">Analyse des besoins</h3>
-  <div style="padding:12px;background:#FFF8E1;border-left:4px solid #F59E0B;border-radius:4px;margin-bottom:24px;white-space:pre-wrap;">${escapeHtml(d.analyseBesoins)}</div>
+  <div style="padding:12px;background:#FFF8E1;border-left:4px solid #F59E0B;border-radius:4px;margin-bottom:24px;white-space:pre-wrap;">${escapeHtml(d.analyseBesoins || "Aucune question d’analyse des besoins pour cette formation.")}</div>
 
   <p style="margin:24px 0 0;">
     <a href="${d.adminUrl}" style="display:inline-block;padding:10px 18px;background:#1B8FA0;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;">Ouvrir la demande dans l'espace admin</a>

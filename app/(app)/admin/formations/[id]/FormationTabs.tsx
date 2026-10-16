@@ -11,6 +11,7 @@ export function FormationTabs({ formationId }: { formationId: string }) {
     { href: base, label: 'Fiche formation', active: pathname === base },
     { href: `${base}/tests`, label: 'Tests & enquêtes', active: pathname.startsWith(`${base}/tests`) },
     { href: `${base}/competences`, label: 'Compétences', active: pathname.startsWith(`${base}/competences`) },
+    { href: `${base}/besoins`, label: 'Analyse des besoins', active: pathname.startsWith(`${base}/besoins`) },
   ];
 
   return (

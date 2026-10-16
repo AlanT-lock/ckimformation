@@ -7,6 +7,7 @@ import { InscriptionParticulierForm } from './InscriptionParticulierForm';
 import { InscriptionEntrepriseForm } from './InscriptionEntrepriseForm';
 import { formatDateLong } from '@/lib/date';
 import type { Employee } from '@/lib/supabase/types';
+import { loadBesoinsQuestionnaire } from '@/lib/besoins/data';
 
 interface PageProps { params: Promise<{ sessionId: string }> }
 
@@ -23,7 +24,7 @@ export default async function InscriptionPage({ params }: PageProps) {
     .from('sessions')
     .select(`
       id, adresse, statut,
-      formation:formations(slug, titre),
+      formation:formations(id, slug, titre),
       formateur:profiles!sessions_formateur_id_fkey(full_name),
       creneaux:session_creneaux(date, heure_debut, heure_fin, ordre)
     `)
@@ -39,6 +40,7 @@ export default async function InscriptionPage({ params }: PageProps) {
   const ville = [adr?.ville, adr?.code_postal].filter(Boolean).join(' ');
 
   const isEntreprise = profile.account_type === 'entreprise';
+  const besoinsQuestions = formation?.id ? (await loadBesoinsQuestionnaire(formation.id)).questions : [];
 
   // Détection demande existante :
   //  - Particulier : une demande en_attente/confirmée de l'utilisateur pour cette session
@@ -116,9 +118,9 @@ export default async function InscriptionPage({ params }: PageProps) {
           </p>
         </div>
       ) : isEntreprise ? (
-        <InscriptionEntrepriseForm sessionId={sessionId} employees={employees} />
+        <InscriptionEntrepriseForm sessionId={sessionId} employees={employees} besoinsQuestions={besoinsQuestions} />
       ) : (
-        <InscriptionParticulierForm sessionId={sessionId} />
+        <InscriptionParticulierForm sessionId={sessionId} besoinsQuestions={besoinsQuestions} />
       )}
     </div>
   );

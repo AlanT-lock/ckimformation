@@ -7,6 +7,8 @@ import { sendAndLog } from '@/lib/email/log';
 import { renderSessionReservedCompleted } from '@/lib/email/templates/session-reservee';
 import { upsertEmployeeForEmployer } from '@/lib/employees/upsert';
 import { siteUrl } from '@/lib/site-url';
+import { prepareBesoins, storeBesoinsReponses } from '@/lib/besoins/data';
+import type { BesoinAnswerInput } from '@/lib/besoins/answers';
 
 async function requireEtabOnSession(sessionId: string) {
   const profile = await getCurrentProfile();
@@ -23,16 +25,36 @@ async function requireEtabOnSession(sessionId: string) {
   return { profile, sb };
 }
 
-export async function saveAnalyseBesoins(sessionId: string, analyse: string) {
+/**
+ * Analyse des besoins de la session dédiée : questionnaire de la formation,
+ * réponses structurées + résumé texte (affiché côté admin).
+ */
+export async function saveAnalyseBesoins(
+  sessionId: string,
+  inputs: BesoinAnswerInput[]
+): Promise<{ ok: true } | { ok: false; error: string }> {
   const { sb } = await requireEtabOnSession(sessionId);
-  await sb
+  const admin = createAdminClient();
+  const { data: s } = await admin.from('sessions').select('formation_id').eq('id', sessionId).maybeSingle();
+  if (!s?.formation_id) return { ok: false, error: 'Session introuvable.' };
+
+  const prepared = await prepareBesoins(s.formation_id, Array.isArray(inputs) ? inputs : []);
+  if (!prepared.ok) return prepared;
+
+  if (prepared.answers.length > 0) {
+    const stored = await storeBesoinsReponses({ sessionId }, prepared.testId, prepared.answers);
+    if (!stored.ok) return stored;
+  }
+  const { error } = await sb
     .from('session_reserved_details')
     .upsert({
       session_id: sessionId,
-      analyse_besoins: analyse,
+      analyse_besoins: prepared.summary || null,
       updated_at: new Date().toISOString(),
     });
+  if (error) return { ok: false, error: error.message };
   revalidatePath(`/stagiaire/session-dediee/${sessionId}`);
+  return { ok: true };
 }
 
 /**

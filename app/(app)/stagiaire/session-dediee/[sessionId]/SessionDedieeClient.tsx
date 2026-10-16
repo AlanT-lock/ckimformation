@@ -9,6 +9,14 @@ import {
   finaliserSession,
 } from './actions';
 import { formatDate } from '@/lib/date';
+import {
+  BesoinsQuestionnaire,
+  besoinsClientError,
+  besoinsStateFromSnapshot,
+  toBesoinsInputs,
+  type BesoinsState,
+} from '@/components/app/besoins/BesoinsQuestionnaire';
+import type { BesoinAnswerSnapshot, BesoinQuestion } from '@/lib/besoins/answers';
 
 interface AdminDoc {
   id: string;
@@ -51,13 +59,29 @@ interface Props {
   session: SessionData;
   employes: Array<{ id: string; prenom: string; nom: string; email: string }>;
   inscriptions: string[];
+  besoinsQuestions: BesoinQuestion[];
+  besoinsSaved: BesoinAnswerSnapshot[];
 }
 
-export function SessionDedieeClient({ session, employes, inscriptions }: Props) {
-  const [analyse, setAnalyse] = useState<string>(
-    session.session_reserved_details?.analyse_besoins ?? '',
-  );
+export function SessionDedieeClient({ session, employes, inscriptions, besoinsQuestions, besoinsSaved }: Props) {
+  const [besoins, setBesoins] = useState<BesoinsState>(() => besoinsStateFromSnapshot(besoinsQuestions, besoinsSaved));
+  const [besoinsMsg, setBesoinsMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [besoinsPending, startBesoins] = useTransition();
+  const legacyAnalyse = besoinsSaved.length === 0 ? session.session_reserved_details?.analyse_besoins : null;
   const [, startTransition] = useTransition();
+
+  function saveBesoins() {
+    const err = besoinsClientError(besoinsQuestions, besoins);
+    if (err) {
+      setBesoinsMsg({ ok: false, text: err });
+      return;
+    }
+    setBesoinsMsg(null);
+    startBesoins(async () => {
+      const res = await saveAnalyseBesoins(session.id, toBesoinsInputs(besoinsQuestions, besoins));
+      setBesoinsMsg(res.ok ? { ok: true, text: 'Analyse des besoins enregistrée.' } : { ok: false, text: res.error });
+    });
+  }
   const [newEmp, setNewEmp] = useState({ prenom: '', nom: '', email: '' });
 
   return (
@@ -148,20 +172,29 @@ export function SessionDedieeClient({ session, employes, inscriptions }: Props) 
 
       <section>
         <h2 className="text-xl font-semibold mb-3">Analyse des besoins</h2>
-        <textarea
-          className="w-full border rounded px-3 py-2"
-          rows={6}
-          value={analyse}
-          onChange={(e) => setAnalyse(e.target.value)}
-        />
-        <button
-          className="mt-2 px-3 py-1 border rounded"
-          onClick={() =>
-            startTransition(() => saveAnalyseBesoins(session.id, analyse))
-          }
-        >
-          Enregistrer
-        </button>
+        {besoinsQuestions.length === 0 ? (
+          <p className="text-sm text-gray-500">Aucune question pour cette formation.</p>
+        ) : (
+          <>
+            {legacyAnalyse && (
+              <div className="mb-4 rounded border p-3 text-sm whitespace-pre-wrap bg-gray-50">
+                <p className="text-xs uppercase tracking-wider text-gray-500 mb-1">Votre réponse précédente</p>
+                {legacyAnalyse}
+              </div>
+            )}
+            <BesoinsQuestionnaire questions={besoinsQuestions} value={besoins} onChange={setBesoins} />
+            <button
+              className="mt-4 px-3 py-1 border rounded disabled:opacity-50"
+              disabled={besoinsPending}
+              onClick={saveBesoins}
+            >
+              {besoinsPending ? 'Enregistrement…' : 'Enregistrer'}
+            </button>
+            {besoinsMsg && (
+              <p className={`mt-2 text-sm ${besoinsMsg.ok ? 'text-emerald-700' : 'text-orange'}`}>{besoinsMsg.text}</p>
+            )}
+          </>
+        )}
       </section>
 
       <section>

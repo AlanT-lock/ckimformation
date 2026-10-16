@@ -1,3 +1,4 @@
+import { loadBesoinsQuestionnaire, loadBesoinsReponses } from '@/lib/besoins/data';
 import { notFound, redirect } from 'next/navigation';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { SessionDedieeClient } from './SessionDedieeClient';
@@ -31,7 +32,7 @@ export default async function SessionDedieePage({
   const { data: session } = await sb
     .from('sessions')
     .select(`
-      id, statut, adresse, reserved_company_id, visibility,
+      id, statut, adresse, reserved_company_id, visibility, formation_id,
       formations(titre, slug),
       session_creneaux(date, heure_debut, heure_fin),
       session_reserved_details(analyse_besoins, completed_at),
@@ -114,6 +115,12 @@ export default async function SessionDedieePage({
     }>,
   };
 
+  const formationId = raw.formation_id as string;
+  const [questionnaire, besoinsSaved] = await Promise.all([
+    loadBesoinsQuestionnaire(formationId),
+    loadBesoinsReponses({ sessionId }),
+  ]);
+
   return (
     <>
       {invitationNotice && (
@@ -125,6 +132,8 @@ export default async function SessionDedieePage({
         session={sessionForClient}
         employes={employes ?? []}
         inscriptions={inscritEmployeeIds}
+        besoinsQuestions={questionnaire.questions}
+        besoinsSaved={besoinsSaved?.answers ?? []}
       />
     </>
   );

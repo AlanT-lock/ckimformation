@@ -17,6 +17,8 @@ import { TestsExportPanel, type TestsExportRow } from './TestsExportPanel';
 import { loadSessionSuivi } from '@/lib/suivi/data';
 import { SuiviProgress } from '@/components/app/suivi/SuiviProgress';
 import { SuiviDetail } from '@/components/app/suivi/SuiviDetail';
+import { loadBesoinsReponses } from '@/lib/besoins/data';
+import { BesoinsAnswersView } from '@/components/app/besoins/BesoinsAnswersView';
 import type { EmargementBoardEntry } from '@/lib/emargements/board';
 
 interface PageProps {
@@ -104,9 +106,10 @@ export default async function AdminSessionDetailPage({ params }: PageProps) {
     }
   }
 
-  const [convocationData, suivi] = await Promise.all([
+  const [convocationData, suivi, besoinsDediee] = await Promise.all([
     loadSessionConvocationData(id),
     loadSessionSuivi(id, 'all'),
+    loadBesoinsReponses({ sessionId: id }),
   ]);
 
   // Tests & enquêtes : stagiaires confirmés + nombre de complétions
@@ -484,11 +487,13 @@ export default async function AdminSessionDetailPage({ params }: PageProps) {
 
           <div>
             <h3 className="font-medium">Analyse des besoins</h3>
-            {reservedDetails?.analyse_besoins ? (
-              <p className="whitespace-pre-wrap">{reservedDetails.analyse_besoins}</p>
-            ) : (
-              <p className="text-gray-500 italic">Non renseignée</p>
-            )}
+            <div className="mt-2">
+              <BesoinsAnswersView
+                answers={besoinsDediee?.answers ?? null}
+                updatedAt={besoinsDediee?.updatedAt ?? null}
+                legacyText={reservedDetails?.analyse_besoins}
+              />
+            </div>
             {reservedDetails?.completed_at && (
               <p className="text-emerald-700 text-sm mt-2">
                 ✓ Finalisée le{' '}

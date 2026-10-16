@@ -2,24 +2,38 @@
 
 import { useState, useTransition } from 'react';
 import { Button } from '@/components/app/Button';
-import { Textarea } from '@/components/app/Field';
 import { demanderInscriptionParticulier } from './actions';
+import {
+  BesoinsQuestionnaire,
+  besoinsClientError,
+  emptyBesoinsState,
+  toBesoinsInputs,
+  type BesoinsState,
+} from '@/components/app/besoins/BesoinsQuestionnaire';
+import type { BesoinQuestion } from '@/lib/besoins/answers';
 
-export function InscriptionParticulierForm({ sessionId }: { sessionId: string }) {
-  const [analyseBesoins, setAnalyseBesoins] = useState('');
+export function InscriptionParticulierForm({
+  sessionId,
+  besoinsQuestions,
+}: {
+  sessionId: string;
+  besoinsQuestions: BesoinQuestion[];
+}) {
+  const [besoins, setBesoins] = useState<BesoinsState>(() => emptyBesoinsState(besoinsQuestions));
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (analyseBesoins.trim().length < 10) {
-      setError("Merci de détailler l'analyse des besoins (10 caractères minimum).");
+    const besoinsError = besoinsClientError(besoinsQuestions, besoins);
+    if (besoinsError) {
+      setError(besoinsError);
       return;
     }
     startTransition(async () => {
       try {
-        await demanderInscriptionParticulier(sessionId, analyseBesoins);
+        await demanderInscriptionParticulier(sessionId, toBesoinsInputs(besoinsQuestions, besoins));
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Erreur';
         if (msg.includes('NEXT_REDIRECT')) return;
@@ -36,17 +50,17 @@ export function InscriptionParticulierForm({ sessionId }: { sessionId: string })
         pour valider votre inscription et convenir des modalités.
       </p>
 
-      <Textarea
-        label="Analyse des besoins (obligatoire)"
-        rows={5}
-        required
-        value={analyseBesoins}
-        onChange={(e) => setAnalyseBesoins(e.target.value)}
-        placeholder="Pourquoi souhaitez-vous suivre cette formation ? Contexte, attentes, objectifs…"
-      />
-      <p className="-mt-2 text-xs text-dark/50">
-        Cette information est exigée dans le cadre Qualiopi et nous aide à adapter la formation.
-      </p>
+{besoinsQuestions.length > 0 && (
+      <section className="space-y-3">
+        <div>
+          <h3 className="font-display text-xl tracking-wide">Analyse des besoins</h3>
+          <p className="text-xs text-dark/50 mt-1">
+            Exigée dans le cadre Qualiopi : vos réponses nous aident à adapter la formation.
+          </p>
+        </div>
+        <BesoinsQuestionnaire questions={besoinsQuestions} value={besoins} onChange={setBesoins} />
+      </section>
+      )}
 
       {error && (
         <div className="text-sm text-orange bg-orange/10 border border-orange/30 rounded p-3 whitespace-pre-line">
