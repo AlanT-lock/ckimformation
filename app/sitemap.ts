@@ -12,6 +12,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/organisme`, lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${BASE}/financement`, lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${BASE}/contact`, lastModified: now, changeFrequency: 'yearly', priority: 0.7 },
+    { url: `${BASE}/nos-resultats`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${BASE}/cgv`, lastModified: now, changeFrequency: 'yearly', priority: 0.4 },
+    { url: `${BASE}/reglement-interieur`, lastModified: now, changeFrequency: 'yearly', priority: 0.4 },
+    { url: `${BASE}/livret-accueil`, lastModified: now, changeFrequency: 'yearly', priority: 0.4 },
     { url: `${BASE}/mentions-legales`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${BASE}/confidentialite`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
     ...formations.map((f) => ({

@@ -57,18 +57,12 @@ export function Footer() {
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-teal-l mb-3">Légal</p>
             <ul className="space-y-2 text-sm">
+              <li><Link href="/nos-resultats" className="hover:text-teal-l">Nos résultats</Link></li>
+              <li><Link href="/cgv" className="hover:text-teal-l">CGV</Link></li>
+              <li><Link href="/reglement-interieur" className="hover:text-teal-l">Règlement intérieur</Link></li>
+              <li><Link href="/livret-accueil" className="hover:text-teal-l">Livret d&apos;accueil</Link></li>
               <li><Link href="/mentions-legales" className="hover:text-teal-l">Mentions légales</Link></li>
               <li><Link href="/confidentialite" className="hover:text-teal-l">Confidentialité</Link></li>
-              <li>
-                <a
-                  href="/documents/livret-accueil-ckim-formation.pdf"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-teal-l"
-                >
-                  Livret d&apos;accueil
-                </a>
-              </li>
             </ul>
           </div>
         </div>
