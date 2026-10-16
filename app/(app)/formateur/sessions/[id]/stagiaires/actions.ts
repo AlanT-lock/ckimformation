@@ -63,12 +63,31 @@ async function requireFormateurOfSession(sessionId: string) {
   return profile;
 }
 
+/**
+ * Le salarié doit être inscrit (inscription confirmée) à cette session : sans ce
+ * contrôle, un formateur pourrait agir sur n'importe quelle fiche salarié.
+ */
+async function isEmployeeInSession(sessionId: string, employeeId: string): Promise<boolean> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from('inscription_participants')
+    .select('id, inscription:inscriptions!inner(session_id, statut)')
+    .eq('employee_id', employeeId)
+    .eq('inscription.session_id', sessionId)
+    .eq('inscription.statut', 'confirmee')
+    .limit(1);
+  return (data ?? []).length > 0;
+}
+
 export async function updateEmployeeEmailBeforeAccount(
   sessionId: string,
   employeeId: string,
   newEmail: string
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   await requireFormateurOfSession(sessionId);
+  if (!(await isEmployeeInSession(sessionId, employeeId))) {
+    return { ok: false, error: 'Ce stagiaire n\'est pas inscrit à cette session.' };
+  }
   const email = newEmail.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { ok: false, error: 'Email invalide.' };
@@ -100,6 +119,9 @@ export async function sendInvitationToEmployee(
   employeeId: string
 ): Promise<{ ok: true; resent: boolean; mode: 'create' | 'recovery' | 'link' } | { ok: false; error: string }> {
   const actor = await requireFormateurOfSession(sessionId);
+  if (!(await isEmployeeInSession(sessionId, employeeId))) {
+    return { ok: false, error: 'Ce stagiaire n\'est pas inscrit à cette session.' };
+  }
   const admin = createAdminClient();
 
   const { data: sess } = await admin
