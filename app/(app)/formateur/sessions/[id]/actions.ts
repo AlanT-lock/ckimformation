@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 async function requireFormateurOfSession(sessionId: string) {
   const profile = await getCurrentProfile();
@@ -136,14 +137,24 @@ export async function reopenEmargement(sessionId: string, triggerId: string) {
   revalidatePath(`/admin/sessions/${sessionId}`);
 }
 
+/**
+ * Passe la session en « Terminée ». La RLS de `sessions` n'autorise l'écriture
+ * qu'aux admins : après le contrôle formateur ci-dessous, on écrit avec le client
+ * service-role, en limitant la transition à published → completed.
+ */
 export async function terminateSession(sessionId: string) {
   await requireFormateurOfSession(sessionId);
-  const supabase = await createClient();
-  const { error } = await supabase
+  const admin = createAdminClient();
+  const { data, error } = await admin
     .from('sessions')
     .update({ statut: 'completed', updated_at: new Date().toISOString() })
-    .eq('id', sessionId);
+    .eq('id', sessionId)
+    .eq('statut', 'published')
+    .select('id');
   if (error) throw new Error(error.message);
+  if (!data || data.length === 0) {
+    throw new Error("La session n'a pas pu être terminée : elle n'est pas (ou plus) en cours.");
+  }
   revalidatePath(`/formateur/sessions/${sessionId}`);
   revalidatePath('/formateur/sessions');
   revalidatePath('/admin/sessions');
