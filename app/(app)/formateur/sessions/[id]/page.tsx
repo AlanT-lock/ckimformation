@@ -237,10 +237,22 @@ export default async function FormateurSessionDetail({ params }: PageProps) {
       </section>
 
       <section>
-        <h2 className="font-display text-2xl tracking-wide">Feuille d&apos;émargement</h2>
-        <p className="text-xs text-dark/60 mt-1 mb-3">
-          Cliquez sur un créneau pour afficher ou masquer les signatures (formateur encadré orange).
-        </p>
+        <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
+          <div>
+            <h2 className="font-display text-2xl tracking-wide">Feuille d&apos;émargement</h2>
+            <p className="text-xs text-dark/60 mt-1">
+              Cliquez sur un créneau pour afficher ou masquer les signatures (formateur encadré orange).
+            </p>
+          </div>
+          <a
+            href={`/api/pdf/emargements/session/${id}`}
+            target="_blank"
+            rel="noopener"
+            className="inline-flex items-center px-4 py-2 rounded text-sm font-medium bg-teal hover:bg-teal-l text-white transition whitespace-nowrap"
+          >
+            Feuille collective (PDF)
+          </a>
+        </div>
         <EmargementBoard
           creneaux={(creneaux ?? []).map((c) => ({
             id: c.id, date: c.date, heure_debut: c.heure_debut, heure_fin: c.heure_fin, ordre: c.ordre,

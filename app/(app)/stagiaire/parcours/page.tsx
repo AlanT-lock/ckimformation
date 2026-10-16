@@ -15,7 +15,7 @@ export default async function StagiaireParcoursPage() {
   const { data: parts } = await supabase
     .from('inscription_participants')
     .select(`
-      id, inscription_id, participant_profile_id, employee_id,
+      id, inscription_id, participant_profile_id, employee_id, reglement_accepte_at,
       inscription:inscriptions!inner(
         id, session_id, statut,
         session:sessions(
@@ -122,6 +122,9 @@ export default async function StagiaireParcoursPage() {
     .filter((t) => t.testKind !== 'evaluation_formateur');
 
   const signedCreneauIds = (signed ?? []).map((r) => r.creneau_id);
+  const reglementAcceptedSessionIds = sessions
+    .filter((s) => myParts.find((p) => p.id === s.inscriptionParticipantId)?.reglement_accepte_at)
+    .map((s) => s.sessionId);
   const completedTestIds = (completions ?? []).map((c) => c.test_id);
 
   return (
@@ -140,6 +143,7 @@ export default async function StagiaireParcoursPage() {
         initialTests={initialTests}
         absentCreneauIds={myAbsentCreneauIds}
         fullyAbsentSessionIds={Array.from(fullyAbsentSessionIds)}
+        reglementAcceptedSessionIds={reglementAcceptedSessionIds}
       />
     </div>
   );

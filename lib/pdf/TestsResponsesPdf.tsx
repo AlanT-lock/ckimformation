@@ -45,9 +45,9 @@ export interface TestsResponsesPdfData {
   generatedAt: string;
 }
 
-export function TestsResponsesPdf({ data }: { data: TestsResponsesPdfData }) {
+export function TestsResponsesPdf({ data, title }: { data: TestsResponsesPdfData; title?: string }) {
   return (
-    <Document title={`Réponses aux tests — ${data.stagiaire.nomComplet}`}>
+    <Document title={`${title ?? 'Réponses aux tests'} — ${data.stagiaire.nomComplet}`}>
       <Page size="A4" style={pdfStyles.page}>
         {/* Header */}
         <View style={pdfStyles.header} fixed>
@@ -61,7 +61,7 @@ export function TestsResponsesPdf({ data }: { data: TestsResponsesPdfData }) {
         </View>
 
         <Text style={pdfStyles.titleEyebrow}>Suivi pédagogique — Article L. 6353-1</Text>
-        <Text style={pdfStyles.title}>Réponses aux tests &amp; enquêtes</Text>
+        <Text style={pdfStyles.title}>{title ?? 'Réponses aux tests & enquêtes'}</Text>
 
         {/* Stagiaire + formation */}
         <View style={pdfStyles.infoBlock}>

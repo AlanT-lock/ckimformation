@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/app/Button';
 import { FieldLabel } from '@/components/app/Field';
@@ -135,7 +136,12 @@ export function SessionParticipantsManager({
               {initial.map((row) => (
                 <tr key={row.id}>
                   <td className="py-2 px-4">
-                    <div className="font-medium">{row.prenom} {row.nom}</div>
+                    <Link
+                      href={`/admin/sessions/${sessionId}/participants/${row.id}`}
+                      className="font-medium text-teal hover:underline"
+                    >
+                      {`${row.prenom} ${row.nom}`.trim() || row.email}
+                    </Link>
                     <div className="text-xs text-dark/50 break-all">{row.email}</div>
                   </td>
                   <td className="py-2 px-4 text-dark/70">

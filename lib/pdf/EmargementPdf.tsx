@@ -1,6 +1,7 @@
 import { Document, Page, View, Text, Image } from '@react-pdf/renderer';
 import { pdfStyles, colors } from './styles';
 import { formatDateLong, formatDateTime } from '@/lib/date';
+import { ACCEPTATION_TEXT } from '@/lib/reglement/acceptation';
 
 const trimTime = (s: string) => s.slice(0, 5);
 
@@ -10,6 +11,7 @@ export interface EmargementPdfCreneau {
   heureFin: string;
   signatureDataUrl: string | null;
   signedAt: string | null;
+  formateurSignatureDataUrl: string | null;
 }
 
 export interface EmargementPdfData {
@@ -34,6 +36,8 @@ export interface EmargementPdfData {
   };
   entreprise: { raisonSociale: string; siret?: string | null } | null;
   creneaux: EmargementPdfCreneau[];
+  /** Horodatage de l'acceptation du règlement intérieur (null = non accepté) */
+  reglementAccepteAt: string | null;
   generatedAt: string;
 }
 
@@ -117,30 +121,52 @@ export function EmargementPdf({ data }: { data: EmargementPdfData }) {
           </>
         )}
 
+        {/* Règlement intérieur */}
+        <Text style={pdfStyles.sectionTitle}>Règlement intérieur &amp; livret d&apos;accueil</Text>
+        <View style={pdfStyles.infoBlock} wrap={false}>
+          <View style={{ flexDirection: 'row' }}>
+            <PdfCheckbox checked={!!data.reglementAccepteAt} />
+            <Text style={{ flex: 1, fontSize: 9, lineHeight: 1.4 }}>{ACCEPTATION_TEXT}</Text>
+          </View>
+          <Text style={{ fontSize: 9, marginTop: 6, fontFamily: 'Helvetica-Bold', color: data.reglementAccepteAt ? colors.teal : colors.orange }}>
+            {data.reglementAccepteAt
+              ? `Case cochée et validée par le stagiaire le ${formatDateTime(data.reglementAccepteAt)}`
+              : 'Non accepté par le stagiaire'}
+          </Text>
+        </View>
+
         {/* Émargements */}
         <Text style={pdfStyles.sectionTitle}>Émargements par créneau</Text>
         <View style={pdfStyles.table}>
-          <View style={pdfStyles.tableHeader}>
-            <Text style={[pdfStyles.tableHeaderCell, { width: 170 }]}>Date</Text>
-            <Text style={[pdfStyles.tableHeaderCell, { width: 90 }]}>Horaire</Text>
+          <View style={pdfStyles.tableHeader} fixed>
+            <Text style={[pdfStyles.tableHeaderCell, { width: 120 }]}>Date</Text>
+            <Text style={[pdfStyles.tableHeaderCell, { width: 66 }]}>Horaire</Text>
             <Text style={[pdfStyles.tableHeaderCell, { flex: 1 }]}>Signé le</Text>
-            <Text style={[pdfStyles.tableHeaderCell, { width: 130, textAlign: 'right' }]}>Signature</Text>
+            <Text style={[pdfStyles.tableHeaderCell, { width: 104, textAlign: 'center' }]}>Stagiaire</Text>
+            <Text style={[pdfStyles.tableHeaderCell, { width: 104, textAlign: 'center', marginLeft: 6 }]}>Formateur</Text>
           </View>
           {data.creneaux.map((c, i) => {
             const isLast = i === data.creneaux.length - 1;
             const dateLabel = formatDateLong(c.date);
             return (
               <View key={i} style={isLast ? pdfStyles.tableRowLast : pdfStyles.tableRow} wrap={false}>
-                <Text style={{ width: 170, fontSize: 9, textTransform: 'capitalize' }}>{dateLabel}</Text>
-                <Text style={{ width: 90, fontSize: 9 }}>
+                <Text style={{ width: 120, fontSize: 9, textTransform: 'capitalize' }}>{dateLabel}</Text>
+                <Text style={{ width: 66, fontSize: 9 }}>
                   {trimTime(c.heureDebut)} – {trimTime(c.heureFin)}
                 </Text>
                 <Text style={{ flex: 1, fontSize: 9, color: colors.muted }}>
                   {c.signedAt ? formatDateTime(c.signedAt) : '—'}
                 </Text>
-                <View style={pdfStyles.signatureBox}>
+                <View style={[pdfStyles.signatureBox, { width: 104, height: 52 }]}>
                   {c.signatureDataUrl ? (
-                    <Image src={c.signatureDataUrl} style={pdfStyles.signatureImage} />
+                    <Image src={c.signatureDataUrl} style={[pdfStyles.signatureImage, { maxWidth: 98, maxHeight: 46 }]} />
+                  ) : (
+                    <Text style={pdfStyles.signatureMissing}>Non signé</Text>
+                  )}
+                </View>
+                <View style={[pdfStyles.signatureBox, { width: 104, height: 52, marginLeft: 6 }]}>
+                  {c.formateurSignatureDataUrl ? (
+                    <Image src={c.formateurSignatureDataUrl} style={[pdfStyles.signatureImage, { maxWidth: 98, maxHeight: 46 }]} />
                   ) : (
                     <Text style={pdfStyles.signatureMissing}>Non signé</Text>
                   )}
@@ -157,5 +183,24 @@ export function EmargementPdf({ data }: { data: EmargementPdfData }) {
         </View>
       </Page>
     </Document>
+  );
+}
+
+export function PdfCheckbox({ checked }: { checked: boolean }) {
+  return (
+    <View
+      style={{
+        width: 10,
+        height: 10,
+        marginRight: 6,
+        marginTop: 1,
+        border: `1px solid ${checked ? colors.teal : colors.muted}`,
+        backgroundColor: checked ? colors.teal : '#fff',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      {checked && <Text style={{ fontSize: 7, color: '#fff', fontFamily: 'Helvetica-Bold' }}>X</Text>}
+    </View>
   );
 }

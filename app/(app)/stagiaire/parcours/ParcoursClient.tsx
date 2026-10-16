@@ -6,7 +6,8 @@ import { Button } from '@/components/app/Button';
 import { SignaturePad } from '@/components/app/SignaturePad';
 import { createClient } from '@/lib/supabase/client';
 import { formatDate, formatDateLong } from '@/lib/date';
-import { signCreneauForCurrentUser } from './actions';
+import { acceptReglementForCurrentUser, signCreneauForCurrentUser } from './actions';
+import { ACCEPTATION_PARTS, LIVRET_URL, REGLEMENT_URL } from '@/lib/reglement/acceptation';
 import { ReviewPopup, REVIEW_POPUP_FLAG } from './ReviewPopup';
 
 export interface ParticipantSession {
@@ -44,6 +45,8 @@ interface Props {
   absentCreneauIds: string[];
   /** Sessions où le user est absent à tous les créneaux : pas de popup test non plus */
   fullyAbsentSessionIds: string[];
+  /** Sessions où le règlement intérieur a déjà été accepté */
+  reglementAcceptedSessionIds: string[];
 }
 
 const FR_TIME = (h: string) => h.slice(0, 5);
@@ -57,6 +60,7 @@ export function ParcoursClient({
   initialTests,
   absentCreneauIds,
   fullyAbsentSessionIds,
+  reglementAcceptedSessionIds,
 }: Props) {
   const router = useRouter();
   const [emargements, setEmargements] = useState<ActiveEmargement[]>(initialEmargements);
@@ -71,6 +75,8 @@ export function ParcoursClient({
     | null
   >(null);
   const [signature, setSignature] = useState<string | null>(null);
+  const [accepted, setAccepted] = useState<Set<string>>(new Set(reglementAcceptedSessionIds));
+  const [acceptChecked, setAcceptChecked] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [showReviewPopup, setShowReviewPopup] = useState(false);
@@ -191,6 +197,18 @@ export function ParcoursClient({
     });
   }
 
+  function submitAcceptation() {
+    if (!popup || popup.kind !== 'emargement' || !acceptChecked) return;
+    setError(null);
+    const sessionId = popup.session.sessionId;
+    startTransition(async () => {
+      const res = await acceptReglementForCurrentUser(sessionId);
+      if (!res.ok) { setError(res.error); return; }
+      setAccepted((s) => new Set([...s, sessionId]));
+      setAcceptChecked(false);
+    });
+  }
+
   function goToTest() {
     if (!popup || popup.kind !== 'test') return;
     router.push(`/stagiaire/parcours/${popup.session.sessionId}/test/${popup.test.testId}`);
@@ -253,15 +271,50 @@ export function ParcoursClient({
             <strong>{popup.session.formationTitre}</strong> — <span className="capitalize">{formatDateLong(popup.creneau.date)}</span>
             {' '}({FR_TIME(popup.creneau.heure_debut)}–{FR_TIME(popup.creneau.heure_fin)})
           </p>
-          <div className="mt-4">
-            <SignaturePad onChange={setSignature} />
-          </div>
-          {error && <div className="mt-3 text-sm text-orange bg-orange/10 border border-orange/30 rounded p-2">{error}</div>}
-          <div className="mt-4 flex justify-end gap-2">
-            <Button onClick={submitSignature} disabled={!signature || pending}>
-              {pending ? 'Envoi…' : 'Valider ma signature'}
-            </Button>
-          </div>
+          {accepted.has(popup.session.sessionId) ? (
+            <>
+              <div className="mt-4">
+                <SignaturePad onChange={setSignature} />
+              </div>
+              {error && <div className="mt-3 text-sm text-orange bg-orange/10 border border-orange/30 rounded p-2">{error}</div>}
+              <div className="mt-4 flex justify-end gap-2">
+                <Button onClick={submitSignature} disabled={!signature || pending}>
+                  {pending ? 'Envoi…' : 'Valider ma signature'}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="mt-4 text-sm text-dark/70">
+                Avant votre premier émargement, merci de confirmer la prise de connaissance des documents suivants.
+              </p>
+              <label className="mt-3 flex items-start gap-3 rounded-lg border border-dark/15 bg-light/60 p-4 text-sm leading-relaxed cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={acceptChecked}
+                  onChange={(e) => setAcceptChecked(e.target.checked)}
+                  className="mt-1 h-4 w-4 shrink-0 accent-teal"
+                />
+                <span>
+                  {ACCEPTATION_PARTS.before}
+                  <a href={REGLEMENT_URL} target="_blank" rel="noopener noreferrer" className="text-teal underline">
+                    {ACCEPTATION_PARTS.reglement}
+                  </a>
+                  {ACCEPTATION_PARTS.middle}
+                  <a href={LIVRET_URL} target="_blank" rel="noopener noreferrer" className="text-teal underline">
+                    {ACCEPTATION_PARTS.livret}
+                  </a>
+                  {ACCEPTATION_PARTS.after}
+                </span>
+              </label>
+              {error && <div className="mt-3 text-sm text-orange bg-orange/10 border border-orange/30 rounded p-2">{error}</div>}
+              <div className="mt-4 flex justify-end gap-2">
+                <Button onClick={submitAcceptation} disabled={!acceptChecked || pending}>
+                  {pending ? 'Envoi…' : "Valider et passer à l'émargement"}
+                </Button>
+              </div>
+            </>
+          )}
         </Modal>
       )}
 

@@ -27,10 +27,15 @@ export async function GET(
 
   // Tous les créneaux + signatures de ce participant
   const admin = createAdminClient();
-  const [{ data: creneaux }, { data: emargements }] = await Promise.all([
+  const [{ data: creneaux }, { data: emargements }, { data: formateurEmargements }, { data: part }] = await Promise.all([
     admin.from('session_creneaux').select('id, date, heure_debut, heure_fin, ordre').eq('session_id', sessionId).order('ordre'),
     admin.from('emargements').select('creneau_id, signature_data, signed_at').eq('inscription_participant_id', participantId),
+    admin.from('formateur_emargements').select('creneau_id, signature_data').eq('session_id', sessionId),
+    admin.from('inscription_participants').select('reglement_accepte_at').eq('id', participantId).single(),
   ]);
+  const formateurSigByCreneau = new Map(
+    (formateurEmargements ?? []).map((f) => [f.creneau_id as string, f.signature_data as string | null])
+  );
 
   const emargByCreneau = new Map<string, { signature_data: string | null; signed_at: string | null }>();
   for (const e of emargements ?? []) {
@@ -45,6 +50,7 @@ export async function GET(
       heureFin: c.heure_fin,
       signatureDataUrl: sig?.signature_data ?? null,
       signedAt: sig?.signed_at ?? null,
+      formateurSignatureDataUrl: formateurSigByCreneau.get(c.id) ?? null,
     };
   });
 
@@ -61,6 +67,7 @@ export async function GET(
     stagiaire: { nomComplet: ctx.nomComplet, email: ctx.email },
     entreprise: ctx.entreprise,
     creneaux: pdfCreneaux,
+    reglementAccepteAt: part?.reglement_accepte_at ?? null,
     generatedAt: new Date().toISOString(),
   };
 

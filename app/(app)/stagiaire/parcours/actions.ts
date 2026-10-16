@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 async function requireStagiaire() {
   const profile = await getCurrentProfile();
@@ -10,9 +11,55 @@ async function requireStagiaire() {
 }
 
 /**
+ * Retrouve l'inscription_participant (confirmée) du user dans la session.
+ */
+async function findMyParticipation(sessionId: string, profileId: string) {
+  const supabase = await createClient();
+  const { data: parts } = await supabase
+    .from('inscription_participants')
+    .select(`
+      id, inscription_id, employee_id, participant_profile_id, reglement_accepte_at,
+      inscription:inscriptions!inner(id, session_id, statut),
+      employee:employees(profile_id)
+    `)
+    .eq('inscription.session_id', sessionId)
+    .eq('inscription.statut', 'confirmee');
+
+  return (parts ?? []).find((p) => {
+    const emp = Array.isArray(p.employee) ? p.employee[0] : p.employee;
+    return p.participant_profile_id === profileId || emp?.profile_id === profileId;
+  }) ?? null;
+}
+
+/**
+ * Enregistre l'acceptation du règlement intérieur / livret d'accueil pour la
+ * participation du stagiaire à la session. Le premier horodatage fait foi.
+ */
+export async function acceptReglementForCurrentUser(
+  sessionId: string
+): Promise<{ ok: true; acceptedAt: string } | { ok: false; error: string }> {
+  const profile = await requireStagiaire();
+  const me = await findMyParticipation(sessionId, profile.id);
+  if (!me) return { ok: false, error: "Vous n'êtes pas participant·e à cette session." };
+  if (me.reglement_accepte_at) return { ok: true, acceptedAt: me.reglement_accepte_at };
+
+  // Pas de policy d'update pour le stagiaire : écriture service-role après vérification.
+  const admin = createAdminClient();
+  const acceptedAt = new Date().toISOString();
+  const { error } = await admin
+    .from('inscription_participants')
+    .update({ reglement_accepte_at: acceptedAt })
+    .eq('id', me.id)
+    .is('reglement_accepte_at', null);
+  if (error) return { ok: false, error: error.message };
+
+  return { ok: true, acceptedAt };
+}
+
+/**
  * Signe l'émargement d'un créneau pour la participation courante du stagiaire.
- * Vérifie qu'un trigger ouvert existe pour le créneau et que le stagiaire est
- * bien participant à la session correspondante.
+ * Vérifie qu'un trigger ouvert existe pour le créneau, que le stagiaire est
+ * bien participant à la session et qu'il a accepté le règlement intérieur.
  */
 export async function signCreneauForCurrentUser(
   sessionId: string,
@@ -33,21 +80,13 @@ export async function signCreneauForCurrentUser(
   if (trig.closed_at) return { ok: false, error: "L'émargement de ce créneau est clôturé." };
 
   // 2) Trouver l'inscription_participant du user dans cette session
-  const { data: parts } = await supabase
-    .from('inscription_participants')
-    .select(`
-      id, inscription_id, employee_id, participant_profile_id,
-      inscription:inscriptions!inner(id, session_id, statut),
-      employee:employees(profile_id)
-    `)
-    .eq('inscription.session_id', sessionId)
-    .eq('inscription.statut', 'confirmee');
-
-  const me = (parts ?? []).find((p) => {
-    const emp = Array.isArray(p.employee) ? p.employee[0] : p.employee;
-    return p.participant_profile_id === profile.id || emp?.profile_id === profile.id;
-  });
+  const me = await findMyParticipation(sessionId, profile.id);
   if (!me) return { ok: false, error: "Vous n'êtes pas participant·e à cette session." };
+
+  // 3) Règlement intérieur accepté ?
+  if (!me.reglement_accepte_at) {
+    return { ok: false, error: 'Vous devez accepter le règlement intérieur avant de signer.' };
+  }
 
   const { error } = await supabase.from('emargements').upsert(
     {

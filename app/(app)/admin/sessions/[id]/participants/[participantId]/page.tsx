@@ -5,6 +5,8 @@ import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { computeScore, type ScoringQuestion, type ScoringResponse } from '@/lib/scoring';
 import type { QuestionType } from '@/lib/supabase/types';
 import { formatDate, formatDateTime } from '@/lib/date';
+import { testKindLabel } from '@/lib/pdf/tests-data';
+import { ACCEPTATION_TEXT } from '@/lib/reglement/acceptation';
 
 interface PageProps { params: Promise<{ id: string; participantId: string }> }
 
@@ -46,7 +48,7 @@ export default async function AdminSessionParticipantPage({ params }: PageProps)
   const { data: participant } = await supabase
     .from('inscription_participants')
     .select(`
-      id, inscription_id,
+      id, inscription_id, reglement_accepte_at,
       employee:employees(prenom, nom, email),
       profile:profiles!inscription_participants_participant_profile_id_fkey(full_name, email),
       inscription:inscriptions!inner(
@@ -91,7 +93,17 @@ export default async function AdminSessionParticipantPage({ params }: PageProps)
     supabase.from('session_creneaux').select('id, date, heure_debut, heure_fin, ordre').eq('session_id', sessionId).order('ordre'),
     supabase.from('emargements').select('creneau_id, signed_at').eq('inscription_participant_id', participantId),
   ]);
-  const signedSet = new Set((emargements ?? []).map((e) => e.creneau_id));
+  const signedAtByCreneau = new Map((emargements ?? []).map((e) => [e.creneau_id, e.signed_at as string | null]));
+  const signedSet = new Set(signedAtByCreneau.keys());
+
+  // Enquête financeur de l'inscription (remplie par l'entreprise)
+  const { data: financeurEnvoi } = await supabase
+    .from('enquete_financeur_envois')
+    .select('completion_id, responded_at, test:tests(nom)')
+    .eq('inscription_id', participant.inscription_id)
+    .maybeSingle();
+  const financeurTest = financeurEnvoi && (Array.isArray(financeurEnvoi.test) ? financeurEnvoi.test[0] : financeurEnvoi.test);
+  const pdfBase = `/api/pdf/tests/${participantId}?session=${sessionId}`;
   const totalCreneaux = creneaux?.length ?? 0;
   const signedCount = (creneaux ?? []).filter((c) => signedSet.has(c.id)).length;
 
@@ -149,6 +161,20 @@ export default async function AdminSessionParticipantPage({ params }: PageProps)
       </section>
 
       <section>
+        <h2 className="font-display text-2xl tracking-wide">Règlement intérieur &amp; livret d&apos;accueil</h2>
+        <div className={`mt-3 rounded-lg border p-4 text-sm ${
+          participant.reglement_accepte_at ? 'bg-teal/5 border-teal/30' : 'bg-orange/5 border-orange/30'
+        }`}>
+          <p className={`font-medium ${participant.reglement_accepte_at ? 'text-teal' : 'text-orange'}`}>
+            {participant.reglement_accepte_at
+              ? `Case cochée et validée le ${formatDateTime(participant.reglement_accepte_at)}`
+              : 'Pas encore accepté (sera demandé avant le prochain émargement)'}
+          </p>
+          <p className="mt-2 text-dark/60 text-xs leading-relaxed">« {ACCEPTATION_TEXT} »</p>
+        </div>
+      </section>
+
+      <section>
         <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
           <div>
             <h2 className="font-display text-2xl tracking-wide">Émargements</h2>
@@ -181,6 +207,7 @@ export default async function AdminSessionParticipantPage({ params }: PageProps)
                   <th className="text-left py-2 px-3">Créneau</th>
                   <th className="text-left py-2 px-3">Horaire</th>
                   <th className="text-left py-2 px-3">État</th>
+                  <th className="text-left py-2 px-3">Signé le</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-dark/10">
@@ -196,6 +223,9 @@ export default async function AdminSessionParticipantPage({ params }: PageProps)
                         }`}>
                           {signed ? 'Signé' : 'Non signé'}
                         </span>
+                      </td>
+                      <td className="py-2 px-3 text-dark/70">
+                        {signed ? formatDateTime(signedAtByCreneau.get(c.id)) : '—'}
                       </td>
                     </tr>
                   );
@@ -216,12 +246,12 @@ export default async function AdminSessionParticipantPage({ params }: PageProps)
           </div>
           {(completions?.length ?? 0) > 0 && (
             <a
-              href={`/api/pdf/tests/${participantId}?session=${sessionId}`}
+              href={pdfBase}
               target="_blank"
               rel="noopener"
               className="inline-flex items-center px-4 py-2 rounded text-sm font-medium bg-teal hover:bg-teal-l text-white transition whitespace-nowrap"
             >
-              Ouvrir toutes les réponses (PDF)
+              Toutes les réponses (PDF)
             </a>
           )}
         </div>
@@ -242,9 +272,7 @@ export default async function AdminSessionParticipantPage({ params }: PageProps)
                 ? computeScore(qs as ScoringQuestion[], responses as ScoringResponse[])
                 : null;
 
-              const kindLabel = test?.kind === 'enquete'
-                ? (test?.enquete_kind === 'a_froid' ? 'Enquête à froid' : test?.enquete_kind === 'a_chaud' ? 'Enquête à chaud' : 'Enquête')
-                : test?.kind === 'quiz' ? 'Test' : 'Informatif';
+              const kindLabel = testKindLabel(test?.kind ?? 'info', test?.enquete_kind ?? null);
 
               return (
                 <details key={c.id} className="bg-white rounded-lg border border-dark/10">
@@ -256,7 +284,17 @@ export default async function AdminSessionParticipantPage({ params }: PageProps)
                         {c.completed_at && <> · complété le {formatDateTime(c.completed_at)}</>}
                       </p>
                     </div>
-                    <div className="flex flex-col items-end gap-1">
+                    <div className="flex items-center gap-2">
+                      {c.completed_at && (
+                        <a
+                          href={`${pdfBase}&completion=${c.id}`}
+                          target="_blank"
+                          rel="noopener"
+                          className="text-xs px-2.5 py-1 rounded border border-teal/40 text-teal hover:bg-teal hover:text-white transition"
+                        >
+                          PDF
+                        </a>
+                      )}
                       {score && score.scorePct !== null && (
                         <span className={`text-xs px-2 py-1 rounded-full uppercase tracking-wider font-medium ${
                           score.scorePct >= 80 ? 'bg-teal/10 text-teal'
@@ -297,6 +335,33 @@ export default async function AdminSessionParticipantPage({ params }: PageProps)
                 </details>
               );
             })
+          )}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="font-display text-2xl tracking-wide">Enquête financeur</h2>
+        <p className="text-xs text-dark/60 mt-1">Enquête de satisfaction remplie par l&apos;entreprise pour cette inscription.</p>
+        <div className="mt-3 bg-white rounded-lg border border-dark/10 p-4 flex items-center justify-between gap-3 flex-wrap text-sm">
+          {financeurEnvoi?.responded_at && financeurEnvoi.completion_id ? (
+            <>
+              <div>
+                <p className="font-medium">{financeurTest?.nom ?? 'Enquête de satisfaction financeur'}</p>
+                <p className="text-xs text-dark/60 mt-0.5">Répondu le {formatDateTime(financeurEnvoi.responded_at)}</p>
+              </div>
+              <a
+                href={`${pdfBase}&completion=${financeurEnvoi.completion_id}`}
+                target="_blank"
+                rel="noopener"
+                className="inline-flex items-center px-4 py-2 rounded text-sm font-medium bg-teal hover:bg-teal-l text-white transition whitespace-nowrap"
+              >
+                Ouvrir le PDF
+              </a>
+            </>
+          ) : (
+            <p className="text-dark/60">
+              {financeurEnvoi ? "L'entreprise n'a pas encore répondu." : 'Aucune enquête financeur pour cette inscription.'}
+            </p>
           )}
         </div>
       </section>
