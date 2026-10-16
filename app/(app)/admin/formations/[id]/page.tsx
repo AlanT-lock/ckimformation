@@ -1,9 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
-import { PageHeader } from '@/components/app/PageHeader';
-import { ButtonLink } from '@/components/app/Button';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { FormationForm } from '../FormationForm';
-import { DeleteFormationButton } from './DeleteFormationButton';
 import { FichePdfManager } from './FichePdfManager';
 import { getAllSecteurs } from '@/lib/db/secteurs';
 
@@ -24,18 +21,6 @@ export default async function AdminEditFormationPage({ params }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        eyebrow="Formation"
-        title={f.titre}
-        description={f.sous_titre ?? undefined}
-        actions={
-          <>
-            <ButtonLink href="/admin/formations" variant="secondary">← Retour</ButtonLink>
-            <ButtonLink href={`/formations/${f.slug}`} variant="secondary">Voir le site →</ButtonLink>
-            <DeleteFormationButton formationId={f.id} />
-          </>
-        }
-      />
       <FichePdfManager formationId={f.id} isCustom={!!f.fiche_pdf_path} />
       <FormationForm
         allFormations={all ?? []}

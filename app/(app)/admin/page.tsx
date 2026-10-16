@@ -129,7 +129,7 @@ export default async function AdminHome() {
         {enquetesData.length === 0 ? (
           <div className="bg-white rounded-lg border border-dark/10 p-6 text-sm text-dark/60">
             Aucune enquête de satisfaction n&apos;a encore été créée.{' '}
-            <Link href="/admin/tests" className="text-teal underline">Configurer une enquête</Link>
+            <Link href="/admin/formations" className="text-teal underline">Configurer depuis une formation →</Link>
           </div>
         ) : (
           <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">

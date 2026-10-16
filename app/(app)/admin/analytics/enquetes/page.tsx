@@ -229,7 +229,7 @@ export default async function AnalyticsEnquetesPage({ searchParams }: PageProps)
         eyebrow="Administration"
         title="Analyses des enquêtes de satisfaction"
         description="Vue cross-formation : taux de réponse, satisfaction moyenne, distribution des notes et retours libres."
-        actions={<ButtonLink href="/admin/tests" variant="secondary">Tests &amp; enquêtes</ButtonLink>}
+        actions={<ButtonLink href="/admin/formations" variant="secondary">Formations</ButtonLink>}
       />
 
       {/* Onglets type d'enquête */}
