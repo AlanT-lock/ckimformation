@@ -25,7 +25,8 @@ export async function GET(request: NextRequest) {
   const errorCode = url.searchParams.get('error_code');
 
   const next = url.searchParams.get('next');
-  const redirect = next || url.searchParams.get('redirect') || '/stagiaire';
+  const explicitRedirect = next || url.searchParams.get('redirect');
+  const redirect = explicitRedirect || '/stagiaire';
 
   function loginRedirect(message: string, isError = true) {
     const key = isError ? 'error' : 'message';
@@ -47,13 +48,22 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (error) return loginRedirect(error.message);
+    if (error) {
+      // Typiquement : lien ouvert dans un autre navigateur que celui de la demande,
+      // ou lien déjà utilisé / expiré.
+      return loginRedirect('Ce lien n\'est plus valide ou a été ouvert sur un autre appareil. Demandez un nouveau lien.');
+    }
   } else if (tokenHash && type) {
     const { error } = await supabase.auth.verifyOtp({
       token_hash: tokenHash,
       type: (type === 'email' ? 'signup' : type) as 'signup' | 'magiclink' | 'recovery' | 'invite' | 'email_change',
     });
-    if (error) return loginRedirect(error.message);
+    if (error) {
+      if (/expired|invalid/i.test(error.message)) {
+        return loginRedirect('Ce lien a expiré ou a déjà été utilisé. Demandez un nouveau lien.');
+      }
+      return loginRedirect(error.message);
+    }
   } else {
     // Aucun paramètre d'auth : peut venir d'un lien mal formé OU d'un fragment
     // (#access_token=...) que le serveur ne peut pas lire. On délègue à une
@@ -61,11 +71,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL(`/callback/hash?redirect=${encodeURIComponent(redirect)}`, url.origin));
   }
 
-  // Pour invite / recovery → définition du mot de passe
+  // Pour invite / recovery → définition du mot de passe. Sans destination
+  // explicite, la page renvoie ensuite vers l'accueil correspondant au rôle.
   if (type === 'recovery' || type === 'invite') {
-    return NextResponse.redirect(
-      new URL(`/setup-password?next=${encodeURIComponent(redirect)}`, url.origin)
-    );
+    const target = explicitRedirect
+      ? `/setup-password?next=${encodeURIComponent(explicitRedirect)}`
+      : '/setup-password';
+    return NextResponse.redirect(new URL(target, url.origin));
   }
 
   return NextResponse.redirect(new URL(redirect, url.origin));

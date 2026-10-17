@@ -1,16 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
+const NO_SESSION_MESSAGE =
+  "Ce lien n'est plus valide (expiré, déjà utilisé ou ouvert sur un autre appareil). Demandez un nouveau lien de réinitialisation.";
+
 export function SetupPasswordForm({ next }: { next?: string }) {
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
+  // null = vérification en cours
+  const [hasSession, setHasSession] = useState<boolean | null>(null);
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase.auth.getUser().then(({ data }) => {
+      if (!cancelled) setHasSession(!!data.user);
+    });
+    return () => { cancelled = true; };
+  }, [supabase]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -20,7 +34,16 @@ export function SetupPasswordForm({ next }: { next?: string }) {
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
-    if (error) { setError(error.message); return; }
+    if (error) {
+      if (/session missing|not authenticated|jwt/i.test(error.message)) {
+        setHasSession(false);
+        return;
+      }
+      setError(/different from the old/i.test(error.message)
+        ? 'Le nouveau mot de passe doit être différent de l\'ancien.'
+        : error.message);
+      return;
+    }
 
     // Récupère le rôle pour rediriger correctement
     const { data: { user } } = await supabase.auth.getUser();
@@ -34,6 +57,20 @@ export function SetupPasswordForm({ next }: { next?: string }) {
     router.refresh();
   }
 
+  if (hasSession === false) {
+    return (
+      <div className="mt-8 space-y-4">
+        <div className="text-sm text-orange bg-orange/10 border border-orange/30 rounded p-3">{NO_SESSION_MESSAGE}</div>
+        <Link
+          href="/login"
+          className="block text-center w-full bg-teal hover:bg-teal-l text-white font-medium py-3 rounded transition"
+        >
+          Retour à la connexion
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={onSubmit} className="mt-8 space-y-4">
       {error && (
@@ -45,7 +82,7 @@ export function SetupPasswordForm({ next }: { next?: string }) {
       <Field label="Confirmer" value={confirm} onChange={setConfirm} />
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || hasSession === null}
         className="w-full bg-teal hover:bg-teal-l text-white font-medium py-3 rounded transition disabled:opacity-50"
       >
         {loading ? 'Enregistrement…' : 'Enregistrer et se connecter'}

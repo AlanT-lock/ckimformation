@@ -13,7 +13,8 @@ export type EmailLogKind =
   | 'employee_link_invitation'
   | 'company_invitation'
   | 'employee_account_invitation'
-  | 'journee_terminee';
+  | 'journee_terminee'
+  | 'password_reset';
 
 export interface EmailAttachment {
   filename: string;

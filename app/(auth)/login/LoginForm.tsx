@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { requestPasswordReset } from './actions';
 
 interface Props {
   redirectTo?: string;
@@ -49,12 +50,11 @@ export function LoginForm({ redirectTo, initialError, initialMessage }: Props) {
     setError(null);
     setMessage(null);
     setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/setup-password`,
-    });
+    // Lien généré côté serveur : fonctionne quel que soit l'appareil où il est ouvert.
+    const res = await requestPasswordReset(email);
     setLoading(false);
-    if (error) { setError(error.message); return; }
-    setMessage('Email envoyé. Vérifie ta boîte mail.');
+    if (!res.ok) { setError(res.error); return; }
+    setMessage('Si un compte existe avec cet email, un lien de réinitialisation vient d\'être envoyé. Vérifie ta boîte mail.');
   }
 
   return (
