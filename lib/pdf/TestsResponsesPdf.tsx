@@ -116,7 +116,7 @@ export function TestsList({ tests }: { tests: PdfTest[] }) {
         const isFirstEval = !!test.isEvaluationFormateur && !prev?.isEvaluationFormateur;
         return (
           <View key={ti}>
-            <View style={{ marginTop: 18 }} wrap={false}>
+            <View style={{ marginTop: 18 }}>
               {isFirstEval && (
                 <View
                   style={{
@@ -135,6 +135,8 @@ export function TestsList({ tests }: { tests: PdfTest[] }) {
                 </View>
               )}
               <View
+                wrap={false}
+                minPresenceAhead={90}
                 style={{
                   flexDirection: 'row',
                   justifyContent: 'space-between',
