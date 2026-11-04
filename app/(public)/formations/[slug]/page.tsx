@@ -133,7 +133,7 @@ export default async function FormationPage({ params }: PageProps) {
         variant="compact"
         eyebrow="Formation certifiée"
         title="Cette formation est éligible aux financements qualité."
-        description="Conçue dans le cadre du référentiel Qualiopi, cette action est mobilisable via OPCO, CPF, Pôle Emploi ou plan de développement des compétences."
+        description="Conçue dans le cadre du référentiel Qualiopi, cette action est mobilisable via OPCO, CPF, France Travail ou plan de développement des compétences."
       />
 
       {/* 8. Méthode C-KIM (transverse) - dark */}

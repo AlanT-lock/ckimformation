@@ -32,7 +32,7 @@ export function Footer() {
               </div>
               <div className="text-xs leading-relaxed">
                 <p className="text-teal-l font-semibold uppercase tracking-wider mb-0.5">Certifié Qualiopi</p>
-                <p className="text-muted">Catégorie « Actions de formation ». Éligible OPCO, CPF, Pôle Emploi.</p>
+                <p className="text-muted">Catégorie « Actions de formation ». Éligible OPCO, CPF, France Travail.</p>
               </div>
             </div>
           </div>
