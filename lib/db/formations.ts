@@ -89,6 +89,25 @@ export async function getAllFormations(): Promise<Formation[]> {
   return (data ?? []).map((r) => rowToFormation(r as unknown as FormationRow));
 }
 
+/**
+ * Nombre de formations actives au catalogue (affiché sur les pages publiques).
+ * Renvoie null si la requête échoue, pour ne jamais afficher un chiffre faux.
+ */
+export async function countActiveFormations(): Promise<number | null> {
+  const supabase = createPublicClient();
+  const { count, error } = await supabase
+    .from('formations')
+    .select('id', { count: 'exact', head: true })
+    .eq('actif', true);
+  if (error) return null;
+  return count ?? null;
+}
+
+/** « 1 formation », « 17 formations »… */
+export function formatFormationsCount(n: number): string {
+  return `${n} formation${n > 1 ? 's' : ''}`;
+}
+
 export async function getFormationBySlug(slug: string): Promise<Formation | null> {
   const supabase = createPublicClient();
   const { data } = await supabase

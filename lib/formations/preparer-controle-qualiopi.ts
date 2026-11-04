@@ -17,7 +17,7 @@ export const formation: Formation = {
     prerequis:
       "Lire, écrire, compter — connaissances du fonctionnement d'un organisme de formation",
     prixIndicatif: 'Sur devis',
-    modalite: 'Présentiel — 60 % de pratique — animée par un auditeur AFNOR',
+    modalite: 'Présentiel — 60 % de pratique',
     inscription: '15 jours avant la session',
     recyclage: 'Avant chaque audit de surveillance ou de renouvellement',
   },
@@ -66,6 +66,6 @@ export const formation: Formation = {
   seo: {
     title: 'Préparer un Contrôle Qualité Qualiopi (RNQ) | C-KIM Formation',
     description:
-      "Préparer son audit Qualiopi avec un auditeur AFNOR : 7 critères RNQ, audit blanc, plan d'action. 14 à 49h modulables en PACA.",
+      "Préparer son audit Qualiopi : 7 critères RNQ, audit blanc, plan d'action. 14 à 49h modulables en PACA.",
   },
 };

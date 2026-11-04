@@ -18,12 +18,12 @@ export const formation: Formation = {
     prixIndicatif: 'Sur devis',
     modalite: 'Présentiel — sur site client',
     inscription: '7 jours avant la session',
-    recyclage: 'Recyclage recommandé tous les 3 ans (NF C 18-510)',
+    recyclage: 'Recyclage recommandé tous les 3 ans',
   },
   publicDetail:
     'Personnel non électricien réalisant des interventions élémentaires (remplacement, raccordement) et/ou des manœuvres en basse tension sur des installations électriques.',
   objectifs:
-    'Exécuter en sécurité des interventions de remplacement et de raccordement simples et des manœuvres dans le respect des textes et de la norme NF C 18-510.',
+    'Exécuter en sécurité des interventions de remplacement et de raccordement simples et des manœuvres dans le respect des prescriptions de sécurité du Code du travail.',
   programme: [
     {
       titre: 'Notions élémentaires d\'électricité',
@@ -67,9 +67,9 @@ export const formation: Formation = {
     },
   ],
   evaluation:
-    'Évaluation théorique et pratique en fin de formation. Avis après formation conforme à la norme NF C 18-510, attestation de formation et enquête de satisfaction stagiaire.',
+    'Évaluation théorique et pratique en fin de formation. Avis après formation, attestation de formation et enquête de satisfaction stagiaire.',
   referencesReglementaires:
-    'L\'habilitation électrique est une exigence réglementaire pour tous les travailleurs effectuant des opérations sur les installations électriques ou dans leur voisinage. Elle nécessite une formation préalable. La norme NF C 18-510 préconise un recyclage tous les 3 ans.',
+    'L\'habilitation électrique est une exigence réglementaire pour tous les travailleurs effectuant des opérations sur les installations électriques ou dans leur voisinage. Elle nécessite une formation préalable. Un recyclage est recommandé tous les 3 ans.',
   formationsLiees: [
     'habilitation-electrique-h0-b0',
     'habilitation-electrique-b1v-b2v',
@@ -78,6 +78,6 @@ export const formation: Formation = {
   seo: {
     title: 'Habilitation Électrique BS BE Manœuvre | C-KIM Formation',
     description:
-      'Formation habilitation électrique BS / BE Manœuvre — 14h, présentiel, conforme NF C 18-510. Pour interventions élémentaires et manœuvres en basse tension. Région PACA.',
+      'Formation habilitation électrique BS / BE Manœuvre — 14h, présentiel. Pour interventions élémentaires et manœuvres en basse tension. Région PACA.',
   },
 };

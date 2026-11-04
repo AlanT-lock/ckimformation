@@ -6,7 +6,7 @@ import { ButtonLink } from '@/components/ui/Button';
 import { FadeUp } from '@/components/motion/FadeUp';
 import { StatCounter } from '@/components/motion/StatCounter';
 import { Marquee } from '@/components/motion/Marquee';
-import { getFormationBySlug } from '@/lib/db/formations';
+import { countActiveFormations, formatFormationsCount, getFormationBySlug } from '@/lib/db/formations';
 import { getParcoursMeta } from '@/lib/parcours';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { QualiopiBanner } from '@/components/sections/QualiopiBanner';
@@ -14,7 +14,7 @@ import { QualiopiBanner } from '@/components/sections/QualiopiBanner';
 export const metadata: Metadata = {
   title: "L'organisme — C-KIM Formation, Draguignan PACA",
   description:
-    'Centre de formation certifié Qualiopi en Provence-Alpes-Côte d\'Azur. Formateurs INRS, AFNOR, FPA. 60 à 80 % de pratique, intervention sur site, sécurité au travail et développement humain.',
+    'Centre de formation certifié Qualiopi en Provence-Alpes-Côte d\'Azur. Formateurs INRS et FPA. 60 à 80 % de pratique, intervention sur site, sécurité au travail et développement humain.',
 };
 
 export const revalidate = 600;
@@ -28,9 +28,11 @@ const HIGHLIGHTED_SLUGS = [
 ];
 
 export default async function OrganismePage() {
-  const highlighted = (
-    await Promise.all(HIGHLIGHTED_SLUGS.map((s) => getFormationBySlug(s)))
-  ).filter((f): f is NonNullable<typeof f> => Boolean(f));
+  const [highlightedRaw, nbFormations] = await Promise.all([
+    Promise.all(HIGHLIGHTED_SLUGS.map((s) => getFormationBySlug(s))),
+    countActiveFormations(),
+  ]);
+  const highlighted = highlightedRaw.filter((f): f is NonNullable<typeof f> => Boolean(f));
 
   return (
     <>
@@ -64,7 +66,7 @@ export default async function OrganismePage() {
 
           {/* Tags certifications */}
           <div className="mt-10 flex flex-wrap gap-2">
-            {['Qualiopi', 'INRS', 'AFNOR', 'FPA'].map((c) => (
+            {['Qualiopi', 'INRS', 'FPA'].map((c) => (
               <span
                 key={c}
                 className="text-xs uppercase tracking-[0.22em] font-medium px-4 py-2 rounded-full bg-white/5 border border-white/15 text-white/85"
@@ -82,7 +84,9 @@ export default async function OrganismePage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-y-10 gap-x-6 text-center md:text-left">
             {[
               { n: 150, suffix: '+', label: 'Stagiaires formés depuis 2025', animate: true },
-              { n: 17, suffix: '', label: 'Formations au catalogue', animate: true },
+              ...(nbFormations
+                ? [{ n: nbFormations, suffix: '', label: 'Formations au catalogue', animate: true }]
+                : []),
               { n: 80, suffix: '%', label: 'de pratique en moyenne', animate: true },
               { n: 24, suffix: 'h', label: 'pour répondre à votre demande', animate: true },
             ].map((s, i) => (
@@ -152,7 +156,7 @@ export default async function OrganismePage() {
                 titre: 'Qualité certifiée',
                 couleur: '#1B8FA0',
                 texte:
-                  'Certification Qualiopi audit AFNOR. Référencement OPCO et France Travail. Réponse aux marchés PACA.',
+                  'Certification Qualiopi. Référencement OPCO et France Travail. Réponse aux marchés PACA.',
               },
               {
                 titre: 'Pratique terrain',
@@ -338,7 +342,9 @@ export default async function OrganismePage() {
           <FadeUp delay={0.3}>
             <div className="mt-12 text-center">
               <ButtonLink href="/formations" variant="dark">
-                Voir tout le catalogue (17 formations)
+                {nbFormations
+                  ? `Voir tout le catalogue (${formatFormationsCount(nbFormations)})`
+                  : 'Voir tout le catalogue'}
               </ButtonLink>
             </div>
           </FadeUp>
@@ -359,16 +365,16 @@ export default async function OrganismePage() {
                   Certification <em className="not-italic text-orange">Qualiopi</em>.
                 </h2>
                 <p className="mt-6 text-dark/75 leading-relaxed">
-                  C-KIM Formation est référencé Qualiopi (audit AFNOR) au titre de la catégorie
-                  d&apos;actions de formation. Cette certification est obligatoire depuis 2022 pour
-                  toute prise en charge OPCO, CPF ou France Travail.
+                  C-KIM Formation est certifié Qualiopi au titre de la catégorie d&apos;actions de
+                  formation. La certification Qualiopi est l&apos;une des conditions pour qu&apos;une
+                  formation puisse être financée par des fonds publics ou mutualisés (OPCO, CPF,
+                  France Travail)&nbsp;; la prise en charge reste soumise aux règles de chaque financeur.
                 </p>
                 <ul className="mt-6 space-y-3">
                   {[
                     'Référencement OPCO (toutes branches)',
                     'Éligible CPF — Compte Personnel de Formation',
                     'Éligible France Travail — AIF, Plan départemental',
-                    'Subrogation directe à l\'OPCO (zéro avance pour vous)',
                     'Accompagnement complet du dossier administratif',
                   ].map((item) => (
                     <li key={item} className="flex items-start gap-3 text-sm text-dark/80">
@@ -474,17 +480,13 @@ export default async function OrganismePage() {
                 Nos formateurs cumulent au minimum <strong>cinq années d&apos;expérience opérationnelle</strong> dans
                 leur domaine d&apos;expertise avant d&apos;intervenir. Ils sont titulaires des
                 certifications requises pour chaque référentiel : INRS pour le secourisme,
-                AFNOR pour la qualité, FPA (Titre Professionnel de Formateur Professionnel
-                d&apos;Adultes) pour la pédagogie.
+                FPA (Titre Professionnel de Formateur Professionnel d&apos;Adultes) pour la
+                pédagogie.
               </p>
               <ul className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
                   { l: 'INRS', d: 'Secourisme' },
-                  { l: 'AFNOR', d: 'Qualité' },
                   { l: 'FPA', d: 'Pédagogie' },
-                  { l: 'NF C18-510', d: 'Habilitations électriques' },
-                  { l: 'APSAD R6', d: 'Incendie' },
-                  { l: 'HACCP', d: 'Hygiène alimentaire' },
                 ].map((c) => (
                   <li
                     key={c.l}
@@ -504,8 +506,8 @@ export default async function OrganismePage() {
       <section className="bg-light py-12 border-y border-dark/5">
         <Marquee speed={40}>
           {[
-            'QUALIOPI', '·', 'INRS', '·', 'AFNOR', '·', 'FPA', '·',
-            'CODE DU TRAVAIL', '·', 'APSAD', '·', 'NF C18-510', '·',
+            'QUALIOPI', '·', 'INRS', '·', 'FPA', '·',
+            'CODE DU TRAVAIL', '·',
             'OPCO', '·', 'CPF', '·', 'FRANCE TRAVAIL', '·',
           ].map((label, i) => (
             <span key={i} className="font-display text-2xl md:text-3xl tracking-[0.2em] text-dark/55">
@@ -573,7 +575,7 @@ export default async function OrganismePage() {
             '@type': 'AdministrativeArea',
             name: 'Provence-Alpes-Côte d\'Azur',
           },
-          hasCredential: ['Qualiopi', 'INRS', 'AFNOR', 'FPA'],
+          hasCredential: ['Qualiopi', 'INRS', 'FPA'],
         }}
       />
     </>

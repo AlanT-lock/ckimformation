@@ -15,7 +15,7 @@ export const PARCOURS_META: Record<Parcours, ParcoursMeta> = {
   alimentaire: {
     label: 'Sécurité Alimentaire',
     couleur: '#2E9E6A',
-    description: 'Méthode HACCP et hygiène en restauration collective et commerciale.',
+    description: "Bonnes pratiques d'hygiène en restauration collective et commerciale.",
   },
   prevention: {
     label: 'Prévention & Conformité',

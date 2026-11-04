@@ -534,7 +534,7 @@ insert into public.formations (slug, titre, parcours) values
   ('habilitation-electrique-b1v-b2v',         'Habilitation Électrique B1V / B2V',                   'securite'),
   ('habilitation-electrique-bs-be-manoeuvre', 'Habilitation Électrique BS / BE Manœuvre',            'securite'),
   ('habilitation-electrique-h0-b0',           'Habilitation Électrique H0 / B0',                     'securite'),
-  ('hygiene-alimentaire-haccp',               'Hygiène Alimentaire HACCP',                           'alimentaire'),
+  ('hygiene-alimentaire-haccp',               'Hygiène Alimentaire',                                 'alimentaire'),
   ('incendie-extincteur-evacuation',          'Formation Incendie — Extincteur & Évacuation',        'securite'),
   ('mac-formateur-sst',                       'Maintien & Actualisation des Compétences SST',        'formateurs'),
   ('mac-sst',                                 'MAC SST — Maintien et Actualisation des Compétences', 'securite'),

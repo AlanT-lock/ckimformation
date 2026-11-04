@@ -23,8 +23,8 @@ export function MethodeCkim() {
             </div>
             <div>
               <p className="font-display text-5xl text-teal-l leading-none">CERTIFIÉS</p>
-              <p className="text-sm uppercase tracking-[0.15em] text-muted mt-2">INRS · AFNOR · FPA</p>
-              <p className="text-sm text-muted/80 mt-2 leading-relaxed">Auditeurs Qualiopi, formateurs professionnels d&apos;adultes.</p>
+              <p className="text-sm uppercase tracking-[0.15em] text-muted mt-2">INRS · FPA</p>
+              <p className="text-sm text-muted/80 mt-2 leading-relaxed">Formateurs professionnels d&apos;adultes, experts de leur domaine.</p>
             </div>
           </div>
         </FadeUp>

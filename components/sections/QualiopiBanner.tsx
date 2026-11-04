@@ -23,7 +23,7 @@ const PILLARS = [
   },
   {
     title: 'Formateurs experts',
-    body: 'Certifiés INRS, AFNOR, FPA. Une exigence terrain documentée pour chaque session, sur site client.',
+    body: 'Certifiés INRS et FPA. Une exigence terrain documentée pour chaque session, sur site client.',
   },
   {
     title: 'Satisfaction stagiaires',
@@ -79,9 +79,10 @@ export function QualiopiBanner({
                 }`}
               >
                 Une démarche qualité auditée, des processus pédagogiques rigoureux,
-                un suivi systématique des stagiaires. La garantie d&apos;une formation
-                éligible aux financements publics (OPCO, CPF, Pôle Emploi, plan de
-                développement des compétences).
+                un suivi systématique des stagiaires. La certification Qualiopi est l&apos;une
+                des conditions pour qu&apos;une formation puisse être financée par des fonds
+                publics ou mutualisés (OPCO, CPF, France Travail)&nbsp;; la prise en charge reste
+                soumise aux règles de chaque financeur.
               </p>
             </div>
           </div>

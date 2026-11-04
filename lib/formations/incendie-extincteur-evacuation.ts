@@ -50,7 +50,7 @@ export const formation: Formation = {
   evaluation:
     'Attestation de formation et notification sur le registre de sécurité. Évaluation continue + mise en situation incendie simulée.',
   referencesReglementaires:
-    'Articles R4227-28, R4227-39 et R4141-17 à R4141-20 du Code du Travail — Articles L4141-2, R4141-3 et R4141-13 (formation à la sécurité) — Recommandation APSAD R6.',
+    'Articles R4227-28, R4227-39 et R4141-17 à R4141-20 du Code du Travail — Articles L4141-2, R4141-3 et R4141-13 (formation à la sécurité).',
   formationsLiees: ['habilitation-electrique-h0-b0', 'formateur-incendie-gestes-postures'],
   seo: {
     title: 'Formation Incendie — Extincteur & Évacuation | C-KIM Formation',

@@ -17,16 +17,16 @@ export const formation: Formation = {
     prixIndicatif: '200 € HT (indiv.) · 850 € HT (4-6 pers.) · 1 300 € HT (7-10 pers.)',
     modalite: 'Présentiel',
     inscription: '7 jours avant',
-    recyclage: 'Tous les 3 ans (préconisation NF C18-510)',
+    recyclage: 'Tous les 3 ans (recommandé)',
   },
   objectifs:
-    "À l'issue de la formation, le stagiaire est capable de connaître le risque électrique inhérent à l'exécution de travaux non électriques dans les locaux réservés aux électriciens ou au voisinage de pièces nues sous tension (B0V / H0V), d'exécuter en sécurité des opérations d'ordre non électrique en BT dans le respect des prescriptions de sécurité, de prévenir ou agir face à un accident d'origine électrique, et de respecter les prescriptions de sécurité définies par la publication UTE C 18-510.",
+    "À l'issue de la formation, le stagiaire est capable de connaître le risque électrique inhérent à l'exécution de travaux non électriques dans les locaux réservés aux électriciens ou au voisinage de pièces nues sous tension (B0V / H0V), d'exécuter en sécurité des opérations d'ordre non électrique en BT dans le respect des prescriptions de sécurité, de prévenir ou agir face à un accident d'origine électrique, et de respecter les prescriptions de sécurité prévues par le Code du travail.",
   programme: [
     {
       titre: 'Aspects réglementaires',
       points: [
         'Décret du 14 novembre 1988 — version consolidée',
-        'Publication UTE C 18-510 et normes électriques',
+        'Cadre réglementaire : Code du travail (articles R4544-9 et R4544-10)',
         "Obligations, responsabilités, domaines d'application",
         "Procédure d'habilitation H0V / B0V et ses limites",
       ],
@@ -61,11 +61,11 @@ export const formation: Formation = {
   evaluation:
     "QCM d'aptitude en fin de formation. Attestation de formation délivrée. L'employeur délivre ensuite l'habilitation H0/B0.",
   referencesReglementaires:
-    'Norme NF C18-510 — Décret du 14 novembre 1988 (version consolidée) — Publication UTE C 18-510 — Articles R4544-9 et R4544-10 du Code du travail.',
+    'Articles R4544-9 et R4544-10 du Code du travail.',
   formationsLiees: ['habilitation-electrique-b1v-b2v', 'incendie-extincteur-evacuation'],
   seo: {
     title: 'Habilitation Électrique H0-B0 | C-KIM Formation',
     description:
-      "Formation Habilitation Électrique H0-B0 conforme NF C18-510. 7h, présentiel, à Draguignan (PACA). Pour exécutants de travaux d'ordre non électrique en BT.",
+      "Formation Habilitation Électrique H0-B0. 7h, présentiel, à Draguignan (PACA). Pour exécutants de travaux d'ordre non électrique en BT.",
   },
 };

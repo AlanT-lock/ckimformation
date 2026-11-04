@@ -68,11 +68,12 @@ export default function FinancementPage() {
         <Container className="max-w-4xl">
           <FadeUp>
             <p className="text-lg md:text-xl text-dark/80 leading-relaxed">
-              <strong className="text-dark">Vous n&apos;avez pas à avancer les frais.</strong> En tant
-              qu&apos;organisme certifié Qualiopi (n° d&apos;activité <span className="font-mono">93830858883</span>),
-              nous sommes référencés auprès de tous les financeurs de la formation professionnelle.
-              Nous gérons la subrogation directement avec eux : votre OPCO ou votre CPF règle C-KIM,
-              vous ne sortez rien de votre poche.
+              <strong className="text-dark">Nous vous accompagnons dans vos démarches de financement.</strong>{' '}
+              C-KIM Formation est un organisme certifié Qualiopi (n° d&apos;activité{' '}
+              <span className="font-mono">93830858883</span>). La certification Qualiopi est l&apos;une
+              des conditions pour qu&apos;une formation puisse être financée par des fonds publics ou
+              mutualisés (OPCO, CPF, France Travail)&nbsp;; la prise en charge reste soumise aux règles
+              de chaque financeur.
             </p>
           </FadeUp>
         </Container>
@@ -119,7 +120,8 @@ export default function FinancementPage() {
                     <strong>Validation</strong> par l&apos;OPCO sous 2 à 4 semaines en moyenne.
                   </li>
                   <li>
-                    <strong>Subrogation directe</strong> : C-KIM facture l&apos;OPCO, vous ne faites pas l&apos;avance.
+                    <strong>Prise en charge</strong> : le montant et les modalités de règlement sont fixés
+                    par votre OPCO, selon ses propres règles.
                   </li>
                 </ol>
               </Card>
@@ -150,8 +152,8 @@ export default function FinancementPage() {
               <Card title="Notre accompagnement" color="#1B8FA0">
                 <p>
                   Vous nous communiquez vos coordonnées et la formation choisie : nous identifions
-                  votre OPCO, montons le dossier de prise en charge, et gérons toute la facturation
-                  jusqu&apos;au remboursement. <strong>Zéro paperasse pour vous.</strong>
+                  votre OPCO, montons le dossier de prise en charge et vous transmettons les documents
+                  demandés par le financeur. <strong>Zéro paperasse pour vous.</strong>
                 </p>
               </Card>
             </FadeUp>
@@ -218,8 +220,8 @@ export default function FinancementPage() {
                   <li>Recherchez la formation C-KIM par son intitulé ou son code RS / RNCP.</li>
                   <li>Sélectionnez la session et envoyez votre demande d&apos;inscription.</li>
                   <li>
-                    Validation sous quelques jours, puis convocation envoyée. Le CPF règle C-KIM
-                    directement.
+                    Validation sous quelques jours, puis convocation envoyée. Le financement est géré
+                    via la plateforme Mon Compte Formation.
                   </li>
                 </ol>
               </Card>
@@ -321,7 +323,7 @@ export default function FinancementPage() {
                   ['Public', 'Salariés (CDI, CDD, alternance)'],
                   ['Initiative', 'Employeur'],
                   ['Pris en charge', 'Tout ou partie selon branche'],
-                  ['Avance', 'Non — subrogation directe'],
+                  ['Règlement', 'Selon les règles de votre OPCO'],
                   ['Démarche', 'C-KIM gère le dossier'],
                   ['Délai', '2 à 4 semaines de validation'],
                 ]}
@@ -357,8 +359,8 @@ export default function FinancementPage() {
                 Vous formez. <em className="not-italic text-teal-l">On gère le reste.</em>
               </h2>
               <p className="mt-6 text-muted text-lg leading-relaxed">
-                Pas de paperasse, pas d&apos;avance de frais. Notre équipe administrative monte
-                votre dossier de financement de A à Z.
+                Pas de paperasse&nbsp;: notre équipe administrative monte votre dossier de
+                financement de A à Z.
               </p>
             </div>
           </FadeUp>
@@ -368,7 +370,7 @@ export default function FinancementPage() {
               { n: '01', t: 'Devis & convention', d: 'Nous établissons un devis personnalisé et la convention de formation.' },
               { n: '02', t: 'Identification du financeur', d: 'OPCO, CPF, France Travail, employeur : on identifie le bon dispositif.' },
               { n: '03', t: 'Montage du dossier', d: 'Nous remplissons et déposons le dossier complet pour vous.' },
-              { n: '04', t: 'Subrogation', d: 'Le financeur règle C-KIM directement. Vous n\'avancez pas les frais.' },
+              { n: '04', t: 'Prise en charge', d: 'Le financeur étudie la demande et décide de la prise en charge selon ses propres règles.' },
             ].map((step, i) => (
               <FadeUp key={step.n} delay={i * 0.08}>
                 <div className="bg-dark p-8 md:p-9 h-full flex flex-col">
@@ -386,8 +388,8 @@ export default function FinancementPage() {
       <QualiopiBanner
         variant="compact"
         eyebrow="Condition d'éligibilité"
-        title="Notre certification Qualiopi rend votre formation finançable."
-        description="La certification Qualiopi est la condition légale pour qu'une action de formation soit prise en charge par les financeurs publics (OPCO, CPF, Pôle Emploi, État, collectivités). C-KIM Formation la détient pour l'ensemble de son catalogue."
+        title="Qualiopi, une condition pour financer votre formation."
+        description="La certification Qualiopi est l’une des conditions pour qu’une formation puisse être financée par des fonds publics ou mutualisés (OPCO, CPF, France Travail) ; la prise en charge reste soumise aux règles de chaque financeur. C-KIM Formation la détient pour l'ensemble de son catalogue."
       />
 
       {/* ========== CTA FINAL ========== */}

@@ -3,15 +3,15 @@ import type { Formation } from '@/lib/types/formation';
 export const formation: Formation = {
   slug: 'hygiene-alimentaire-haccp',
   titre: 'Hygiène Alimentaire',
-  sousTitre: 'Méthode HACCP',
+  sousTitre: "Bonnes pratiques d'hygiène et maîtrise des dangers",
   parcours: 'alimentaire',
   ref: 'SECU-05',
   hero: {
     image: '/images/formations/hygiene-alimentaire-haccp.jpg',
-    alt: 'Cuisine professionnelle et application des bonnes pratiques d\'hygiène HACCP',
+    alt: 'Cuisine professionnelle et application des bonnes pratiques d\'hygiène',
   },
   infosPratiques: {
-    duree: '14 heures (2 jours) — J1 : Hygiène & BPH, J2 : HACCP',
+    duree: '14 heures (2 jours) — J1 : Hygiène & BPH, J2 : Analyse des dangers',
     public:
       'Tout professionnel manipulant des denrées alimentaires (cuisine, restauration, bar, réception) — 4 à 10 personnes',
     prerequis: 'Aucun',
@@ -21,7 +21,7 @@ export const formation: Formation = {
     recyclage: 'Tous les 3 ans',
   },
   objectifs:
-    "À l'issue de la formation, le stagiaire est capable d'appliquer les bonnes pratiques d'hygiène, de mettre en œuvre la méthode HACCP et de prévenir les risques de contamination alimentaire conformément au Règlement CE 852/2004.",
+    "À l'issue de la formation, le stagiaire est capable d'appliquer les bonnes pratiques d'hygiène, de mettre en œuvre une démarche d'analyse des dangers et de maîtrise des points critiques, et de prévenir les risques de contamination alimentaire conformément au Règlement CE 852/2004.",
   programme: [
     {
       titre: 'Cadre réglementaire',
@@ -48,7 +48,7 @@ export const formation: Formation = {
       ],
     },
     {
-      titre: 'Les 7 principes HACCP',
+      titre: "Les 7 étapes de l'analyse des dangers",
       points: [
         'P1 : Analyser les dangers (biologiques, chimiques, physiques)',
         'P2 : Identifier les Points Critiques de Contrôle (CCP)',
@@ -66,13 +66,13 @@ export const formation: Formation = {
     },
   ],
   evaluation:
-    'QCM de validation des acquis + exercices pratiques HACCP. Attestation individuelle envoyée numériquement à chaque stagiaire.',
+    "QCM de validation des acquis + exercices pratiques d'analyse des dangers. Attestation individuelle envoyée numériquement à chaque stagiaire.",
   referencesReglementaires:
     "Règlement CE 852/2004 (paquet hygiène européen) — Arrêté du 5 octobre 2011 relatif à l'obligation de formation en hygiène alimentaire dans la restauration commerciale — Code rural et de la pêche maritime.",
   formationsLiees: ['incendie-extincteur-evacuation'],
   seo: {
-    title: 'Formation Hygiène Alimentaire HACCP | C-KIM Formation',
+    title: 'Formation Hygiène Alimentaire | C-KIM Formation',
     description:
-      'Formation HACCP obligatoire pour la restauration et l\'agroalimentaire. 14h, sur site client en PACA. Conformité Règlement CE 852/2004 et arrêté du 5 octobre 2011.',
+      'Formation hygiène alimentaire obligatoire pour la restauration et l\'agroalimentaire. 14h, sur site client en PACA. Conformité Règlement CE 852/2004 et arrêté du 5 octobre 2011.',
   },
 };

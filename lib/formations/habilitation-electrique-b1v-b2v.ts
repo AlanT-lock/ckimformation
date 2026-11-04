@@ -20,7 +20,7 @@ export const formation: Formation = {
     recyclage: 'Tous les 3 ans, ou si absence supérieure à 6 mois au poste',
   },
   objectifs:
-    "À l'issue de la formation, le stagiaire est capable de réaliser en sécurité des opérations électriques en basse tension conformément à la norme NF C18-510. La formation prépare aux habilitations B1V (exécutant électricien — travaux hors tension au voisinage de pièces nues sous tension) et B2V (chargé de travaux — direction et surveillance d'une équipe en voisinage).",
+    "À l'issue de la formation, le stagiaire est capable de réaliser en sécurité des opérations électriques en basse tension dans le respect des prescriptions de sécurité du Code du travail. La formation prépare aux habilitations B1V (exécutant électricien — travaux hors tension au voisinage de pièces nues sous tension) et B2V (chargé de travaux — direction et surveillance d'une équipe en voisinage).",
   programme: [
     {
       titre: 'Connaissance des risques électriques',
@@ -28,7 +28,7 @@ export const formation: Formation = {
         'Effets physiopathologiques du courant sur le corps humain',
         'Domaines de tension BT/TBT, contacts directs et indirects',
         'Brûlures, électrisation, électrocution — comprendre les risques',
-        'Réglementation : norme NF C18-510 et Code du travail',
+        'Réglementation : Code du travail (articles R4544-9 et R4544-10)',
       ],
     },
     {
@@ -59,13 +59,13 @@ export const formation: Formation = {
     },
   ],
   evaluation:
-    "Avis d'aptitude après formation délivré à chaque stagiaire, permettant à l'employeur de délivrer l'habilitation B1V et/ou B2V. Épreuves théorique et pratique conformes NF C18-510.",
+    "Avis d'aptitude après formation délivré à chaque stagiaire, permettant à l'employeur de délivrer l'habilitation B1V et/ou B2V. Épreuves théorique et pratique.",
   referencesReglementaires:
-    'Norme NF C18-510 (décret du 14/11/2011) — Articles R4544-9 et R4544-10 du Code du travail — Arrêté du 26 avril 2012.',
+    'Articles R4544-9 et R4544-10 du Code du travail.',
   formationsLiees: ['habilitation-electrique-h0-b0', 'incendie-extincteur-evacuation'],
   seo: {
     title: 'Habilitation Électrique B1V & B2V | C-KIM Formation',
     description:
-      "Formation Habilitation Électrique B1V/B2V conforme NF C18-510 à Draguignan (PACA). 14h, 60 % de pratique. Pour électriciens et techniciens de maintenance BT.",
+      "Formation Habilitation Électrique B1V/B2V à Draguignan (PACA). 14h, 60 % de pratique. Pour électriciens et techniciens de maintenance BT.",
   },
 };

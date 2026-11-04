@@ -10,7 +10,7 @@ import { PARCOURS_META } from '@/lib/parcours';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { FormationsHighlight } from '@/components/sections/FormationsHighlight';
 import { QualiopiBanner } from '@/components/sections/QualiopiBanner';
-import { getFormationBySlug } from '@/lib/db/formations';
+import { countActiveFormations, formatFormationsCount, getFormationBySlug } from '@/lib/db/formations';
 
 const HIGHLIGHTED_SLUGS = [
   'sst-initiale',
@@ -23,9 +23,13 @@ const HIGHLIGHTED_SLUGS = [
 export const revalidate = 300;
 
 export default async function Home() {
-  const highlighted = (await Promise.all(
-    HIGHLIGHTED_SLUGS.map((s) => getFormationBySlug(s))
-  )).filter((f): f is NonNullable<typeof f> => Boolean(f));
+  const [highlightedRaw, nbFormations] = await Promise.all([
+    Promise.all(HIGHLIGHTED_SLUGS.map((s) => getFormationBySlug(s))),
+    countActiveFormations(),
+  ]);
+  const highlighted = highlightedRaw.filter((f): f is NonNullable<typeof f> => Boolean(f));
+  const nbParcours = Object.keys(PARCOURS_META).length;
+  const formationsLabel = nbFormations ? formatFormationsCount(nbFormations) : null;
 
   return (
     <>
@@ -80,8 +84,8 @@ export default async function Home() {
           <FadeUp>
             <SectionHeader
               eyebrow="Catalogue"
-              titre="8 parcours, 17 formations."
-              accent="17 formations"
+              titre={formationsLabel ? `${nbParcours} parcours, ${formationsLabel}.` : `${nbParcours} parcours de formation.`}
+              accent={formationsLabel ?? 'parcours'}
               description="Un catalogue couvrant la sécurité au travail, la prévention, le management, les formateurs et le développement humain."
             />
           </FadeUp>
@@ -129,7 +133,7 @@ export default async function Home() {
       {/* Marquee - white */}
       <section className="bg-white py-12 border-y border-light">
         <Marquee speed={40}>
-          {['QUALIOPI', '·', 'INRS', '·', 'AFNOR', '·', 'FPA', '·', 'CODE DU TRAVAIL', '·', 'APSAD', '·'].map((label, i) => (
+          {['QUALIOPI', '·', 'INRS', '·', 'FPA', '·', 'CODE DU TRAVAIL', '·', 'OPCO', '·', 'CPF', '·', 'FRANCE TRAVAIL', '·'].map((label, i) => (
             <span key={i} className="font-display text-3xl tracking-[0.2em] text-dark/60">{label}</span>
           ))}
         </Marquee>

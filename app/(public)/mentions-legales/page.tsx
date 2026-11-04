@@ -90,7 +90,7 @@ export default function MentionsLegalesPage() {
               interdite sans autorisation écrite préalable.
             </p>
             <p className="mt-3">
-              Les marques et logos cités (Qualiopi, INRS, AFNOR, etc.) restent la propriété de
+              Les marques et logos cités (Qualiopi, INRS, etc.) restent la propriété de
               leurs titulaires respectifs.
             </p>
           </section>

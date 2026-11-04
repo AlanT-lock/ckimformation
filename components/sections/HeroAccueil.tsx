@@ -48,7 +48,7 @@ export function HeroAccueil() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 1.0 }}
         >
-          Sécurité au travail · Prévention des risques · Développement humain. 60 à 80 % de pratique, formateurs certifiés INRS, AFNOR et FPA, intervention sur site partout en région PACA.
+          Sécurité au travail · Prévention des risques · Développement humain. 60 à 80 % de pratique, formateurs certifiés INRS et FPA, intervention sur site partout en région PACA.
         </motion.p>
         <motion.div
           className="flex flex-wrap gap-4 justify-center"

@@ -68,7 +68,7 @@ export function Footer() {
         </div>
         <div className="pt-8 flex flex-wrap items-center justify-between gap-4 text-xs text-muted">
           <p>© {new Date().getFullYear()} C-KIM Formation — Tous droits réservés</p>
-          <p>Certifié Qualiopi · Formateurs INRS / AFNOR / FPA</p>
+          <p>Certifié Qualiopi · Formateurs INRS / FPA</p>
         </div>
       </Container>
     </footer>
