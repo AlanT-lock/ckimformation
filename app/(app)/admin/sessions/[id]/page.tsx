@@ -20,6 +20,9 @@ import { SuiviDetail } from '@/components/app/suivi/SuiviDetail';
 import { loadBesoinsReponses } from '@/lib/besoins/data';
 import { BesoinsAnswersView } from '@/components/app/besoins/BesoinsAnswersView';
 import type { EmargementBoardEntry } from '@/lib/emargements/board';
+import { loadFinFormationSession } from '@/lib/fin-formation/data';
+import { sessionChecks } from '@/lib/fin-formation/model';
+import { FinFormationPanel, type FinFormationPanelData } from './FinFormationPanel';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -106,11 +109,40 @@ export default async function AdminSessionDetailPage({ params }: PageProps) {
     }
   }
 
-  const [convocationData, suivi, besoinsDediee] = await Promise.all([
+  const [convocationData, suivi, besoinsDediee, finFormation] = await Promise.all([
     loadSessionConvocationData(id),
     loadSessionSuivi(id, 'all'),
     loadBesoinsReponses({ sessionId: id }),
+    loadFinFormationSession(id),
   ]);
+
+  // Documents de fin de formation (certificat de réalisation + attestation)
+  let finFormationData: FinFormationPanelData | null = null;
+  if (finFormation) {
+    const competenceIds = new Set(finFormation.competences.map((c) => c.id));
+    finFormationData = {
+      sessionId: finFormation.sessionId,
+      formationTitre: finFormation.formationTitre,
+      terminee: finFormation.terminee,
+      ...sessionChecks({
+        hasCreneaux: !!finFormation.dateDebut,
+        formateurNom: finFormation.formateurNom,
+        lieu: finFormation.lieu,
+        competencesTotal: finFormation.competences.length,
+      }),
+      competencesTotal: finFormation.competences.length,
+      rows: finFormation.participants.map((p) => ({
+        id: p.id,
+        nom: p.nomComplet,
+        email: p.email,
+        entreprise: p.entreprise ? { id: p.entreprise.payerProfileId, nom: p.entreprise.raisonSociale } : null,
+        competencesEvaluees: Object.keys(p.niveaux).filter((cid) => competenceIds.has(cid)).length,
+        docs: Object.fromEntries(
+          Object.entries(p.docs).map(([kind, d]) => [kind, { id: d.id, numero: d.numero, sentAt: d.sentAt }])
+        ),
+      })),
+    };
+  }
 
   // Tests & enquêtes : stagiaires confirmés + nombre de complétions
   const confirmedRows = participantRows.filter((r) => r.inscriptionStatut === 'confirmee');
@@ -308,6 +340,8 @@ export default async function AdminSessionDetailPage({ params }: PageProps) {
           notes_internes: session.notes_internes,
         }}
       />
+
+      {finFormationData && <FinFormationPanel data={finFormationData} />}
 
       <div>
         <h2 className="font-display text-2xl tracking-wide">Créneaux</h2>

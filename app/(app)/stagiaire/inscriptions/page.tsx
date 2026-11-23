@@ -5,6 +5,7 @@ import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { redirectEmployeeStagiaire } from '@/lib/auth/employee-guard';
 import { formatDate } from '@/lib/date';
 import type { InscriptionStatut } from '@/lib/supabase/types';
+import { loadFinFormationDocs } from '@/lib/fin-formation/data';
 
 const STATUT_LABEL: Record<string, { label: string; className: string }> = {
   en_attente:          { label: 'En attente',          className: 'bg-orange/10 text-orange' },
@@ -21,6 +22,7 @@ const STATUT_LABEL: Record<string, { label: string; className: string }> = {
 interface PageProps { searchParams: Promise<{ demande?: string; warn?: string }> }
 
 interface ParticipantRow {
+  id: string;
   employee: { prenom: string; nom: string; email: string } | { prenom: string; nom: string; email: string }[] | null;
   profile: { full_name: string; email: string } | { full_name: string; email: string }[] | null;
 }
@@ -131,6 +133,12 @@ export default async function StagiaireDemandesPage({ searchParams }: PageProps)
     ? await loadReservedSessions(profile.id)
     : [];
 
+  // Demandes dont au moins un participant a reçu ses documents de fin de
+  // formation (la liste ne contient que les demandes de l'utilisateur connecté).
+  const finFormationDocs = result.ok
+    ? await loadFinFormationDocs(result.rows.flatMap((ins) => (ins.participants ?? []).map((p) => p.id)))
+    : new Map<string, unknown[]>();
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -240,6 +248,12 @@ export default async function StagiaireDemandesPage({ searchParams }: PageProps)
                           })}
                         </ul>
                       </div>
+
+                      {participants.some((p) => finFormationDocs.has(p.id)) && (
+                        <p className="mt-3 text-xs text-teal font-medium">
+                          → Documents de fin de formation disponibles
+                        </p>
+                      )}
 
                       {ins.statut === 'documents_demandes' && (
                         <p className="mt-3 text-xs text-orange font-medium">

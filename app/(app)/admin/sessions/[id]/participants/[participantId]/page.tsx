@@ -7,6 +7,8 @@ import type { QuestionType } from '@/lib/supabase/types';
 import { formatDate, formatDateTime } from '@/lib/date';
 import { testKindLabel } from '@/lib/pdf/tests-data';
 import { ACCEPTATION_TEXT } from '@/lib/reglement/acceptation';
+import { loadFinFormationDocs } from '@/lib/fin-formation/data';
+import { FinFormationDocLinks } from '@/components/app/fin-formation/FinFormationDocLinks';
 
 interface PageProps { params: Promise<{ id: string; participantId: string }> }
 
@@ -107,6 +109,9 @@ export default async function AdminSessionParticipantPage({ params }: PageProps)
   const totalCreneaux = creneaux?.length ?? 0;
   const signedCount = (creneaux ?? []).filter((c) => signedSet.has(c.id)).length;
 
+  // Documents de fin de formation déjà envoyés à ce stagiaire
+  const finFormationDocs = (await loadFinFormationDocs([participantId])).get(participantId) ?? [];
+
   // Charge les questions pour chaque test (pour afficher libellé + scoring)
   const testIds = Array.from(new Set((completions ?? []).map((c) => c.test_id)));
   const { data: allQuestions } = testIds.length > 0
@@ -158,6 +163,22 @@ export default async function AdminSessionParticipantPage({ params }: PageProps)
         ) : (
           <Info label="Compte">Particulier</Info>
         )}
+      </section>
+
+      <section>
+        <h2 className="font-display text-2xl tracking-wide">Documents de fin de formation</h2>
+        <p className="text-xs text-dark/60 mt-1">
+          Certificat de réalisation et attestation de fin de formation, envoyés depuis la page de la session.
+        </p>
+        <div className="mt-3">
+          {finFormationDocs.length > 0 ? (
+            <FinFormationDocLinks docs={finFormationDocs} />
+          ) : (
+            <div className="bg-white rounded-lg border border-dark/10 p-4 text-sm text-dark/60">
+              Aucun document de fin de formation envoyé pour l&apos;instant.
+            </div>
+          )}
+        </div>
       </section>
 
       <section>
