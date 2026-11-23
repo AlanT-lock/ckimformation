@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import {
   LegalArticle,
   LegalBody,
@@ -20,7 +21,7 @@ export default function CgvPage() {
       <LegalDocHero
         eyebrow="C-KIM Sécurité Formation"
         title="Conditions générales de vente"
-        meta="Version 2.1 – octobre 2026 (remplace la version 2.0)"
+        meta="Version 2.3 – novembre 2026 (remplace la version 2.2)"
         pdfHref="/documents/cgv-ckim-formation.pdf"
       />
 
@@ -74,10 +75,15 @@ export default function CgvPage() {
           </p>
           <LegalList
             items={[
-              <><strong>Entreprise :</strong> devis puis convention de formation (articles L.6353-1 et L.6353-2), à retourner signés au moins 15 jours avant le début de la formation.</>,
+              <><strong>Entreprise :</strong> devis puis convention de formation (articles L.6353-1 et L.6353-2), à retourner signés avant le début de la formation.</>,
               <><strong>Particulier finançant lui-même sa formation :</strong> contrat de formation (articles L.6353-3 à L.6353-7).</>,
             ]}
           />
+          <p>
+            Le délai d&apos;accès propre à chaque formation (date limite d&apos;inscription) est indiqué sur sa
+            fiche programme et sur ckimformation.fr ; les inscriptions sont acceptées dans ce délai, sous réserve
+            des places disponibles et, le cas échéant, de l&apos;accord de prise en charge du financeur.
+          </p>
           <LegalCallout title="Droit de rétractation du Client consommateur">
             <p>
               Le stagiaire dispose d&apos;un <strong>délai de rétractation de 10 jours</strong> à compter de la
@@ -107,10 +113,10 @@ export default function CgvPage() {
               ['Plus de 15 jours ouvrés avant le début', 'Sans frais', ''],
               [
                 'Entre 15 et 7 jours ouvrés avant le début',
-                '50 % du prix HT',
+                '50 % du prix de la formation',
                 'Dédommagement non imputable sur les fonds de la formation professionnelle',
               ],
-              ['Moins de 7 jours ouvrés avant le début', '100 % du prix HT', 'Idem'],
+              ['Moins de 7 jours ouvrés avant le début', '100 % du prix de la formation', 'Idem'],
             ]}
           />
           <p>
@@ -147,8 +153,8 @@ export default function CgvPage() {
           <p>
             Convocation, programme, règlement intérieur et livret d&apos;accueil sont transmis avant la
             formation, de façon dématérialisée. À l&apos;issue : certificat de réalisation et, selon la
-            formation, attestation ou certificat prévu par le référentiel (pour le SST : certificat SST, carte
-            INRS).
+            formation, attestation ou certificat prévu par le référentiel (pour le SST : certificat de Sauveteur
+            Secouriste du Travail, délivré via la plateforme de l&apos;INRS).
           </p>
         </LegalArticle>
 
@@ -182,9 +188,18 @@ export default function CgvPage() {
           <p>
             C-KIM SÉCURITÉ FORMATION traite les données des Clients et Stagiaires pour la gestion des
             formations, le suivi qualité et les obligations légales, et les conserve pendant la durée nécessaire
-            à ces finalités. Droits d&apos;accès, de rectification, d&apos;effacement, de limitation et de
-            portabilité : contact@ckimformation.fr ou par courrier à l&apos;adresse du siège. Réclamation
-            possible auprès de la CNIL.
+            à ces finalités. Ces données sont hébergées par ses prestataires techniques (site internet, stockage
+            en ligne, messagerie) et peuvent être traitées avec un outil d&apos;assistance par intelligence
+            artificielle (Claude, éditeur Anthropic, États-Unis) utilisé pour la gestion administrative. Aucune
+            donnée de santé n&apos;y est saisie, et aucune décision d&apos;évaluation ou de certification
+            n&apos;est prise par une intelligence artificielle.
+          </p>
+          <p>
+            Le détail des traitements figure dans la{' '}
+            <Link href="/confidentialite" className="text-teal hover:underline">charte de confidentialité</Link>{' '}
+            de C-KIM SÉCURITÉ FORMATION, disponible sur ckimformation.fr ou sur demande. Droits d&apos;accès, de
+            rectification, d&apos;effacement, de limitation et de portabilité : contact@ckimformation.fr ou par
+            courrier à l&apos;adresse du siège. Réclamation possible auprès de la CNIL.
           </p>
         </LegalArticle>
 
@@ -227,7 +242,11 @@ export default function CgvPage() {
         <p className="pt-6 border-t border-dark/10 text-xs italic text-dark/50">
           Historique : V2.0 du 02/10/2026 (référents, dénomination légale, TVA, SST) – V2.1 du 07/10/2026
           (rétractation de 14 jours pour les contrats conclus à distance, conditions d&apos;annulation du Client
-          consommateur, médiateur de la consommation, mise en forme).
+          consommateur, médiateur de la consommation, mise en forme) – V2.2 du 17/11/2026 (article 10 : outils
+          numériques et d&apos;intelligence artificielle, renvoi à la charte de confidentialité) – V2.3 du
+          17/11/2026 (article 3 : délai d&apos;accès renvoyé à la fiche programme de chaque formation ; article
+          4 : montants d&apos;annulation exprimés en prix de la formation, exonérée de TVA ; article 6 :
+          certificat SST).
         </p>
       </LegalBody>
     </>
