@@ -15,7 +15,21 @@ interface Props {
 
 const AUTOPLAY_MS = 6000;
 
+const NOMBRES = ['', 'Une', 'Deux', 'Trois', 'Quatre', 'Cinq', 'Six', 'Sept', 'Huit', 'Neuf', 'Dix'];
+
+/** « Sécurité, Prévention & Conformité et Sécurité Alimentaire » */
+function joinFr(items: string[]): string {
+  if (items.length <= 1) return items.join('');
+  return `${items.slice(0, -1).join(', ')} et ${items[items.length - 1]}`;
+}
+
 export function FormationsHighlight({ formations }: Props) {
+  // Le texte suit les formations réellement affichées (actives en base) : leur
+  // nombre et leurs parcours. Sans formation active à mettre en avant, pas de bloc.
+  if (formations.length === 0) return null;
+  const n = formations.length;
+  const themes = joinFr([...new Set(formations.map((f) => getParcoursMeta(f.parcours).label))]);
+
   return (
     <section className="bg-light py-24 overflow-hidden">
       <Container>
@@ -26,8 +40,8 @@ export function FormationsHighlight({ formations }: Props) {
               Nos formations <em className="not-italic text-teal">phares</em>.
             </h2>
             <p className="mt-5 text-dark/70 leading-relaxed">
-              Cinq formations qui répondent aux besoins les plus fréquents : sécurité au travail,
-              prévention, santé et hygiène. Toutes certifiées Qualiopi.
+              {NOMBRES[n] ?? n} formation{n > 1 ? 's' : ''} qui réponde{n > 1 ? 'nt' : ''} aux besoins les
+              plus fréquents : {themes}. Toutes certifiées Qualiopi.
             </p>
           </div>
         </FadeUp>

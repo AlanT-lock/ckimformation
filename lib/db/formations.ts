@@ -90,40 +90,54 @@ export async function getAllFormations(): Promise<Formation[]> {
   return (data ?? []).map((r) => rowToFormation(r as unknown as FormationRow));
 }
 
+export interface CatalogueParcours {
+  key: Parcours;
+  /** Intitulés des formations actives du parcours, dans l'ordre du catalogue. */
+  titres: string[];
+}
+
 export interface CatalogueStats {
   /** Formations actives rattachées à un parcours affiché. */
   nbFormations: number;
   /** Parcours comptant au moins une formation active, dans l'ordre d'affichage. */
-  parcours: Parcours[];
+  parcours: CatalogueParcours[];
 }
 
 /**
- * Chiffres du catalogue à partir du parcours de chaque formation active.
+ * Chiffres du catalogue à partir des formations actives (dans l'ordre du catalogue).
  * Même règle que la page /formations : un parcours sans formation active n'est
- * ni affiché ni compté, pour que tous les compteurs du site disent la même chose.
+ * ni affiché ni compté, pour que tous les indicateurs du site disent la même chose.
  */
-export function summarizeCatalogue(parcoursValues: (string | null)[]): CatalogueStats {
-  const counts = new Map<string, number>();
-  for (const value of parcoursValues) {
-    const key = value ?? 'securite';
-    counts.set(key, (counts.get(key) ?? 0) + 1);
+export function summarizeCatalogue(
+  rows: { parcours: string | null; titre: string }[],
+): CatalogueStats {
+  const titresByParcours = new Map<string, string[]>();
+  for (const row of rows) {
+    const key = row.parcours ?? 'securite';
+    titresByParcours.set(key, [...(titresByParcours.get(key) ?? []), row.titre]);
   }
-  const parcours = (Object.keys(PARCOURS_META) as Parcours[]).filter((key) => counts.has(key));
+  const parcours = (Object.keys(PARCOURS_META) as Parcours[])
+    .filter((key) => titresByParcours.has(key))
+    .map((key) => ({ key, titres: titresByParcours.get(key) ?? [] }));
   return {
-    nbFormations: parcours.reduce((total, key) => total + (counts.get(key) ?? 0), 0),
+    nbFormations: parcours.reduce((total, p) => total + p.titres.length, 0),
     parcours,
   };
 }
 
 /**
- * Chiffres du catalogue affichés sur les pages publiques (accueil, organisme).
+ * Indicateurs du catalogue affichés sur les pages publiques (accueil, organisme).
  * Renvoie null si la requête échoue, pour ne jamais afficher un chiffre faux.
  */
 export async function getCatalogueStats(): Promise<CatalogueStats | null> {
   const supabase = createPublicClient();
-  const { data, error } = await supabase.from('formations').select('parcours').eq('actif', true);
+  const { data, error } = await supabase
+    .from('formations')
+    .select('parcours, titre')
+    .eq('actif', true)
+    .order('ordre', { ascending: true });
   if (error || !data) return null;
-  return summarizeCatalogue(data.map((r) => r.parcours as string | null));
+  return summarizeCatalogue(data as { parcours: string | null; titre: string }[]);
 }
 
 /** « 1 formation », « 17 formations »… */

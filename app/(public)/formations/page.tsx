@@ -110,24 +110,17 @@ export default async function FormationsIndex() {
           <Container>
             {/* En-tête de parcours */}
             <FadeUp>
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-14 items-end">
-                <div className="lg:col-span-7">
-                  <p
-                    className="text-xs uppercase tracking-[0.3em] flex items-center gap-3 font-semibold"
-                    style={{ color: g.meta.couleur }}
-                  >
-                    <span className="inline-block w-8 h-[2px]" style={{ backgroundColor: g.meta.couleur }} />
-                    Parcours · {g.items.length} formation{g.items.length > 1 ? 's' : ''}
-                  </p>
-                  <h2 className="font-display text-4xl md:text-5xl lg:text-6xl tracking-wide mt-4 leading-[0.95]">
-                    {g.meta.label}.
-                  </h2>
-                </div>
-                <div className="lg:col-span-5">
-                  <p className="text-base text-dark/70 leading-relaxed">
-                    {g.meta.description}
-                  </p>
-                </div>
+              <div className="mb-14">
+                <p
+                  className="text-xs uppercase tracking-[0.3em] flex items-center gap-3 font-semibold"
+                  style={{ color: g.meta.couleur }}
+                >
+                  <span className="inline-block w-8 h-[2px]" style={{ backgroundColor: g.meta.couleur }} />
+                  Parcours · {formatFormationsCount(g.items.length)}
+                </p>
+                <h2 className="font-display text-4xl md:text-5xl lg:text-6xl tracking-wide mt-4 leading-[0.95]">
+                  {g.meta.label}.
+                </h2>
               </div>
             </FadeUp>
 
