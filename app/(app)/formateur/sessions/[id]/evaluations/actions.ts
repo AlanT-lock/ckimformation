@@ -2,6 +2,8 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { isNiveau } from '@/lib/suivi/bilan';
 
 export interface ResponseInput {
   question_id: string;
@@ -22,14 +24,14 @@ async function requireFormateurOfSession(sessionId: string) {
   const supabase = await createClient();
   const { data: session } = await supabase
     .from('sessions')
-    .select('id, formateur_id')
+    .select('id, formateur_id, formation_id')
     .eq('id', sessionId)
     .single();
   if (!session) throw new EvaluationError('Session introuvable.');
   if (profile.role === 'formateur' && session.formateur_id !== profile.id) {
     throw new EvaluationError('Vous n\'êtes pas le formateur de cette session.');
   }
-  return { profile, supabase };
+  return { profile, supabase, session };
 }
 
 export async function submitFormateurEvaluation(
@@ -133,4 +135,101 @@ async function saveFormateurEvaluation(
 
   revalidatePath(`/formateur/sessions/${sessionId}/evaluations`);
   revalidatePath(`/formateur/sessions/${sessionId}/evaluations/${testId}`);
+}
+
+export interface BilanInput {
+  /** Réponses à chaque questionnaire d'évaluation formateur de la formation */
+  evaluations: Array<{ testId: string; responses: ResponseInput[] }>;
+  /** Niveau d'acquisition de chaque compétence de la formation */
+  competences: Array<{ competenceId: string; niveau: string }>;
+}
+
+/**
+ * Bilan de fin de formation d'un stagiaire, enregistré en une fois : les
+ * questionnaires d'évaluation formateur puis le niveau de chaque compétence
+ * (acquise / en cours d'acquisition / non acquise). Toutes les compétences de
+ * la formation doivent avoir un niveau.
+ */
+export async function submitBilanStagiaire(
+  sessionId: string,
+  inscriptionParticipantId: string,
+  input: BilanInput
+): Promise<SubmitEvaluationResult> {
+  try {
+    await saveBilanStagiaire(sessionId, inscriptionParticipantId, input);
+    return { ok: true };
+  } catch (err) {
+    if (err instanceof EvaluationError) return { ok: false, error: err.message };
+    console.error('[bilan-stagiaire] enregistrement impossible', err);
+    return { ok: false, error: "Le bilan n'a pas pu être enregistré. Réessayez ou contactez l'administration." };
+  }
+}
+
+async function saveBilanStagiaire(sessionId: string, inscriptionParticipantId: string, input: BilanInput) {
+  const { profile, supabase, session } = await requireFormateurOfSession(sessionId);
+
+  const { data: ip } = await supabase
+    .from('inscription_participants')
+    .select('id, inscription:inscriptions!inner(session_id)')
+    .eq('id', inscriptionParticipantId)
+    .single();
+  const ins = ip && (Array.isArray(ip.inscription) ? ip.inscription[0] : ip.inscription);
+  if (!ip || ins?.session_id !== sessionId) throw new EvaluationError('Stagiaire hors de cette session.');
+
+  const [{ data: competences, error: compErr }, { data: tests, error: testsErr }] = await Promise.all([
+    supabase.from('formation_competences').select('id').eq('formation_id', session.formation_id),
+    supabase
+      .from('tests')
+      .select('id')
+      .eq('formation_id', session.formation_id)
+      .eq('kind', 'evaluation_formateur')
+      .eq('actif', true),
+  ]);
+  if (compErr) throw new Error(compErr.message);
+  if (testsErr) throw new Error(testsErr.message);
+
+  // Tout est validé avant la première écriture : un bilan n'est jamais à moitié enregistré
+  // à cause d'une saisie incomplète.
+  const niveauByCompetence = new Map(input.competences.map((c) => [c.competenceId, c.niveau]));
+  const rows = (competences ?? []).map((c: { id: string }) => {
+    const niveau = niveauByCompetence.get(c.id);
+    if (!isNiveau(niveau)) {
+      throw new EvaluationError('Indiquez le niveau d\'acquisition de chaque compétence.');
+    }
+    return { competence_id: c.id, niveau };
+  });
+
+  const responsesByTest = new Map(input.evaluations.map((e) => [e.testId, e.responses]));
+  const evaluations = (tests ?? []).map((t: { id: string }) => {
+    const responses = responsesByTest.get(t.id);
+    if (!responses) {
+      throw new EvaluationError('Le bilan a changé depuis l\'ouverture de la page : rechargez-la puis réessayez.');
+    }
+    return { testId: t.id, responses };
+  });
+
+  for (const e of evaluations) {
+    await saveFormateurEvaluation(sessionId, e.testId, inscriptionParticipantId, e.responses);
+  }
+
+  if (rows.length > 0) {
+    const nowIso = new Date().toISOString();
+    const { error } = await createAdminClient()
+      .from('inscription_participant_competences')
+      .upsert(
+        rows.map((r) => ({
+          inscription_participant_id: inscriptionParticipantId,
+          competence_id: r.competence_id,
+          niveau: r.niveau,
+          evalue_by: profile.id,
+          updated_at: nowIso,
+        })),
+        { onConflict: 'inscription_participant_id,competence_id' }
+      );
+    if (error) throw new Error(error.message);
+  }
+
+  revalidatePath(`/formateur/sessions/${sessionId}`);
+  revalidatePath(`/formateur/sessions/${sessionId}/evaluations`);
+  revalidatePath(`/formateur/sessions/${sessionId}/evaluations/stagiaire/${inscriptionParticipantId}`);
 }

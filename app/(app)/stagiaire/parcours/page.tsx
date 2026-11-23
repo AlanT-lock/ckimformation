@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation';
 import { PageHeader } from '@/components/app/PageHeader';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { ParcoursClient, type ParticipantSession, type ActiveEmargement, type ActiveTest } from './ParcoursClient';
+import { loadStagiaireBilans } from '@/lib/suivi/data';
+import { BilanCompetences } from '@/components/app/suivi/BilanCompetences';
 
 export const dynamic = 'force-dynamic';
 
@@ -88,6 +90,11 @@ export default async function StagiaireParcoursPage() {
       : Promise.resolve({ data: [] }),
   ]);
 
+  // Bilans de compétences remplis par le formateur en fin de formation
+  // (partIds ne contient que les participations de l'utilisateur connecté).
+  const bilans = await loadStagiaireBilans(partIds);
+  const sessionByPart = new Map(sessions.map((s) => [s.inscriptionParticipantId, s]));
+
   // Créneaux où je suis absent
   const myAbsentCreneauIds = (myAbsences ?? []).map((a) => a.creneau_id);
 
@@ -145,6 +152,24 @@ export default async function StagiaireParcoursPage() {
         fullyAbsentSessionIds={Array.from(fullyAbsentSessionIds)}
         reglementAcceptedSessionIds={reglementAcceptedSessionIds}
       />
+
+      {bilans.length > 0 && (
+        <section>
+          <h2 className="font-display text-2xl tracking-wide">Mon bilan de compétences</h2>
+          <p className="text-xs text-dark/60 mt-1">
+            Niveau d&apos;acquisition de chaque compétence, attribué par votre formateur en fin de formation.
+          </p>
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            {bilans.map((b) => (
+              <BilanCompetences
+                key={b.participantId}
+                titre={sessionByPart.get(b.participantId)?.formationTitre ?? 'Formation'}
+                competences={b.competences}
+              />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

@@ -38,7 +38,11 @@ export default async function EntrepriseSuiviPage({ params }: { params: Promise<
         <SuiviProgress suivi={suivi} />
       </section>
 
-      <SuiviDetail suivi={suivi} commentairesLabel="Retours du formateur sur vos salariés" />
+      <SuiviDetail
+        suivi={suivi}
+        commentairesLabel="Retours du formateur sur vos salariés"
+        bilansLabel="Bilan de compétences de vos salariés"
+      />
     </div>
   );
 }

@@ -7,7 +7,8 @@ import { CreneauxPanel } from './CreneauxPanel';
 import { TerminateSessionPopup } from './TerminateSessionPopup';
 import { EmargementBoard } from '@/components/app/EmargementBoard';
 import type { EmargementBoardEntry } from '@/lib/emargements/board';
-import { loadSessionSuivi } from '@/lib/suivi/data';
+import { loadSessionBilans, loadSessionSuivi } from '@/lib/suivi/data';
+import { bilanStatut } from '@/lib/suivi/bilan';
 import { JourneesSection } from './journees/JourneesSection';
 
 interface PageProps { params: Promise<{ id: string }> }
@@ -53,7 +54,7 @@ export default async function FormateurSessionDetail({ params }: PageProps) {
       .select('id, nom, kind, enquete_kind, actif')
       .eq('formation_id', formation?.id ?? '')
       .eq('actif', true)
-      // Exclure les enquêtes à froid (envoyées par email auto) et les évaluations formateur (autre section)
+      // Exclure les enquêtes à froid (envoyées par email auto) et les évaluations formateur (bilans par stagiaire)
       .neq('kind', 'evaluation_formateur')
       .neq('kind', 'analyse_besoins')
       .or('kind.neq.enquete,enquete_kind.eq.a_chaud')
@@ -178,26 +179,19 @@ export default async function FormateurSessionDetail({ params }: PageProps) {
 
   const formateurSignedCreneauIds = (formateurEmargements ?? []).map((e) => e.creneau_id);
 
-  // Évaluations formateur (autre section) — compteur des évaluations remplies
-  const { data: evalTests } = await supabase
-    .from('tests')
-    .select('id')
-    .eq('formation_id', formation?.id ?? '')
-    .eq('kind', 'evaluation_formateur')
-    .eq('actif', true);
-  const evalTestIds = (evalTests ?? []).map((t) => t.id);
-  let evalDone = 0;
-  let evalTotal = 0;
-  if (evalTestIds.length > 0 && allParticipantIds.length > 0) {
-    evalTotal = evalTestIds.length * allParticipantIds.length;
-    const { data: evalComps } = await supabase
-      .from('test_completions')
-      .select('id')
-      .in('test_id', evalTestIds)
-      .in('inscription_participant_id', allParticipantIds)
-      .not('completed_at', 'is', null);
-    evalDone = (evalComps ?? []).length;
-  }
+  // Bilans de fin de formation (évaluations formateur + compétences par stagiaire)
+  const bilans = await loadSessionBilans(id);
+  const bilanEvaluations = bilans?.evaluations.length ?? 0;
+  const bilanCompetences = bilans?.competences.length ?? 0;
+  const bilansTotal = bilans?.stagiaires.length ?? 0;
+  const bilansDone = (bilans?.stagiaires ?? []).filter((s) =>
+    bilanStatut({
+      evaluationsTotal: bilanEvaluations,
+      evaluationsRemplies: bilans!.evaluations.filter((e) => s.evaluationsRemplies.includes(e.id)).length,
+      competencesTotal: bilanCompetences,
+      competencesEvaluees: bilans!.competences.filter((c) => s.niveaux[c.id]).length,
+    }) === 'complet'
+  ).length;
 
   const suivi = await loadSessionSuivi(id, []);
 
@@ -284,21 +278,6 @@ export default async function FormateurSessionDetail({ params }: PageProps) {
         </div>
       </section>
 
-      {evalTestIds.length > 0 && (
-        <section>
-          <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
-            <h2 className="font-display text-2xl tracking-wide">Évaluations formateur</h2>
-            <ButtonLink href={`/formateur/sessions/${id}/evaluations`} variant="secondary">
-              Remplir les évaluations →
-            </ButtonLink>
-          </div>
-          <p className="text-xs text-dark/60">
-            Évaluations à remplir par toi pour chaque stagiaire. Non visibles par le stagiaire.{' '}
-            <span className="text-dark/80">{evalDone} / {evalTotal} remplie{evalDone > 1 ? 's' : ''}</span>
-          </p>
-        </section>
-      )}
-
       {suivi && (
         <JourneesSection
           sessionId={id}
@@ -307,6 +286,26 @@ export default async function FormateurSessionDetail({ params }: PageProps) {
           competencesTotal={suivi.competences.length}
           competencesVues={suivi.competences.filter((c) => c.vueLe).length}
         />
+      )}
+
+      {(bilanEvaluations > 0 || bilanCompetences > 0) && (
+        <section>
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+            <h2 className="font-display text-2xl tracking-wide">Bilans par stagiaire</h2>
+            <ButtonLink href={`/formateur/sessions/${id}/evaluations`} variant="secondary">
+              Remplir les bilans →
+            </ButtonLink>
+          </div>
+          <p className="text-xs text-dark/60">
+            En fin de formation, une seule page par stagiaire
+            {bilanEvaluations > 0 && bilanCompetences > 0
+              ? ' : son évaluation et le niveau de chaque compétence (acquise, en cours d’acquisition, non acquise).'
+              : bilanCompetences > 0
+                ? ' : le niveau de chaque compétence (acquise, en cours d’acquisition, non acquise).'
+                : ' : son évaluation, non visible par le stagiaire.'}{' '}
+            <span className="text-dark/80">{bilansDone} / {bilansTotal} rempli{bilansDone > 1 ? 's' : ''}</span>
+          </p>
+        </section>
       )}
 
       <TerminateSessionPopup

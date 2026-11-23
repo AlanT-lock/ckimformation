@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/app/Button';
-import { submitFormateurEvaluation, type ResponseInput } from '../../actions';
+// Champs d'un questionnaire d'évaluation formateur : état des réponses,
+// conversion vers le format enregistré et saisie par type de question.
+import type { ResponseInput } from './actions';
 import type { QuestionType } from '@/lib/supabase/types';
 
-interface Question {
+export interface Question {
   id: string;
   ordre: number;
   libelle: string;
@@ -17,19 +16,19 @@ interface Question {
   follow_up_options: string[];
 }
 
-interface ExistingResponse {
+export interface ExistingResponse {
   question_id: string;
   valeur: string | null;
   valeur_json: unknown;
 }
 
-type AnswerState =
+export type AnswerState =
   | { kind: 'text'; value: string }
   | { kind: 'single'; value: string | null; followup: string }
   | { kind: 'multi'; values: string[] }
   | { kind: 'echelle'; value: number | null };
 
-function emptyAnswer(q: Question): AnswerState {
+export function emptyAnswer(q: Question): AnswerState {
   switch (q.type_reponse) {
     case 'qcm_unique': return { kind: 'single', value: null, followup: '' };
     case 'qcm_multiple': return { kind: 'multi', values: [] };
@@ -38,7 +37,7 @@ function emptyAnswer(q: Question): AnswerState {
   }
 }
 
-function hydrateAnswer(q: Question, r: ExistingResponse | undefined): AnswerState {
+export function hydrateAnswer(q: Question, r: ExistingResponse | undefined): AnswerState {
   if (!r) return emptyAnswer(q);
   const t = q.type_reponse;
   if (t === 'qcm_unique') {
@@ -56,7 +55,7 @@ function hydrateAnswer(q: Question, r: ExistingResponse | undefined): AnswerStat
   return { kind: 'text', value: r.valeur ?? '' };
 }
 
-function toResponse(q: Question, a: AnswerState): ResponseInput {
+export function toResponse(q: Question, a: AnswerState): ResponseInput {
   if (a.kind === 'single') {
     const needsFollowup = a.value !== null && q.follow_up_options.includes(a.value);
     const followup = needsFollowup ? a.followup.trim() : '';
@@ -67,7 +66,7 @@ function toResponse(q: Question, a: AnswerState): ResponseInput {
   return { question_id: q.id, valeur: a.value };
 }
 
-function isAnswered(a: AnswerState): boolean {
+export function isAnswered(a: AnswerState): boolean {
   if (a.kind === 'text') return a.value.trim().length > 0;
   if (a.kind === 'single') return a.value !== null;
   if (a.kind === 'multi') return a.values.length > 0;
@@ -75,111 +74,13 @@ function isAnswered(a: AnswerState): boolean {
   return false;
 }
 
-function followupMissing(q: Question, a: AnswerState): boolean {
+export function followupMissing(q: Question, a: AnswerState): boolean {
   if (a.kind !== 'single' || a.value === null) return false;
   if (!q.follow_up_options.includes(a.value)) return false;
   return a.followup.trim().length === 0;
 }
 
-export function EvaluationForm({
-  sessionId,
-  testId,
-  participantId,
-  questions,
-  existingResponses,
-}: {
-  sessionId: string;
-  testId: string;
-  participantId: string;
-  questions: Question[];
-  existingResponses: ExistingResponse[];
-}) {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-
-  const initialByQ = new Map(existingResponses.map((r) => [r.question_id, r]));
-  const [answers, setAnswers] = useState<Record<string, AnswerState>>(() =>
-    Object.fromEntries(questions.map((q) => [q.id, hydrateAnswer(q, initialByQ.get(q.id))]))
-  );
-
-  function set(qid: string, a: AnswerState) {
-    setAnswers((s) => ({ ...s, [qid]: a }));
-    setSuccess(false);
-  }
-
-  function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setSuccess(false);
-    for (const q of questions) {
-      const a = answers[q.id];
-      if (q.required && !isAnswered(a)) {
-        setError(`La question ${q.ordre} est obligatoire.`);
-        return;
-      }
-      if (q.required && followupMissing(q, a)) {
-        setError(`Question ${q.ordre} : précisez votre réponse dans le champ texte.`);
-        return;
-      }
-    }
-    const payload = questions
-      .filter((q) => isAnswered(answers[q.id]))
-      .map((q) => toResponse(q, answers[q.id]));
-
-    startTransition(async () => {
-      const res = await submitFormateurEvaluation(sessionId, testId, participantId, payload);
-      if (!res.ok) { setError(res.error); return; }
-      setSuccess(true);
-      router.refresh();
-    });
-  }
-
-  if (questions.length === 0) {
-    return (
-      <div className="bg-white border border-dark/10 rounded-lg p-6 text-sm text-dark/60">
-        Cette évaluation ne contient aucune question.
-      </div>
-    );
-  }
-
-  return (
-    <form onSubmit={onSubmit} className="space-y-4">
-      {error && (
-        <div className="text-sm text-orange bg-orange/10 border border-orange/30 rounded p-3">{error}</div>
-      )}
-      {success && (
-        <div className="text-sm text-teal bg-teal/10 border border-teal/30 rounded p-3">
-          Évaluation enregistrée.
-        </div>
-      )}
-
-      {questions.map((q) => (
-        <div key={q.id} className="bg-white border border-dark/10 rounded-lg p-5">
-          <div className="flex items-start gap-3">
-            <span className="text-xs font-mono text-dark/40 mt-1">{q.ordre}.</span>
-            <div className="flex-1">
-              <p className="font-medium">
-                {q.libelle}
-                {q.required && <span className="text-orange ml-1">*</span>}
-              </p>
-              <div className="mt-3">
-                <QuestionInput question={q} answer={answers[q.id]} onChange={(a) => set(q.id, a)} />
-              </div>
-            </div>
-          </div>
-        </div>
-      ))}
-
-      <Button type="submit" disabled={pending}>
-        {pending ? 'Enregistrement…' : 'Enregistrer l\'évaluation'}
-      </Button>
-    </form>
-  );
-}
-
-function QuestionInput({
+export function QuestionInput({
   question,
   answer,
   onChange,
