@@ -1,9 +1,21 @@
 import { formatDate, formatDateLong } from '@/lib/date';
 import type { SuiviSession } from '@/lib/suivi/data';
+import { BilanCompetences } from './BilanCompetences';
 
-/** Compétences acquises / à venir puis le détail journée par journée. */
-export function SuiviDetail({ suivi, commentairesLabel }: { suivi: SuiviSession; commentairesLabel: string }) {
-  const acquises = suivi.competences.filter((c) => c.vueLe);
+/**
+ * Compétences vues / à venir par le groupe, bilan de fin de formation par
+ * stagiaire (niveau d'acquisition), puis le détail journée par journée.
+ */
+export function SuiviDetail({
+  suivi,
+  commentairesLabel,
+  bilansLabel,
+}: {
+  suivi: SuiviSession;
+  commentairesLabel: string;
+  bilansLabel: string;
+}) {
+  const vues = suivi.competences.filter((c) => c.vueLe);
   const manquantes = suivi.competences.filter((c) => !c.vueLe);
 
   return (
@@ -11,12 +23,12 @@ export function SuiviDetail({ suivi, commentairesLabel }: { suivi: SuiviSession;
       {suivi.competences.length > 0 && (
         <section className="grid gap-4 md:grid-cols-2">
           <div className="bg-white rounded-lg border border-teal/30 p-5">
-            <h3 className="text-sm font-semibold text-teal">✓ Compétences acquises ({acquises.length})</h3>
-            {acquises.length === 0 ? (
+            <h3 className="text-sm font-semibold text-teal">✓ Compétences vues en formation ({vues.length})</h3>
+            {vues.length === 0 ? (
               <p className="mt-3 text-sm text-dark/60">Aucune pour le moment.</p>
             ) : (
               <ul className="mt-3 space-y-2 text-sm">
-                {acquises.map((c) => (
+                {vues.map((c) => (
                   <li key={c.id} className="flex items-start justify-between gap-3">
                     <span>{c.libelle}</span>
                     <span className="text-xs text-dark/40 whitespace-nowrap">{formatDate(c.vueLe)}</span>
@@ -34,6 +46,24 @@ export function SuiviDetail({ suivi, commentairesLabel }: { suivi: SuiviSession;
                 {manquantes.map((c) => <li key={c.id}>{c.libelle}</li>)}
               </ul>
             )}
+          </div>
+        </section>
+      )}
+
+      {suivi.bilans.length > 0 && suivi.competences.length > 0 && (
+        <section>
+          <h3 className="font-display text-2xl tracking-wide">{bilansLabel}</h3>
+          <p className="text-xs text-dark/60 mt-1">
+            Niveau d&apos;acquisition de chaque compétence, attribué par le formateur en fin de formation.
+          </p>
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            {suivi.bilans.map((b) => (
+              <BilanCompetences
+                key={b.participantId}
+                titre={b.nom}
+                competences={suivi.competences.map((c) => ({ id: c.id, libelle: c.libelle, niveau: b.niveaux[c.id] ?? null }))}
+              />
+            ))}
           </div>
         </section>
       )}

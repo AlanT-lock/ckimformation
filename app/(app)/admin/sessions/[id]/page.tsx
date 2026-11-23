@@ -405,14 +405,19 @@ export default async function AdminSessionDetailPage({ params }: PageProps) {
             <span className="ml-3 text-xs text-teal group-open:hidden">Afficher ▾</span>
             <span className="ml-3 text-xs text-teal hidden group-open:inline">Masquer ▴</span>
             <p className="text-xs text-dark/60 mt-1">
-              Compétences cochées et commentaires du formateur en fin de journée (vue entreprise, tous les stagiaires).
+              Compétences cochées et commentaires du formateur en fin de journée, puis bilan de compétences de chaque
+              stagiaire en fin de formation (vue entreprise, tous les stagiaires).
             </p>
           </summary>
           <div className="mt-4 space-y-6">
             <div className="bg-white rounded-xl border border-dark/10 p-5">
               <SuiviProgress suivi={suivi} />
             </div>
-            <SuiviDetail suivi={suivi} commentairesLabel="Commentaires par stagiaire" />
+            <SuiviDetail
+              suivi={suivi}
+              commentairesLabel="Commentaires par stagiaire"
+              bilansLabel="Bilan de compétences par stagiaire"
+            />
           </div>
         </details>
       )}
