@@ -142,7 +142,7 @@ export default async function AdminSessionParticipantPage({ params }: PageProps)
         eyebrow={formation?.titre ? `Session · ${formation.titre}` : 'Session'}
         title={fullName}
         description={email}
-        actions={<ButtonLink href={`/admin/sessions/${sessionId}`} variant="secondary">← Session</ButtonLink>}
+        actions={<ButtonLink href={`/admin/sessions/${sessionId}/stagiaires`} variant="secondary">← Stagiaires de la session</ButtonLink>}
       />
 
       <section className="bg-white rounded-lg border border-dark/10 p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
