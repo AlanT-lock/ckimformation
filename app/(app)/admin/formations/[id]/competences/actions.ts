@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { getCurrentProfile } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { MENTION_MAX_LENGTH } from '@/lib/fin-formation/model';
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -84,6 +85,33 @@ export async function moveCompetence(formationId: string, id: string, direction:
     if (reordered[k].ordre === k + 1) continue;
     const { error } = await admin.from('formation_competences').update({ ordre: k + 1 }).eq('id', reordered[k].id);
     if (error) return { ok: false, error: error.message };
+  }
+  revalidate(formationId);
+  return { ok: true };
+}
+
+/**
+ * Mention d'habilitation, d'agrément ou de certification propre à la formation,
+ * reprise sur l'attestation de fin de formation. Texte vide = aucune mention.
+ */
+export async function saveMentionDocuments(formationId: string, text: string): Promise<Result> {
+  await requireAdmin();
+  const value = text.trim();
+  if (value.length > MENTION_MAX_LENGTH) {
+    return { ok: false, error: `La mention fait au maximum ${MENTION_MAX_LENGTH} caractères.` };
+  }
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from('formations')
+    .update({ mention_documents: value || null })
+    .eq('id', formationId);
+  if (error) {
+    console.error('[formations] mention_documents', error);
+    return {
+      ok: false,
+      error:
+        'Enregistrement impossible : la migration « mention des documents » est-elle appliquée dans Supabase ?',
+    };
   }
   revalidate(formationId);
   return { ok: true };

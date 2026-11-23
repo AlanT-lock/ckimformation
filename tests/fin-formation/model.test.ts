@@ -7,6 +7,7 @@ import {
   documentFileName,
   fmtIsoDate,
   formatNumero,
+  headLines,
   heuresTxt,
   isSessionTerminee,
   modaliteCourte,
@@ -56,6 +57,8 @@ function textOf(model: DocModel): string {
         return b.rows.map((r) => `${r.k} : ${r.v.map((x) => x.text).join('')}`).join('\n');
       case 'h':
         return b.text;
+      case 'box':
+        return [b.title, ...b.lines].join('\n');
       case 'res':
         return [b.head.join(' | '), ...b.rows.map((r) => `${r.libelle} | ${r.niveau ?? ''}`)].join('\n');
       case 'sign':
@@ -240,6 +243,47 @@ describe('attestation de fin de formation', () => {
     expect(text).toContain('Dates, lieu et modalité : Le 19/11/2026 – Présentiel, inter-entreprises');
     expect(text).toContain('Durée : 10,5 heures réalisées sur 14 heures prévues\n');
     expect(text).not.toContain('formateur');
+  });
+});
+
+describe('mentions réglementaires', () => {
+  it('en-tête commun : SIRET, déclaration d’activité (phrase obligatoire) et Qualiopi', () => {
+    expect(headLines()[0]).toBe('391 avenue du Maréchal Koenig, 83300 Draguignan – SIRET 991 764 580 00015');
+    expect(headLines().slice(1).join(' ')).toBe(
+      "Déclaration d'activité enregistrée sous le n° 93830858883 auprès du préfet de région PACA. Cet enregistrement ne vaut pas agrément de l'État. " +
+        "Certification Qualiopi : certificat n° 772911-1, délivré par Certifopac au titre de la catégorie « actions de formation », valable jusqu'au 22/02/2029."
+    );
+  });
+
+  const sst =
+    "C-KIM SÉCURITÉ FORMATION est habilité par l'INRS à dispenser les formations SST et MAC SST : habilitation n° H38732/2026/SST-1/O/07, obtenue le 26/03/2026, valable jusqu'au 26/03/2031.";
+
+  it('la mention de la formation figure dans un encadré de l’attestation, avant la légende', () => {
+    const model = attestationModel({ ...input, mention: `  ${sst}\n\nSeconde ligne ` });
+    const box = model.blocks.find((b) => b.t === 'box');
+    expect(box).toEqual({
+      t: 'box',
+      title: 'Habilitation, agrément et certification',
+      lines: [sst, 'Seconde ligne'],
+    });
+    const order = model.blocks.map((b) => b.t);
+    expect(order.indexOf('res')).toBeLessThan(order.indexOf('box'));
+    expect(order.indexOf('box')).toBeLessThan(order.indexOf('small'));
+    expect(order.indexOf('small')).toBeLessThan(order.indexOf('sign'));
+  });
+
+  it('encadré présent aussi pour une formation sans compétence', () => {
+    const model = attestationModel({ ...input, competences: [], mention: sst });
+    expect(model.blocks.map((b) => b.t)).toEqual(['intro', 'kv', 'box', 'sign']);
+  });
+
+  it('pas d’encadré sans mention (NDA et Qualiopi suffisent)', () => {
+    expect(attestationModel(input).blocks.some((b) => b.t === 'box')).toBe(false);
+    expect(attestationModel({ ...input, mention: '  \n ' }).blocks.some((b) => b.t === 'box')).toBe(false);
+  });
+
+  it('le certificat de réalisation garde le texte du modèle officiel, sans encadré', () => {
+    expect(certificatModel({ ...input, mention: sst }).blocks.some((b) => b.t === 'box')).toBe(false);
   });
 });
 

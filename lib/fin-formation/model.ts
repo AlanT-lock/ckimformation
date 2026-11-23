@@ -28,8 +28,10 @@ export const FIN_FORMATION_PARAMS = {
   forme: 'SAS',
   adresse: '391 avenue du Maréchal Koenig, 83300 Draguignan',
   siret: '991 764 580 00015',
-  nda: '93 83 08588 83',
+  nda: '93830858883',
   qualiopi: '772911-1',
+  qualiopiCertificateur: 'Certifopac',
+  qualiopiFin: '22/02/2029',
   email: 'contact@ckimformation.fr',
   signNom: 'Camel ATIL',
   signQualite: 'Président',
@@ -203,6 +205,7 @@ export type DocBlock =
   | { t: 'kv'; rows: Array<{ k: string; v: Run[] }> }
   | { t: 'h'; text: string }
   | { t: 'res'; head: string[]; withResult: boolean; rows: Array<{ libelle: string; niveau: Niveau | null }> }
+  | { t: 'box'; title: string; lines: string[] }
   | { t: 'small'; runs: Run[] }
   | { t: 'sign'; left: Run[]; rightTitle: string };
 
@@ -237,9 +240,28 @@ export interface FinFormationInput {
   };
   /** Toutes les compétences de la formation, avec le niveau du stagiaire. */
   competences: Array<{ libelle: string; niveau: Niveau | null }>;
+  /**
+   * Mention d'habilitation, d'agrément ou de certification propre à la
+   * formation (habilitation INRS pour le SST, agrément SSIAP…), saisie par
+   * l'admin. Vide : le NDA et Qualiopi de l'en-tête suffisent.
+   */
+  mention?: string | null;
 }
 
 const R = (text: string, o: Omit<Run, 'text'> = {}): Run => ({ text, ...o });
+
+/** Longueur maximale de la mention propre à une formation. */
+export const MENTION_MAX_LENGTH = 600;
+
+/** Encadré « Habilitation, agrément et certification » ; null si la mention est vide. */
+function mentionBlock(mention: string | null | undefined): DocBlock | null {
+  const lines = (mention ?? '')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (lines.length === 0) return null;
+  return { t: 'box', title: 'Habilitation, agrément et certification', lines };
+}
 
 function actionRuns(input: FinFormationInput): Run[] {
   return [
@@ -389,6 +411,8 @@ export function attestationModel(input: FinFormationInput): DocModel {
       head: withResult ? ['Compétence', 'Résultat'] : ['Compétence'],
       rows: input.competences.map((c) => ({ libelle: c.libelle, niveau: c.niveau })),
     });
+    const mentionBox = mentionBlock(input.mention);
+    if (mentionBox) blocks.push(mentionBox);
     if (withResult) {
       blocks.push({
         t: 'small',
@@ -399,6 +423,11 @@ export function attestationModel(input: FinFormationInput): DocModel {
         ],
       });
     }
+  }
+
+  if (input.competences.length === 0) {
+    const mentionBox = mentionBlock(input.mention);
+    if (mentionBox) blocks.push(mentionBox);
   }
 
   blocks.push({
@@ -420,14 +449,19 @@ export function buildDocModel(kind: FinFormationKind, input: FinFormationInput):
   return kind === 'certificat' ? certificatModel(input) : attestationModel(input);
 }
 
-/** En-tête (bandeau) : lignes sous la raison sociale. */
+/**
+ * En-tête (bandeau), sous la raison sociale : mentions communes à tous les
+ * documents, une entrée par ligne imprimée. La phrase sur la déclaration
+ * d'activité est celle imposée par l'article L.6352-12 du Code du travail.
+ */
 export function headLines(): string[] {
   const P = FIN_FORMATION_PARAMS;
   return [
-    P.adresse,
-    `SIRET ${P.siret}`,
-    `Enregistré sous le n° ${P.nda} – cet enregistrement ne vaut pas agrément de l'État`,
-    `Certifié Qualiopi n° ${P.qualiopi} – actions de formation`,
+    `${P.adresse} – SIRET ${P.siret}`,
+    `Déclaration d'activité enregistrée sous le n° ${P.nda} auprès du préfet de région PACA.`,
+    "Cet enregistrement ne vaut pas agrément de l'État.",
+    `Certification Qualiopi : certificat n° ${P.qualiopi}, délivré par ${P.qualiopiCertificateur}`,
+    `au titre de la catégorie « actions de formation », valable jusqu'au ${P.qualiopiFin}.`,
   ];
 }
 

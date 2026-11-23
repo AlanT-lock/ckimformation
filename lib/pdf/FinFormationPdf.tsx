@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react';
 import { Document, Page, View, Text, Image, StyleSheet } from '@react-pdf/renderer';
 import {
   FIN_FORMATION_PARAMS,
@@ -98,6 +99,18 @@ const s = StyleSheet.create({
   checkMark: { fontFamily: BOLD, fontSize: 6, lineHeight: 1 },
   clause: { fontSize: 10, textAlign: 'justify', lineHeight: 1.2, marginTop: 4, marginBottom: 16 },
   h: { fontFamily: BOLD, fontSize: 10, lineHeight: LH, marginBottom: 4 },
+  box: {
+    backgroundColor: '#F4F8F8',
+    border: `0.6pt solid ${C.border}`,
+    borderLeft: `3.4pt solid ${C.turquoise}`,
+    paddingLeft: 11,
+    paddingRight: 10,
+    paddingTop: 6,
+    paddingBottom: 4,
+    marginBottom: 6,
+  },
+  boxTitle: { fontFamily: BOLD, fontSize: 9, lineHeight: LH, marginBottom: 3 },
+  boxLine: { fontSize: 9, lineHeight: LH, marginBottom: 2 },
   small: { fontSize: 7.6, color: C.muted, lineHeight: 1.1, marginBottom: 8 },
   table: { borderTop: `0.6pt solid ${C.border}`, borderLeft: `0.6pt solid ${C.border}` },
   row: { flexDirection: 'row' },
@@ -132,6 +145,14 @@ const s = StyleSheet.create({
   noteText: { flex: 1, fontSize: 7.8, lineHeight: LH, color: '#333333' },
 });
 
+/** Aucune césure : un mot trop long passe entier à la ligne suivante. */
+const noHyphenation = (word: string) => [word];
+
+/** Texte sans césure automatique (react-pdf coupe sinon les mots à l'anglaise). */
+function T(props: ComponentProps<typeof Text>) {
+  return <Text hyphenationCallback={noHyphenation} {...props} />;
+}
+
 function runStyle(r: Run) {
   if (r.b) return { fontFamily: BOLD };
   if (r.i) return { fontFamily: ITALIC };
@@ -143,9 +164,9 @@ function Runs({ runs }: { runs: Run[] }) {
   return (
     <>
       {runs.map((r, i) => (
-        <Text key={i} style={runStyle(r)}>
+        <T key={i} style={runStyle(r)}>
           {r.text}
-        </Text>
+        </T>
       ))}
     </>
   );
@@ -162,17 +183,17 @@ function Paragraph({ runs, gap }: { runs: Run[]; gap?: boolean }) {
   if (last?.sup) {
     return (
       <View style={[s.supRow, { marginBottom }]}>
-        <Text style={s.p}>
+        <T style={s.p}>
           <Runs runs={runs.slice(0, -1)} />
-        </Text>
-        <Text style={s.sup}>{last.text}</Text>
+        </T>
+        <T style={s.sup}>{last.text}</T>
       </View>
     );
   }
   return (
-    <Text style={[s.p, { marginBottom }]}>
+    <T style={[s.p, { marginBottom }]}>
       <Runs runs={runs} />
-    </Text>
+    </T>
   );
 }
 
@@ -180,9 +201,9 @@ function Block({ block }: { block: DocBlock }) {
   switch (block.t) {
     case 'intro':
       return (
-        <Text style={s.intro}>
+        <T style={s.intro}>
           <Runs runs={block.runs} />
-        </Text>
+        </T>
       );
     case 'p':
       return <Paragraph runs={block.runs} gap={block.gap} />;
@@ -191,36 +212,47 @@ function Block({ block }: { block: DocBlock }) {
         <View style={s.checks}>
           {block.items.map((item, i) => (
             <View key={i} style={s.checkRow}>
-              <View style={s.checkBox}>{item.checked && <Text style={s.checkMark}>X</Text>}</View>
-              <Text style={s.p}>{item.label}</Text>
-              {item.note && <Text style={s.sup}>{item.note}</Text>}
+              <View style={s.checkBox}>{item.checked && <T style={s.checkMark}>X</T>}</View>
+              <T style={s.p}>{item.label}</T>
+              {item.note && <T style={s.sup}>{item.note}</T>}
             </View>
           ))}
         </View>
       );
     case 'clause':
       return (
-        <Text style={s.clause}>
+        <T style={s.clause}>
           <Runs runs={block.runs} />
-        </Text>
+        </T>
       );
     case 'h':
-      return <Text style={s.h}>{block.text}</Text>;
+      return <T style={s.h}>{block.text}</T>;
+    case 'box':
+      return (
+        <View style={s.box} wrap={false}>
+          <T style={s.boxTitle}>{block.title}</T>
+          {block.lines.map((line, i) => (
+            <T key={i} style={s.boxLine}>
+              {line}
+            </T>
+          ))}
+        </View>
+      );
     case 'small':
       return (
-        <Text style={s.small}>
+        <T style={s.small}>
           <Runs runs={block.runs} />
-        </Text>
+        </T>
       );
     case 'kv':
       return (
         <View style={[s.table, s.kvTable]}>
           {block.rows.map((row, i) => (
             <View key={i} style={s.row} wrap={false}>
-              <Text style={[s.cell, s.kvCell, s.kvKey]}>{row.k}</Text>
-              <Text style={[s.cell, s.kvCell, { flex: 1 }]}>
+              <T style={[s.cell, s.kvCell, s.kvKey]}>{row.k}</T>
+              <T style={[s.cell, s.kvCell, { flex: 1 }]}>
                 <Runs runs={row.v} />
-              </Text>
+              </T>
             </View>
           ))}
         </View>
@@ -229,22 +261,22 @@ function Block({ block }: { block: DocBlock }) {
       return (
         <View style={[s.table, s.resTable]}>
           <View style={s.row} wrap={false}>
-            <Text style={[s.cell, s.resCell, s.resHead, { flex: 1 }]}>{block.head[0]}</Text>
-            {block.withResult && <Text style={[s.cell, s.resCell, s.resHead, s.resResult]}>{block.head[1]}</Text>}
+            <T style={[s.cell, s.resCell, s.resHead, { flex: 1 }]}>{block.head[0]}</T>
+            {block.withResult && <T style={[s.cell, s.resCell, s.resHead, s.resResult]}>{block.head[1]}</T>}
           </View>
           {block.rows.map((row, i) => (
             <View key={i} style={s.row} wrap={false}>
-              <Text style={[s.cell, s.resCell, { flex: 1 }]}>{row.libelle}</Text>
+              <T style={[s.cell, s.resCell, { flex: 1 }]}>{row.libelle}</T>
               {block.withResult && (
                 <View style={[s.cell, s.resCell, s.resResult]}>
                   {row.niveau ? (
                     <View style={[s.badge, { backgroundColor: NIVEAU_COLORS[row.niveau].bg }]}>
-                      <Text style={[s.badgeText, { color: NIVEAU_COLORS[row.niveau].fg }]}>
+                      <T style={[s.badgeText, { color: NIVEAU_COLORS[row.niveau].fg }]}>
                         {NIVEAU_LABEL[row.niveau]}
-                      </Text>
+                      </T>
                     </View>
                   ) : (
-                    <Text style={{ color: C.muted }}>Non évaluée</Text>
+                    <T style={{ color: C.muted }}>Non évaluée</T>
                   )}
                 </View>
               )}
@@ -255,14 +287,14 @@ function Block({ block }: { block: DocBlock }) {
     case 'sign':
       return (
         <View style={s.sign} wrap={false}>
-          <Text style={s.signLeft}>
+          <T style={s.signLeft}>
             <Runs runs={block.left} />
-          </Text>
+          </T>
           <View style={s.signRight}>
-            <Text style={s.signTitle}>{block.rightTitle}</Text>
-            <Text style={s.signName}>
+            <T style={s.signTitle}>{block.rightTitle}</T>
+            <T style={s.signName}>
               {FIN_FORMATION_PARAMS.signNom}, {FIN_FORMATION_PARAMS.signQualite}
-            </Text>
+            </T>
             <View style={s.stampBox}>
               {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image, pas une balise HTML */}
               <Image src={CACHET_SIGNATURE} style={s.stamp} />
@@ -276,8 +308,8 @@ function Block({ block }: { block: DocBlock }) {
           <View style={s.notesRule} />
           {block.notes.map(([n, text]) => (
             <View key={n} style={s.noteRow}>
-              <Text style={s.noteNum}>{n}</Text>
-              <Text style={s.noteText}>{text}</Text>
+              <T style={s.noteNum}>{n}</T>
+              <T style={s.noteText}>{text}</T>
             </View>
           ))}
         </View>
@@ -295,26 +327,26 @@ export function FinFormationPdf({ model, stagiaireNom }: { model: DocModel; stag
           {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image, pas une balise HTML */}
           <Image src={LOGO_BLANC} style={s.bandLogo} />
           <View style={s.bandOrg}>
-            <Text style={s.bandOrgName}>{FIN_FORMATION_PARAMS.raison}</Text>
+            <T style={s.bandOrgName}>{FIN_FORMATION_PARAMS.raison}</T>
             {headLines().map((line) => (
-              <Text key={line} style={s.bandOrgLine}>
+              <T key={line} style={s.bandOrgLine}>
                 {line}
-              </Text>
+              </T>
             ))}
           </View>
         </View>
 
-        <Text style={s.numero}>N° {model.numero}</Text>
-        <Text style={s.title}>{model.title}</Text>
-        {model.legal ? <Text style={s.legal}>{model.legal}</Text> : <View style={{ height: 16 }} />}
+        <T style={s.numero}>N° {model.numero}</T>
+        <T style={s.title}>{model.title}</T>
+        {model.legal ? <T style={s.legal}>{model.legal}</T> : <View style={{ height: 16 }} />}
 
         {model.blocks.map((block, i) => (
           <Block key={i} block={block} />
         ))}
 
-        <Text style={s.footer} fixed>
+        <T style={s.footer} fixed>
           {footLine()}
-        </Text>
+        </T>
       </Page>
     </Document>
   );

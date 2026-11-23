@@ -66,6 +66,8 @@ export interface FinFormationSession {
   dateDebut: string | null;
   dateFin: string | null;
   heuresPrevues: number;
+  /** Mention d'habilitation / d'agrément de la formation (formations.mention_documents). */
+  mention: string | null;
   /** Session terminée : statut « Terminée » ou dernier créneau passé. */
   terminee: boolean;
   competences: Array<{ id: string; libelle: string }>;
@@ -185,10 +187,17 @@ export async function loadFinFormationSession(sessionId: string): Promise<FinFor
   base.sort((a, b) => `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`, 'fr'));
   const participantIds = base.map((p) => p.id);
 
-  // Les niveaux par stagiaire (bilan de fin de formation) et les documents déjà
-  // émis vivent dans des tables ajoutées par migration : une table absente
-  // renvoie une erreur PostgREST, traitée comme « aucune ligne ».
-  const [{ data: competences }, { data: absences }, { data: niveauRows }, { data: docRows }] = await Promise.all([
+  // Les niveaux par stagiaire (bilan de fin de formation), les documents déjà
+  // émis et la mention de la formation vivent dans des tables ou colonnes
+  // ajoutées par migration : une table ou colonne absente renvoie une erreur
+  // PostgREST, traitée comme « aucune ligne ».
+  const [
+    { data: competences },
+    { data: absences },
+    { data: niveauRows },
+    { data: docRows },
+    { data: mentionRow },
+  ] = await Promise.all([
     admin
       .from('formation_competences')
       .select('id, libelle, ordre')
@@ -207,6 +216,7 @@ export async function loadFinFormationSession(sessionId: string): Promise<FinFor
           .in('inscription_participant_id', participantIds)
       : Promise.resolve({ data: [] as Array<{ inscription_participant_id: string; competence_id: string; niveau: string }> }),
     admin.from('fin_formation_documents').select(DOC_COLS).eq('session_id', sessionId),
+    admin.from('formations').select('mention_documents').eq('id', session.formation_id).maybeSingle(),
   ]);
 
   const absentByParticipant = new Map<string, Set<string>>();
@@ -246,6 +256,7 @@ export async function loadFinFormationSession(sessionId: string): Promise<FinFor
     dateDebut,
     dateFin,
     heuresPrevues,
+    mention: (mentionRow as { mention_documents?: string | null } | null)?.mention_documents?.trim() || null,
     terminee: isSessionTerminee(session.statut, dateFin, todayIsoParis()),
     competences: (competences ?? []).map((c) => ({ id: c.id, libelle: c.libelle })),
     participants: base.map((p) => ({
@@ -286,6 +297,7 @@ export function buildFinFormationInput(
       libelle: c.libelle,
       niveau: participant.niveaux[c.id] ?? null,
     })),
+    mention: session.mention,
   };
 }
 

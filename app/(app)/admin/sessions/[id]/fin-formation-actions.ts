@@ -57,6 +57,7 @@ export async function sendFinFormationCompanyRecaps(
       failed: [{ entreprise: 'Entreprises', error: err instanceof Error ? err.message : 'Erreur inattendue.' }],
     };
   } finally {
-    revalidatePath(`/admin/sessions/${sessionId}`);
+    // 'layout' : toutes les rubriques de la fiche session (dont « Fin de formation »).
+    revalidatePath(`/admin/sessions/${sessionId}`, 'layout');
   }
 }
