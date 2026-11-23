@@ -230,7 +230,7 @@ export default function FinancementPage() {
                 <p>
                   Seules les formations <strong>certifiantes ou diplômantes</strong> inscrites au
                   RNCP ou au Répertoire Spécifique sont éligibles. Côté C-KIM : le titre <strong>FPA
-                  (Formateur Professionnel d&apos;Adultes — RNCP37274)</strong>, le <strong>SST</strong>{' '}
+                  (Formateur Professionnel d&apos;Adultes — RNCP37275)</strong>, le <strong>SST</strong>{' '}
                   et son recyclage MAC SST sont éligibles. Pour les autres, demandez-nous.
                 </p>
               </Card>

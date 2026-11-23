@@ -1,4 +1,5 @@
 import { createPublicClient } from '@/lib/supabase/public';
+import { PARCOURS_META } from '@/lib/parcours';
 import type { Formation, FormationRecommandee, Module, Parcours, TarifTier } from '@/lib/types/formation';
 
 export interface FormationRow {
@@ -89,18 +90,40 @@ export async function getAllFormations(): Promise<Formation[]> {
   return (data ?? []).map((r) => rowToFormation(r as unknown as FormationRow));
 }
 
+export interface CatalogueStats {
+  /** Formations actives rattachées à un parcours affiché. */
+  nbFormations: number;
+  /** Parcours comptant au moins une formation active, dans l'ordre d'affichage. */
+  parcours: Parcours[];
+}
+
 /**
- * Nombre de formations actives au catalogue (affiché sur les pages publiques).
+ * Chiffres du catalogue à partir du parcours de chaque formation active.
+ * Même règle que la page /formations : un parcours sans formation active n'est
+ * ni affiché ni compté, pour que tous les compteurs du site disent la même chose.
+ */
+export function summarizeCatalogue(parcoursValues: (string | null)[]): CatalogueStats {
+  const counts = new Map<string, number>();
+  for (const value of parcoursValues) {
+    const key = value ?? 'securite';
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  const parcours = (Object.keys(PARCOURS_META) as Parcours[]).filter((key) => counts.has(key));
+  return {
+    nbFormations: parcours.reduce((total, key) => total + (counts.get(key) ?? 0), 0),
+    parcours,
+  };
+}
+
+/**
+ * Chiffres du catalogue affichés sur les pages publiques (accueil, organisme).
  * Renvoie null si la requête échoue, pour ne jamais afficher un chiffre faux.
  */
-export async function countActiveFormations(): Promise<number | null> {
+export async function getCatalogueStats(): Promise<CatalogueStats | null> {
   const supabase = createPublicClient();
-  const { count, error } = await supabase
-    .from('formations')
-    .select('id', { count: 'exact', head: true })
-    .eq('actif', true);
-  if (error) return null;
-  return count ?? null;
+  const { data, error } = await supabase.from('formations').select('parcours').eq('actif', true);
+  if (error || !data) return null;
+  return summarizeCatalogue(data.map((r) => r.parcours as string | null));
 }
 
 /** « 1 formation », « 17 formations »… */

@@ -10,7 +10,8 @@ import { PARCOURS_META } from '@/lib/parcours';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { FormationsHighlight } from '@/components/sections/FormationsHighlight';
 import { QualiopiBanner } from '@/components/sections/QualiopiBanner';
-import { countActiveFormations, formatFormationsCount, getFormationBySlug } from '@/lib/db/formations';
+import { formatFormationsCount, getCatalogueStats, getFormationBySlug } from '@/lib/db/formations';
+import type { Parcours } from '@/lib/types/formation';
 
 const HIGHLIGHTED_SLUGS = [
   'sst-initiale',
@@ -23,13 +24,16 @@ const HIGHLIGHTED_SLUGS = [
 export const revalidate = 300;
 
 export default async function Home() {
-  const [highlightedRaw, nbFormations] = await Promise.all([
+  const [highlightedRaw, stats] = await Promise.all([
     Promise.all(HIGHLIGHTED_SLUGS.map((s) => getFormationBySlug(s))),
-    countActiveFormations(),
+    getCatalogueStats(),
   ]);
   const highlighted = highlightedRaw.filter((f): f is NonNullable<typeof f> => Boolean(f));
-  const nbParcours = Object.keys(PARCOURS_META).length;
-  const formationsLabel = nbFormations ? formatFormationsCount(nbFormations) : null;
+  // Seuls les parcours qui ont au moins une formation active sont annoncés et
+  // affichés, comme sur /formations. Sans chiffres fiables, on n'en annonce aucun.
+  const catalogue = stats && stats.nbFormations > 0 ? stats : null;
+  const parcoursKeys = catalogue?.parcours ?? (Object.keys(PARCOURS_META) as Parcours[]);
+  const formationsLabel = catalogue ? formatFormationsCount(catalogue.nbFormations) : null;
 
   return (
     <>
@@ -84,27 +88,30 @@ export default async function Home() {
           <FadeUp>
             <SectionHeader
               eyebrow="Catalogue"
-              titre={formationsLabel ? `${nbParcours} parcours, ${formationsLabel}.` : `${nbParcours} parcours de formation.`}
+              titre={formationsLabel ? `${parcoursKeys.length} parcours, ${formationsLabel}.` : 'Nos parcours de formation.'}
               accent={formationsLabel ?? 'parcours'}
               description="Un catalogue couvrant la sécurité au travail, la prévention, le management, les formateurs et le développement humain."
             />
           </FadeUp>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
-            {Object.entries(PARCOURS_META).map(([key, meta], i) => (
-              <FadeUp key={key} delay={i * 0.05}>
-                <Link
-                  href={`/formations#${key}`}
-                  className="block bg-white border border-light rounded-lg p-6 hover:shadow-lg transition-shadow"
-                >
-                  <div className="h-1 w-12 mb-4" style={{ backgroundColor: meta.couleur }} />
-                  <h3 className="font-display text-2xl tracking-wide text-dark">{meta.label}</h3>
-                  <p className="mt-2 text-sm text-dark/60 leading-relaxed">{meta.description}</p>
-                  <p className="mt-4 text-xs uppercase tracking-[0.2em]" style={{ color: meta.couleur }}>
-                    Découvrir →
-                  </p>
-                </Link>
-              </FadeUp>
-            ))}
+            {parcoursKeys.map((key, i) => {
+              const meta = PARCOURS_META[key];
+              return (
+                <FadeUp key={key} delay={i * 0.05}>
+                  <Link
+                    href={`/formations#${key}`}
+                    className="block bg-white border border-light rounded-lg p-6 hover:shadow-lg transition-shadow"
+                  >
+                    <div className="h-1 w-12 mb-4" style={{ backgroundColor: meta.couleur }} />
+                    <h3 className="font-display text-2xl tracking-wide text-dark">{meta.label}</h3>
+                    <p className="mt-2 text-sm text-dark/60 leading-relaxed">{meta.description}</p>
+                    <p className="mt-4 text-xs uppercase tracking-[0.2em]" style={{ color: meta.couleur }}>
+                      Découvrir →
+                    </p>
+                  </Link>
+                </FadeUp>
+              );
+            })}
           </div>
           <FadeUp delay={0.4}>
             <div className="mt-12 text-center">

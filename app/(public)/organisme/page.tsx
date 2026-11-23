@@ -6,7 +6,7 @@ import { ButtonLink } from '@/components/ui/Button';
 import { FadeUp } from '@/components/motion/FadeUp';
 import { StatCounter } from '@/components/motion/StatCounter';
 import { Marquee } from '@/components/motion/Marquee';
-import { countActiveFormations, formatFormationsCount, getFormationBySlug } from '@/lib/db/formations';
+import { formatFormationsCount, getCatalogueStats, getFormationBySlug } from '@/lib/db/formations';
 import { getParcoursMeta } from '@/lib/parcours';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { QualiopiBanner } from '@/components/sections/QualiopiBanner';
@@ -28,10 +28,11 @@ const HIGHLIGHTED_SLUGS = [
 ];
 
 export default async function OrganismePage() {
-  const [highlightedRaw, nbFormations] = await Promise.all([
+  const [highlightedRaw, stats] = await Promise.all([
     Promise.all(HIGHLIGHTED_SLUGS.map((s) => getFormationBySlug(s))),
-    countActiveFormations(),
+    getCatalogueStats(),
   ]);
+  const nbFormations = stats?.nbFormations ?? null;
   const highlighted = highlightedRaw.filter((f): f is NonNullable<typeof f> => Boolean(f));
 
   return (

@@ -5,7 +5,7 @@ import { Container } from '@/components/ui/Container';
 import { ButtonLink } from '@/components/ui/Button';
 import { FadeUp } from '@/components/motion/FadeUp';
 import { QualiopiBanner } from '@/components/sections/QualiopiBanner';
-import { getAllFormations } from '@/lib/db/formations';
+import { formatFormationsCount, getAllFormations } from '@/lib/db/formations';
 import { PARCOURS_META } from '@/lib/parcours';
 import type { Parcours, Formation } from '@/lib/types/formation';
 
@@ -28,6 +28,8 @@ export default async function FormationsIndex() {
       items: formations.filter((f) => f.parcours === key),
     }))
     .filter((g) => g.items.length > 0);
+  // Total des formations réellement listées ci-dessous (même règle que l'accueil).
+  const nbFormations = grouped.reduce((total, g) => total + g.items.length, 0);
 
   return (
     <>
@@ -52,7 +54,7 @@ export default async function FormationsIndex() {
                 Catalogue 2026
               </p>
               <h1 className="font-display text-5xl md:text-7xl lg:text-8xl tracking-wide leading-[0.95]">
-                {formations.length} formations<br />
+                {formatFormationsCount(nbFormations)}<br />
                 <em className="not-italic text-teal-l">sur mesure.</em>
               </h1>
               <p className="mt-8 text-lg md:text-xl text-muted max-w-2xl leading-relaxed">
@@ -64,7 +66,7 @@ export default async function FormationsIndex() {
 
             {/* Stats */}
             <div className="lg:col-span-4 grid grid-cols-3 lg:grid-cols-1 gap-6 lg:gap-4 lg:border-l lg:border-white/10 lg:pl-8">
-              <Stat n={formations.length} label="Formations" />
+              <Stat n={nbFormations} label="Formations" />
               <Stat n={grouped.length} label="Parcours" />
               <Stat n="80%" label="de pratique" />
             </div>
