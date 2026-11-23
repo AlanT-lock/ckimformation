@@ -3,6 +3,8 @@ import { createAdminClient } from '@/lib/supabase/admin';
 
 export const BUCKET_PAYER = 'inscription-docs-payer';
 export const BUCKET_ADMIN = 'inscription-docs-admin';
+/** Certificats de réalisation et attestations de fin de formation (PDF générés). */
+export const BUCKET_FIN_FORMATION = 'fin-formation-docs';
 
 export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 
@@ -63,7 +65,7 @@ export async function uploadDocument(
 
 /** Renvoie une URL signée à durée limitée pour télécharger un objet. */
 export async function getSignedUrl(
-  bucket: typeof BUCKET_PAYER | typeof BUCKET_ADMIN,
+  bucket: typeof BUCKET_PAYER | typeof BUCKET_ADMIN | typeof BUCKET_FIN_FORMATION,
   path: string,
   ttlSeconds = 60
 ): Promise<string | null> {

@@ -8,6 +8,8 @@ import { DocumentRequestItem, type DocumentRequestData } from './DocumentRequest
 import { SubmitDocumentsButton } from './SubmitDocumentsButton';
 import { formatDate, formatDateTime } from '@/lib/date';
 import type { InscriptionStatut } from '@/lib/supabase/types';
+import { loadFinFormationDocs } from '@/lib/fin-formation/data';
+import { FinFormationDocLinks } from '@/components/app/fin-formation/FinFormationDocLinks';
 
 interface PageProps { params: Promise<{ id: string }> }
 
@@ -77,6 +79,11 @@ export default async function StagiaireDemandeDetailPage({ params }: PageProps) 
     id: string; file_name: string; file_size: number | null; mime_type: string | null; created_at: string;
   }>;
 
+  // Documents de fin de formation des participants de cette demande (le
+  // contrôle « je suis le payeur » est fait juste au-dessus).
+  const finFormationDocs = await loadFinFormationDocs(participants.map((p) => p.id));
+  const participantsWithDocs = participants.filter((p) => (finFormationDocs.get(p.id) ?? []).length > 0);
+
   const isStaticStatus = ins.statut === 'confirmee' || ins.statut === 'refusee' || ins.statut === 'documents_recus';
   const showDocsRequest = docDemandes.length > 0;
   const showAdminDocs = adminDocs.length > 0;
@@ -138,6 +145,29 @@ export default async function StagiaireDemandeDetailPage({ params }: PageProps) 
           })}
         </ul>
       </section>
+
+      {/* Documents de fin de formation (certificat de réalisation, attestation) */}
+      {participantsWithDocs.length > 0 && (
+        <section>
+          <h2 className="font-display text-2xl tracking-wide">Documents de fin de formation</h2>
+          <p className="text-xs text-dark/60 mt-1">
+            Certificat de réalisation et attestation de fin de formation remis par C-KIM à l&apos;issue de la session.
+          </p>
+          <div className="mt-3 space-y-4">
+            {participantsWithDocs.map((p) => {
+              const emp = Array.isArray(p.employee) ? p.employee[0] : p.employee;
+              const prof = Array.isArray(p.profile) ? p.profile[0] : p.profile;
+              const label = emp ? `${emp.prenom} ${emp.nom}` : prof?.full_name ?? 'Stagiaire';
+              return (
+                <div key={p.id}>
+                  {participants.length > 1 && <p className="text-sm font-medium mb-2">{label}</p>}
+                  <FinFormationDocLinks docs={finFormationDocs.get(p.id) ?? []} />
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Documents demandés par C-KIM */}
       {showDocsRequest && (

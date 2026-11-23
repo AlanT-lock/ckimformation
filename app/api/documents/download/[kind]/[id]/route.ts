@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { BUCKET_ADMIN, BUCKET_PAYER, getSignedUrl } from '@/lib/storage/documents';
+import { BUCKET_ADMIN, BUCKET_FIN_FORMATION, BUCKET_PAYER, getSignedUrl } from '@/lib/storage/documents';
 
 export const runtime = 'nodejs';
 
@@ -9,6 +9,8 @@ export const runtime = 'nodejs';
  * Génère une URL signée et redirige le client vers elle (téléchargement).
  * `kind` : 'payer-demande' (table inscription_document_demandes)
  *          'admin' (table inscription_admin_documents)
+ *          'fin-formation' (table fin_formation_documents : certificat de
+ *          réalisation et attestation de fin de formation)
  */
 export async function GET(
   request: NextRequest,
@@ -57,6 +59,34 @@ export async function GET(
       return NextResponse.json({ error: 'forbidden' }, { status: 403 });
     }
     const url = await getSignedUrl(BUCKET_ADMIN, doc.storage_path);
+    if (!url) return NextResponse.json({ error: 'sign-failed' }, { status: 500 });
+    return NextResponse.redirect(url);
+  }
+
+  if (kind === 'fin-formation') {
+    const { data: doc } = await admin
+      .from('fin_formation_documents')
+      .select(`
+        storage_path,
+        participant:inscription_participants!inner(
+          participant_profile_id,
+          employee:employees(profile_id),
+          inscription:inscriptions!inner(payer_profile_id)
+        )
+      `)
+      .eq('id', id)
+      .single();
+    if (!doc?.storage_path) return NextResponse.json({ error: 'not-found' }, { status: 404 });
+    const part = Array.isArray(doc.participant) ? doc.participant[0] : doc.participant;
+    const emp = part?.employee && (Array.isArray(part.employee) ? part.employee[0] : part.employee);
+    const ins = part?.inscription && (Array.isArray(part.inscription) ? part.inscription[0] : part.inscription);
+    // Admin, entreprise (ou particulier) qui a inscrit le stagiaire, ou le stagiaire lui-même.
+    const isPayer = ins?.payer_profile_id === user.id;
+    const isStagiaire = part?.participant_profile_id === user.id || emp?.profile_id === user.id;
+    if (!isAdmin && !isPayer && !isStagiaire) {
+      return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+    }
+    const url = await getSignedUrl(BUCKET_FIN_FORMATION, doc.storage_path);
     if (!url) return NextResponse.json({ error: 'sign-failed' }, { status: 500 });
     return NextResponse.redirect(url);
   }

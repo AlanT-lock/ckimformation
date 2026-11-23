@@ -1,5 +1,7 @@
 import { redirect } from 'next/navigation';
 import { PageHeader } from '@/components/app/PageHeader';
+import { loadFinFormationDocs } from '@/lib/fin-formation/data';
+import { FinFormationDocLinks } from '@/components/app/fin-formation/FinFormationDocLinks';
 import { createClient, getCurrentProfile } from '@/lib/supabase/server';
 import { ParcoursClient, type ParticipantSession, type ActiveEmargement, type ActiveTest } from './ParcoursClient';
 import { loadStagiaireBilans } from '@/lib/suivi/data';
@@ -134,6 +136,11 @@ export default async function StagiaireParcoursPage() {
     .map((s) => s.sessionId);
   const completedTestIds = (completions ?? []).map((c) => c.test_id);
 
+  // Documents de fin de formation (partIds ne contient que les participations
+  // de l'utilisateur connecté).
+  const finFormationDocs = await loadFinFormationDocs(partIds);
+  const sessionsWithDocs = sessions.filter((sess) => finFormationDocs.has(sess.inscriptionParticipantId));
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -141,6 +148,23 @@ export default async function StagiaireParcoursPage() {
         title="Espace de formation"
         description="Émargements, tests et enquêtes : ils s'activent en direct le jour J."
       />
+      {sessionsWithDocs.length > 0 && (
+        <section>
+          <h2 className="font-display text-2xl tracking-wide">Mes documents de fin de formation</h2>
+          <p className="text-xs text-dark/60 mt-1">
+            Certificat de réalisation et attestation de fin de formation, à conserver.
+          </p>
+          <div className="mt-3 space-y-4">
+            {sessionsWithDocs.map((sess) => (
+              <div key={sess.inscriptionParticipantId}>
+                <p className="text-sm font-medium mb-2">{sess.formationTitre}</p>
+                <FinFormationDocLinks docs={finFormationDocs.get(sess.inscriptionParticipantId) ?? []} />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       <ParcoursClient
         userId={profile.id}
         sessions={sessions}
