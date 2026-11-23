@@ -1,6 +1,7 @@
 import { ViewHeader } from '@/components/app/ViewHeader';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { CompetencesManager, type CompetenceRow } from './CompetencesManager';
+import { MentionDocumentsForm } from './MentionDocumentsForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +16,14 @@ export default async function FormationCompetencesPage({ params }: { params: Pro
     .order('ordre')
     .order('created_at');
 
+  // Colonne ajoutée par migration : absente, la requête échoue et la mention reste vide.
+  const { data: mentionRow } = await admin
+    .from('formations')
+    .select('mention_documents')
+    .eq('id', id)
+    .maybeSingle();
+  const mention = (mentionRow as { mention_documents?: string | null } | null)?.mention_documents ?? '';
+
   const rows: CompetenceRow[] = (competences ?? []).map((c) => ({
     id: c.id,
     libelle: c.libelle,
@@ -26,9 +35,10 @@ export default async function FormationCompetencesPage({ params }: { params: Pro
       <ViewHeader
         nested
         title="Compétences"
-        description="Compétences travaillées pendant la formation. À la fin de chaque journée, le formateur coche celles qui ont été vues ; l'entreprise suit ainsi l'avancée de ses salariés."
+        description="Compétences travaillées pendant la formation. À la fin de chaque journée, le formateur coche celles qui ont été vues ; l'entreprise suit ainsi l'avancée de ses salariés. Elles figurent toutes sur l'attestation de fin de formation."
       />
       <CompetencesManager formationId={id} initial={rows} />
+      <MentionDocumentsForm formationId={id} initial={mention} />
     </div>
   );
 }
