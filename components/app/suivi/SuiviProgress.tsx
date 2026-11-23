@@ -29,7 +29,7 @@ export function SuiviProgress({ suivi, compact = false }: { suivi: SuiviSession;
           <p className="font-display text-4xl tracking-wide text-teal leading-none">{s.percent}&nbsp;%</p>
           <p className="text-xs text-dark/60 text-right">
             {s.basis === 'competences'
-              ? <>{s.competencesVues} / {suivi.competences.length} compétences acquises</>
+              ? <>{s.competencesVues} / {suivi.competences.length} compétences vues</>
               : <>{s.journeesTerminees} / {suivi.journees.length} journées terminées</>}
           </p>
         </div>
